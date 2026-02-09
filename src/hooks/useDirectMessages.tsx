@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useProfile } from "./useProfile";
 import { toast } from "sonner";
 
 export interface DirectMessage {
@@ -206,6 +207,7 @@ export function useCreateOrGetDM() {
 export function useSendDMMessage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
 
   return useMutation({
     mutationFn: async ({ 
@@ -267,8 +269,100 @@ export function useSendDMMessage() {
 
       return data;
     },
-    onError: (error: any) => {
+    onMutate: async (variables) => {
+      if (!user) return;
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["infinite-dm-messages", variables.dmId] });
+
+      // Snapshot previous value
+      const previousMessages = queryClient.getQueryData(["infinite-dm-messages", variables.dmId]);
+
+      // Create optimistic message with temp ID
+      const optimisticMessage: DMMessage = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        dm_id: variables.dmId,
+        user_id: user.id,
+        content: variables.content,
+        reply_to: variables.replyTo || null,
+        is_edited: false,
+        file_url: variables.fileUrl || null,
+        file_type: variables.fileType || null,
+        file_name: variables.fileName || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        profile: {
+          display_name: profile?.display_name || null,
+          avatar_url: profile?.avatar_url || null,
+        },
+      };
+
+      // Optimistically update infinite DM messages
+      queryClient.setQueryData(
+        ["infinite-dm-messages", variables.dmId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          const newPages = [...oldData.pages];
+          if (newPages.length > 0) {
+            newPages[newPages.length - 1] = {
+              ...newPages[newPages.length - 1],
+              messages: [...newPages[newPages.length - 1].messages, optimisticMessage],
+            };
+          }
+          return { ...oldData, pages: newPages };
+        }
+      );
+
+      // Also update legacy dm-messages query if exists
+      queryClient.setQueryData(
+        ["dm-messages", variables.dmId],
+        (old: DMMessage[] | undefined) => [...(old || []), optimisticMessage]
+      );
+
+      return { previousMessages, optimisticId: optimisticMessage.id };
+    },
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ["infinite-dm-messages", variables.dmId],
+          context.previousMessages
+        );
+      }
       toast.error(error.message || "Erro ao enviar mensagem");
+    },
+    onSuccess: (data, variables, context) => {
+      // Replace optimistic message with real one
+      if (data && context?.optimisticId) {
+        queryClient.setQueryData(
+          ["infinite-dm-messages", variables.dmId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.map((msg: DMMessage) =>
+                  msg.id === context.optimisticId
+                    ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at }
+                    : msg
+                ),
+              })),
+            };
+          }
+        );
+
+        // Also update legacy query
+        queryClient.setQueryData(
+          ["dm-messages", variables.dmId],
+          (old: DMMessage[] | undefined) =>
+            old?.map((msg) =>
+              msg.id === context.optimisticId
+                ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at }
+                : msg
+            )
+        );
+      }
     },
   });
 }
