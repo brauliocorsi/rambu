@@ -16,20 +16,42 @@ export const usePresence = (workspaceId?: string) => {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
 
-  const updateLastSeen = useCallback(async () => {
+  const updateLastSeen = useCallback(async (forceStatus?: string) => {
     if (!user?.id) return;
+    
+    // Get current user status to check if they want to appear offline
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', user.id)
+      .single();
+    
+    // Don't update if user has chosen to appear offline
+    if (profile?.status === 'offline' && !forceStatus) {
+      return;
+    }
     
     await supabase
       .from('profiles')
       .update({ 
         last_seen: new Date().toISOString(),
-        status: 'online'
+        status: forceStatus || profile?.status || 'online'
       })
       .eq('id', user.id);
   }, [user?.id]);
 
   const setOffline = useCallback(async () => {
     if (!user?.id) return;
+    
+    // Get current status - only set to offline if they weren't already invisible
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', user.id)
+      .single();
+    
+    // If already offline (invisible mode), don't change
+    if (profile?.status === 'offline') return;
     
     await supabase
       .from('profiles')
@@ -83,7 +105,17 @@ export const usePresence = (workspaceId?: string) => {
     }, 30000);
 
     // Handle page visibility changes
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
+      // Get current status to check if user wants to appear offline
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', user.id)
+        .single();
+      
+      // If user chose to appear offline, don't auto-change status
+      if (profile?.status === 'offline') return;
+      
       if (document.hidden) {
         // User switched tab - mark as away after a bit
         supabase
@@ -92,7 +124,7 @@ export const usePresence = (workspaceId?: string) => {
           .eq('id', user.id);
       } else {
         // User is back - mark as online
-        updateLastSeen();
+        updateLastSeen('online');
       }
     };
 
@@ -129,10 +161,11 @@ export const isUserOnline = (lastSeen: string | null): boolean => {
   return diffSeconds < 60;
 };
 
-// Get status color based on user status
+// Get status color based on user status - using semantic tokens
 export const getStatusColor = (status: string | null, lastSeen: string | null): string => {
-  if (status === 'busy' || status === 'dnd') return 'bg-red-500';
-  if (status === 'away') return 'bg-yellow-500';
-  if (status === 'online' && isUserOnline(lastSeen)) return 'bg-green-500';
-  return 'bg-gray-400';
+  if (status === 'busy' || status === 'dnd') return 'bg-destructive';
+  if (status === 'away') return 'bg-warning';
+  if (status === 'offline') return 'bg-muted-foreground';
+  if (status === 'online' && isUserOnline(lastSeen)) return 'bg-success';
+  return 'bg-muted-foreground';
 };
