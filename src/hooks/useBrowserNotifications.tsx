@@ -73,9 +73,9 @@ export function useBrowserNotifications() {
       try {
         const notification = new Notification(title, {
           body,
-          icon: icon || "/favicon.ico",
+          icon: icon || "/icons/icon-192x192.png",
           tag,
-          badge: "/favicon.ico",
+          badge: "/icons/icon-72x72.png",
           silent: true, // We'll handle sound ourselves
         });
 

@@ -51,10 +51,10 @@ export const usePushNotifications = () => {
     try {
       const notification = new Notification(options.title, {
         body: options.body,
-        icon: options.icon || '/favicon.ico',
+        icon: options.icon || '/icons/icon-192x192.png',
         tag: options.tag,
         data: options.data,
-        badge: '/favicon.ico',
+        badge: '/icons/icon-72x72.png',
         requireInteraction: false,
       });
 
