@@ -4,7 +4,7 @@ import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { useUnreadDMCounts, useMarkDMAsRead } from "@/hooks/useNotifications";
 import { DMChatView } from "@/components/dm/DMChatView";
-import { DMList } from "@/components/dm/DMList";
+import { DMListWithArchive } from "@/components/dm/DMListWithArchive";
 import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,10 +94,11 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
         </Card>
       ) : (
         <Card className="p-2 rounded-2xl">
-          <DMList 
+          <DMListWithArchive 
             dms={dms} 
             selectedDM={selectedDM} 
             onSelectDM={onSelectDM}
+            workspaceId={currentWorkspace.id}
             unreadCounts={unreadCounts}
           />
         </Card>

@@ -5,7 +5,7 @@ import { useChannelContext } from "@/contexts/ChannelContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useUnreadChannelCounts, useMarkChannelAsRead } from "@/hooks/useNotifications";
-import { ChannelList } from "@/components/channel/ChannelList";
+import { CategoryManager } from "@/components/channel/CategoryManager";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
@@ -148,7 +148,8 @@ export function ChannelsView() {
         </Card>
       ) : (
         <Card className="p-2 rounded-2xl">
-          <ChannelList
+          <CategoryManager
+            workspaceId={currentWorkspace.id}
             channels={channels}
             selectedChannel={currentChannel}
             onSelectChannel={setCurrentChannel}
