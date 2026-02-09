@@ -28,6 +28,7 @@ export interface DMMessage {
   dm_id: string;
   user_id: string;
   content: string;
+  reply_to: string | null;
   is_edited: boolean;
   file_url: string | null;
   file_type: string | null;
@@ -210,12 +211,14 @@ export function useSendDMMessage() {
     mutationFn: async ({ 
       dmId, 
       content,
+      replyTo,
       fileUrl,
       fileType,
       fileName,
     }: { 
       dmId: string; 
       content: string;
+      replyTo?: string;
       fileUrl?: string;
       fileType?: string;
       fileName?: string;
@@ -228,6 +231,7 @@ export function useSendDMMessage() {
           dm_id: dmId,
           user_id: user.id,
           content,
+          reply_to: replyTo || null,
           file_url: fileUrl || null,
           file_type: fileType || null,
           file_name: fileName || null,
@@ -243,11 +247,105 @@ export function useSendDMMessage() {
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", dmId);
 
+      // Parse and create mentions
+      const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+      const mentions: string[] = [];
+      let match;
+      
+      while ((match = mentionRegex.exec(content)) !== null) {
+        mentions.push(match[2]);
+      }
+
+      if (mentions.length > 0 && data) {
+        const mentionInserts = mentions.map((userId) => ({
+          dm_message_id: data.id,
+          mentioned_user_id: userId,
+        }));
+
+        await supabase.from("message_mentions").insert(mentionInserts);
+      }
+
       return data;
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao enviar mensagem");
     },
+  });
+}
+
+export function useEditDMMessage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ messageId, content, dmId }: { messageId: string; content: string; dmId: string }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("dm_messages")
+        .update({ content, is_edited: true })
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return { messageId, dmId };
+    },
+    onSuccess: (_, { dmId }) => {
+      queryClient.invalidateQueries({ queryKey: ["dm-messages", dmId] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-dm-messages", dmId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao editar mensagem");
+    },
+  });
+}
+
+export function useDeleteDMMessage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ messageId, dmId }: { messageId: string; dmId: string }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("dm_messages")
+        .delete()
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return { messageId, dmId };
+    },
+    onSuccess: (_, { dmId }) => {
+      queryClient.invalidateQueries({ queryKey: ["dm-messages", dmId] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-dm-messages", dmId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao deletar mensagem");
+    },
+  });
+}
+
+export function useDMMessageById(messageId: string | null) {
+  return useQuery({
+    queryKey: ["dm-message", messageId],
+    queryFn: async () => {
+      if (!messageId) return null;
+      
+      const { data, error } = await supabase
+        .from("dm_messages")
+        .select(`
+          *,
+          profile:profiles!dm_messages_user_id_fkey(display_name, avatar_url)
+        `)
+        .eq("id", messageId)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as DMMessage;
+    },
+    enabled: !!messageId,
   });
 }
 

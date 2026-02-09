@@ -48,11 +48,14 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
       adjustHeight();
     }, [value]);
 
-    // Filter members based on mention query
+    // Filter members based on mention query + add @todos option
     const filteredMembers = members.filter((member) => {
       const name = member.profile?.display_name?.toLowerCase() || "";
       return name.includes(mentionQuery.toLowerCase());
     });
+
+    // Add @todos option when query matches
+    const showTodosOption = "todos".includes(mentionQuery.toLowerCase()) || mentionQuery === "";
 
     // Detect @ mentions while typing
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -155,7 +158,7 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
         />
 
         <AnimatePresence>
-          {showSuggestions && filteredMembers.length > 0 && (
+          {showSuggestions && (filteredMembers.length > 0 || showTodosOption) && (
             <motion.div
               ref={suggestionsRef}
               initial={{ opacity: 0, y: 5 }}
@@ -163,15 +166,50 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
               exit={{ opacity: 0, y: 5 }}
               className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg z-50"
             >
+              {/* @todos option */}
+              {showTodosOption && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const textBeforeCursor = value.slice(0, cursorPosition);
+                    const textAfterCursor = value.slice(cursorPosition);
+                    const mentionStart = textBeforeCursor.lastIndexOf("@");
+                    const beforeMention = textBeforeCursor.slice(0, mentionStart);
+                    const mentionText = `@todos `;
+                    const newValue = beforeMention + mentionText + textAfterCursor;
+                    onChange(newValue);
+                    setShowSuggestions(false);
+                    setMentionQuery("");
+                    setTimeout(() => {
+                      textareaRef.current?.focus();
+                      const newCursorPos = beforeMention.length + mentionText.length;
+                      textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+                    }, 0);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
+                    selectedIndex === 0 && showTodosOption
+                      ? "bg-primary/10 text-primary" 
+                      : "hover:bg-secondary"
+                  }`}
+                >
+                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">@</span>
+                  </div>
+                  <span className="text-sm font-medium">todos</span>
+                  <span className="text-xs text-muted-foreground ml-auto">Mencionar todos</span>
+                </button>
+              )}
+
               {filteredMembers.map((member, index) => {
                 const displayName = member.profile?.display_name || "Usuário";
+                const adjustedIndex = showTodosOption ? index + 1 : index;
                 return (
                   <button
                     key={member.id}
                     type="button"
                     onClick={() => insertMention(member)}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
-                      index === selectedIndex 
+                      adjustedIndex === selectedIndex 
                         ? "bg-primary/10 text-primary" 
                         : "hover:bg-secondary"
                     }`}

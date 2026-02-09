@@ -57,6 +57,19 @@ export function useToggleChannelFavorite() {
 
         if (error) throw error;
       } else {
+        // Check if already exists first
+        const { data: existing } = await supabase
+          .from("channel_favorites")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("channel_id", channelId)
+          .maybeSingle();
+
+        if (existing) {
+          // Already exists, just return success
+          return { channelId, isFavorite: true };
+        }
+
         // Add to favorites
         const { error } = await supabase
           .from("channel_favorites")
@@ -70,11 +83,19 @@ export function useToggleChannelFavorite() {
 
       return { channelId, isFavorite: !isFavorite };
     },
-    onSuccess: (_, { isFavorite }) => {
+    onSuccess: (result, { isFavorite }) => {
       queryClient.invalidateQueries({ queryKey: ["channel-favorites"] });
-      toast.success(isFavorite ? "Removido dos favoritos" : "Adicionado aos favoritos");
+      // Only show toast if something changed
+      if (result.isFavorite !== isFavorite || isFavorite) {
+        toast.success(isFavorite ? "Removido dos favoritos" : "Adicionado aos favoritos");
+      }
     },
     onError: (error: any) => {
+      // Ignore duplicate key errors
+      if (error?.code === "23505") {
+        queryClient.invalidateQueries({ queryKey: ["channel-favorites"] });
+        return;
+      }
       toast.error(error.message || "Erro ao atualizar favoritos");
     },
   });

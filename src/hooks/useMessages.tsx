@@ -47,11 +47,12 @@ export function useMessages(channelId: string | null) {
           profile:profiles!messages_user_id_fkey(display_name, avatar_url)
         `)
         .eq("channel_id", channelId)
-        .order("created_at", { ascending: true })
-        .limit(100);
+        .order("created_at", { ascending: false })
+        .limit(50);
 
       if (error) throw error;
-      return data as unknown as Message[];
+      // Reverse to show oldest first in display
+      return (data as unknown as Message[]).reverse();
     },
     enabled: !!channelId,
   });

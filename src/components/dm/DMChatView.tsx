@@ -1,65 +1,82 @@
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, Smile } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useDMMessages, useSendDMMessage, DirectMessage, DMMessage } from "@/hooks/useDirectMessages";
+import { DirectMessage } from "@/hooks/useDirectMessages";
+import { useInfiniteDMMessages } from "@/hooks/useInfiniteDMMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { DMMessageBubble } from "./DMMessageBubble";
+import { DMMessageInput } from "./DMMessageInput";
 
 interface DMChatViewProps {
   dm: DirectMessage;
   onBack: () => void;
 }
 
-const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉", "💯", "✨"];
-
 export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const { user } = useAuth();
-  const { data: messages = [], isLoading } = useDMMessages(dm.id);
-  const sendMessage = useSendDMMessage();
-  const [message, setMessage] = useState("");
-  const [showEmojis, setShowEmojis] = useState(false);
+  const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteDMMessages(dm.id);
+  const [replyTo, setReplyTo] = useState<string | undefined>();
+  const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const isNearBottomRef = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
+  const isLoadingMoreRef = useRef(false);
 
   const otherUser = dm.other_user;
   const displayName = otherUser?.display_name || "Usuário";
 
+  // Check if user is near bottom
+  const checkIfNearBottom = useCallback(() => {
+    if (!containerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    return scrollHeight - scrollTop - clientHeight < 150;
+  }, []);
+
+  // Track scroll position
+  const handleScroll = useCallback(() => {
+    isNearBottomRef.current = checkIfNearBottom();
+    
+    // Load more when scrolling near top
+    if (containerRef.current && hasMore && !isFetchingMore) {
+      const { scrollTop } = containerRef.current;
+      if (scrollTop < 100) {
+        isLoadingMoreRef.current = true;
+        prevScrollHeightRef.current = containerRef.current.scrollHeight;
+        loadMore();
+      }
+    }
+  }, [checkIfNearBottom, hasMore, loadMore, isFetchingMore]);
+
+  // Maintain scroll position after loading more messages
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isLoadingMoreRef.current && containerRef.current && !isFetchingMore) {
+      const newScrollHeight = containerRef.current.scrollHeight;
+      const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
+      containerRef.current.scrollTop = scrollDiff;
+      isLoadingMoreRef.current = false;
+    }
+  }, [messages.length, isFetchingMore]);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
+      if (isNearBottomRef.current) {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+    prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
 
+  // Scroll to bottom on mount
   useEffect(() => {
-    inputRef.current?.focus();
+    isNearBottomRef.current = true;
+    prevMessagesLengthRef.current = messages.length;
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
   }, [dm.id]);
-
-  const handleSend = async () => {
-    if (!message.trim()) return;
-
-    await sendMessage.mutateAsync({
-      dmId: dm.id,
-      content: message.trim(),
-    });
-
-    setMessage("");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const addEmoji = (emoji: string) => {
-    setMessage((prev) => prev + emoji);
-    setShowEmojis(false);
-    inputRef.current?.focus();
-  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -83,7 +100,11 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4">
+      <div 
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto py-4 scroll-smooth"
+      >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <LoadingSpinner size="lg" />
@@ -103,21 +124,36 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
           </div>
         ) : (
           <>
-            {/* Conversation start */}
-            <div className="text-center py-8 px-4">
-              <Avatar className="h-12 w-12 mx-auto mb-3">
-                <AvatarImage src={otherUser?.avatar_url || undefined} />
-                <AvatarFallback className="gradient-primary text-white">
-                  {displayName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <h3 className="font-bold">{displayName}</h3>
-              <p className="text-sm text-muted-foreground">Início da conversa</p>
-            </div>
+            {/* Loading more indicator */}
+            {isFetchingMore && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Carregando mensagens...</span>
+              </div>
+            )}
+
+            {/* Conversation start - only show when no more messages */}
+            {!hasMore && (
+              <div className="text-center py-8 px-4">
+                <Avatar className="h-12 w-12 mx-auto mb-3">
+                  <AvatarImage src={otherUser?.avatar_url || undefined} />
+                  <AvatarFallback className="gradient-primary text-white">
+                    {displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className="font-bold">{displayName}</h3>
+                <p className="text-sm text-muted-foreground">Início da conversa</p>
+              </div>
+            )}
 
             {/* Messages */}
             {messages.map((msg) => (
-              <DMMessageBubble key={msg.id} message={msg} isOwn={msg.user_id === user?.id} />
+              <DMMessageBubble 
+                key={msg.id} 
+                message={msg} 
+                dmId={dm.id}
+                onReply={setReplyTo}
+              />
             ))}
           </>
         )}
@@ -125,104 +161,12 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-border bg-background">
-        <AnimatePresence>
-          {showEmojis && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="mb-2 flex gap-1 flex-wrap"
-            >
-              {QUICK_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => addEmoji(emoji)}
-                  className="p-2 text-xl hover:bg-secondary rounded-lg transition-colors"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl shrink-0"
-            onClick={() => setShowEmojis(!showEmojis)}
-          >
-            <Smile className="h-5 w-5 text-muted-foreground" />
-          </Button>
-
-          <input
-            ref={inputRef}
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Mensagem para ${displayName}`}
-            className="flex-1 h-12 px-4 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-xl gradient-primary text-white shrink-0"
-            disabled={!message.trim() || sendMessage.isPending}
-            onClick={handleSend}
-          >
-            {sendMessage.isPending ? (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
-              />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-      </div>
+      <DMMessageInput
+        dmId={dm.id}
+        otherUserName={displayName}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(undefined)}
+      />
     </div>
-  );
-}
-
-function DMMessageBubble({ message, isOwn }: { message: DMMessage; isOwn: boolean }) {
-  const displayName = message.profile?.display_name || "Usuário";
-  const time = format(new Date(message.created_at), "HH:mm", { locale: ptBR });
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn("flex gap-3 px-4 py-2", isOwn && "flex-row-reverse")}
-    >
-      <Avatar className="h-8 w-8 shrink-0">
-        <AvatarImage src={message.profile?.avatar_url || undefined} />
-        <AvatarFallback className="text-sm gradient-primary text-white">
-          {displayName.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-
-      <div className={cn("max-w-[75%]", isOwn && "flex flex-col items-end")}>
-        <div className={cn("flex items-center gap-2 mb-1", isOwn && "flex-row-reverse")}>
-          <span className="font-semibold text-sm">{displayName}</span>
-          <span className="text-xs text-muted-foreground">{time}</span>
-        </div>
-
-        <div
-          className={cn(
-            "px-4 py-2 rounded-2xl inline-block",
-            isOwn
-              ? "bg-primary text-primary-foreground rounded-br-md"
-              : "bg-secondary text-secondary-foreground rounded-bl-md"
-          )}
-        >
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-        </div>
-      </div>
-    </motion.div>
   );
 }
