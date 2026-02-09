@@ -28,12 +28,25 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [cursorPosition, setCursorPosition] = useState(0);
     
-    const inputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const suggestionsRef = useRef<HTMLDivElement>(null);
 
     useImperativeHandle(ref, () => ({
-      focus: () => inputRef.current?.focus(),
+      focus: () => textareaRef.current?.focus(),
     }));
+
+    // Auto-resize textarea
+    const adjustHeight = () => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+      }
+    };
+
+    useEffect(() => {
+      adjustHeight();
+    }, [value]);
 
     // Filter members based on mention query
     const filteredMembers = members.filter((member) => {
@@ -42,7 +55,7 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
     });
 
     // Detect @ mentions while typing
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value;
       const cursorPos = e.target.selectionStart || 0;
       setCursorPosition(cursorPos);
@@ -81,9 +94,9 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
       
       // Focus and set cursor after mention
       setTimeout(() => {
-        inputRef.current?.focus();
+        textareaRef.current?.focus();
         const newCursorPos = beforeMention.length + mentionText.length;
-        inputRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+        textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
       }, 0);
     };
 
@@ -128,16 +141,17 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
 
     return (
       <div className="relative flex-1">
-        <input
-          ref={inputRef}
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDownInternal}
           onBlur={onBlur}
           placeholder={placeholder}
           disabled={disabled}
+          rows={1}
           className={className}
+          style={{ resize: 'none', overflow: 'hidden' }}
         />
 
         <AnimatePresence>

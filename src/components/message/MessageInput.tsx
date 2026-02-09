@@ -2,17 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Paperclip, Image, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSendMessage, useMessageById, Message } from "@/hooks/useMessages";
+import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
 import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
-import { parseMentions } from "@/hooks/useMentions";
 import { FilePreview } from "./FilePreview";
 import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
 import { EmojiPicker } from "./EmojiPicker";
 import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
-import { ScheduledMessagesList } from "./ScheduledMessagesList";
 import { MentionInput, MentionInputRef } from "./MentionInput";
 import { ReplyPreview } from "./ReplyPreview";
 
@@ -151,7 +149,7 @@ export function MessageInput({
   const { data: replyMessage } = useMessageById(replyTo || null);
 
   return (
-    <div className="p-4 border-t border-border bg-background">
+    <div className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0">
       {/* Reply Preview */}
       <AnimatePresence>
         {replyTo && replyMessage && (
@@ -229,9 +227,7 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
-      {/* Quick Emoji Picker - legacy, replaced by EmojiPicker component */}
-
-      <div className="flex items-center gap-2">
+      <div className="flex items-end gap-2">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -241,44 +237,61 @@ export function MessageInput({
           className="hidden"
         />
 
+        {/* Action buttons - hidden on mobile, shown in a compact row */}
+        <div className="hidden md:flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-10 w-10"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            <Paperclip className="h-5 w-5 text-muted-foreground" />
+          </Button>
+
+          <EmojiPicker onSelect={addEmoji} />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-10 w-10"
+            onClick={() => setShowScheduleDialog(true)}
+            disabled={!message.trim() && !attachedFile}
+            title="Agendar mensagem"
+          >
+            <Clock className="h-5 w-5 text-muted-foreground" />
+          </Button>
+        </div>
+
+        {/* Mobile action buttons - more compact */}
+        <div className="flex md:hidden items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-10 w-10"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            <Paperclip className="h-5 w-5 text-muted-foreground" />
+          </Button>
+        </div>
+
+        {/* Input field - flexible height for mobile */}
+        <div className="flex-1 min-w-0">
+          <MentionInput
+            ref={inputRef}
+            value={message}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={() => onStopTyping?.()}
+            placeholder={`Mensagem em #${channelName}`}
+            className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-base resize-none"
+          />
+        </div>
+
         <Button
-          variant="ghost"
           size="icon"
-          className="rounded-xl shrink-0"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-        >
-          <Paperclip className="h-5 w-5 text-muted-foreground" />
-        </Button>
-
-        <EmojiPicker onSelect={addEmoji} />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-xl shrink-0"
-          onClick={() => setShowScheduleDialog(true)}
-          disabled={!message.trim() && !attachedFile}
-          title="Agendar mensagem"
-        >
-          <Clock className="h-5 w-5 text-muted-foreground" />
-        </Button>
-
-        <ScheduledMessagesList />
-
-        <MentionInput
-          ref={inputRef}
-          value={message}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={() => onStopTyping?.()}
-          placeholder={`Mensagem em #${channelName}`}
-          className="w-full h-12 px-4 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
-        />
-
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-xl gradient-primary text-white shrink-0"
+          className="h-11 w-11 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
           disabled={(!message.trim() && !attachedFile) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
