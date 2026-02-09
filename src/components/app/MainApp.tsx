@@ -40,13 +40,13 @@ export function MainApp() {
       return selectedDM.other_user?.display_name || "Mensagem";
     }
     switch (activeTab) {
-      case "home": return "ChatFlow";
+      case "home": return "Rambu";
       case "unread": return "Não Lidas";
       case "dms": return "Mensagens";
       case "channels": return currentWorkspace ? currentWorkspace.name : "Canais";
       case "reminders": return "Lembretes";
       case "profile": return "Perfil";
-      default: return "ChatFlow";
+      default: return "Rambu";
     }
   };
 

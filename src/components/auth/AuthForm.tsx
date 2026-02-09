@@ -73,7 +73,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
             <span className="text-4xl">💬</span>
           </motion.div>
           <div className="text-center">
-            <h1 className="text-3xl font-bold gradient-text">ChatFlow</h1>
+            <h1 className="text-3xl font-bold gradient-text">Rambu</h1>
             <p className="text-muted-foreground mt-1">
               {isLogin ? "Entre na sua conta" : "Crie sua conta"}
             </p>

@@ -416,7 +416,7 @@ export function DesktopApp() {
       <div className="w-64 bg-card border-r border-border flex flex-col">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="font-bold text-lg truncate">
-            {currentWorkspace?.name || "ChatFlow"}
+            {currentWorkspace?.name || "Rambu"}
           </h2>
           <Button
             variant="ghost"
@@ -604,7 +604,7 @@ export function DesktopApp() {
                   <MessageSquare className="h-10 w-10 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold">
-                  Bem-vindo ao <span className="gradient-text">ChatFlow</span>!
+                  Bem-vindo ao <span className="gradient-text">Rambu</span>!
                 </h2>
                 <p className="text-muted-foreground max-w-md">
                   Selecione um canal ou inicie uma conversa direta para começar.

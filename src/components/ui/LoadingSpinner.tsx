@@ -36,7 +36,7 @@ export function LoadingScreen() {
         <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center shadow-glow">
           <span className="text-3xl">💬</span>
         </div>
-        <h1 className="text-2xl font-bold gradient-text">ChatFlow</h1>
+        <h1 className="text-2xl font-bold gradient-text">Rambu</h1>
         <LoadingSpinner />
       </motion.div>
     </div>
