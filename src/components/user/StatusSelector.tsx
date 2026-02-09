@@ -15,10 +15,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Circle, Moon, Clock, MinusCircle, MessageSquare } from 'lucide-react';
-import { useUserStatus, UserStatus } from '@/hooks/useUserStatus';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Circle, Moon, Clock, MinusCircle, MessageSquare, Bell, BellOff, AtSign, Calendar } from 'lucide-react';
+import { useUserStatus, UserStatus, AwayNotificationLevel } from '@/hooks/useUserStatus';
 import { cn } from '@/lib/utils';
 
 const STATUS_OPTIONS: { value: UserStatus; label: string; icon: typeof Circle; color: string }[] = [
@@ -28,13 +37,40 @@ const STATUS_OPTIONS: { value: UserStatus; label: string; icon: typeof Circle; c
   { value: 'offline', label: 'Invisível', icon: Circle, color: 'text-gray-400 fill-gray-400' },
 ];
 
+const AWAY_DURATION_PRESETS = [
+  { label: '30 minutos', minutes: 30 },
+  { label: '1 hora', minutes: 60 },
+  { label: '2 horas', minutes: 120 },
+  { label: '4 horas', minutes: 240 },
+  { label: 'Até amanhã', minutes: 'tomorrow' as const },
+  { label: 'Personalizado', minutes: 'custom' as const },
+];
+
 export const StatusSelector = () => {
-  const { currentStatus, setStatus, setCustomStatus, clearCustomStatus, enableDND, disableDND, isDNDActive } = useUserStatus();
+  const { 
+    currentStatus, 
+    setStatus, 
+    setCustomStatus, 
+    clearCustomStatus, 
+    enableDND, 
+    disableDND, 
+    isDNDActive,
+    setAdvancedAwayMode,
+    clearAwayMode,
+  } = useUserStatus();
+  
   const [customStatusDialog, setCustomStatusDialog] = useState(false);
   const [dndDialog, setDndDialog] = useState(false);
+  const [awayModeDialog, setAwayModeDialog] = useState(false);
   const [customText, setCustomText] = useState('');
   const [customEmoji, setCustomEmoji] = useState('');
   const [dndDuration, setDndDuration] = useState('1');
+  
+  // Advanced away mode state
+  const [awayDuration, setAwayDuration] = useState<number | 'tomorrow' | 'custom'>('custom');
+  const [awayNotificationLevel, setAwayNotificationLevel] = useState<AwayNotificationLevel>('mentions');
+  const [awayAutoReply, setAwayAutoReply] = useState('');
+  const [awayCustomHours, setAwayCustomHours] = useState('');
 
   const currentStatusOption = STATUS_OPTIONS.find(s => s.value === currentStatus?.status) || STATUS_OPTIONS[0];
 
@@ -57,6 +93,36 @@ export const StatusSelector = () => {
       enableDND();
     }
     setDndDialog(false);
+  };
+
+  const handleSetAwayMode = () => {
+    let scheduledEnd: Date | undefined;
+    
+    if (awayDuration === 'tomorrow') {
+      scheduledEnd = new Date();
+      scheduledEnd.setDate(scheduledEnd.getDate() + 1);
+      scheduledEnd.setHours(9, 0, 0, 0);
+    } else if (awayDuration === 'custom' && awayCustomHours) {
+      const hours = parseInt(awayCustomHours);
+      if (hours > 0) {
+        scheduledEnd = new Date();
+        scheduledEnd.setHours(scheduledEnd.getHours() + hours);
+      }
+    } else if (typeof awayDuration === 'number') {
+      scheduledEnd = new Date();
+      scheduledEnd.setMinutes(scheduledEnd.getMinutes() + awayDuration);
+    }
+
+    setAdvancedAwayMode({
+      autoReply: awayAutoReply || undefined,
+      notificationLevel: awayNotificationLevel,
+      scheduledStart: new Date(),
+      scheduledEnd,
+    });
+
+    setAwayModeDialog(false);
+    setAwayAutoReply('');
+    setAwayCustomHours('');
   };
 
   return (
@@ -96,6 +162,19 @@ export const StatusSelector = () => {
           {currentStatus?.status_text && (
             <DropdownMenuItem onClick={clearCustomStatus} className="gap-2 text-muted-foreground">
               Limpar status personalizado
+            </DropdownMenuItem>
+          )}
+          
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem onClick={() => setAwayModeDialog(true)} className="gap-2">
+            <Moon className="h-4 w-4" />
+            Modo ausente avançado
+          </DropdownMenuItem>
+
+          {currentStatus?.status === 'away' && (
+            <DropdownMenuItem onClick={clearAwayMode} className="gap-2 text-muted-foreground">
+              Desativar modo ausente
             </DropdownMenuItem>
           )}
           
@@ -183,6 +262,114 @@ export const StatusSelector = () => {
             </Button>
             <Button onClick={handleEnableDND}>
               Pausar notificações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Advanced Away Mode Dialog */}
+      <Dialog open={awayModeDialog} onOpenChange={setAwayModeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Moon className="h-5 w-5" />
+              Modo Ausente Avançado
+            </DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="duration" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="duration">Duração</TabsTrigger>
+              <TabsTrigger value="settings">Configurações</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="duration" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Por quanto tempo?</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {AWAY_DURATION_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      variant={awayDuration === preset.minutes ? 'default' : 'outline'}
+                      size="sm"
+                      className="justify-start"
+                      onClick={() => setAwayDuration(preset.minutes)}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+                
+                {awayDuration === 'custom' && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={awayCustomHours}
+                      onChange={(e) => setAwayCustomHours(e.target.value)}
+                      placeholder="Horas"
+                      className="w-24"
+                    />
+                    <span className="text-muted-foreground">horas</span>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Notificações enquanto ausente</Label>
+                <Select
+                  value={awayNotificationLevel}
+                  onValueChange={(v: AwayNotificationLevel) => setAwayNotificationLevel(v)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        <span>Todas as notificações</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mentions">
+                      <div className="flex items-center gap-2">
+                        <AtSign className="h-4 w-4" />
+                        <span>Apenas menções</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="none">
+                      <div className="flex items-center gap-2">
+                        <BellOff className="h-4 w-4" />
+                        <span>Nenhuma notificação</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Resposta automática (opcional)</Label>
+                <Textarea
+                  value={awayAutoReply}
+                  onChange={(e) => setAwayAutoReply(e.target.value)}
+                  placeholder="Estou ausente no momento. Retorno em breve!"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Esta mensagem será exibida quando alguém tentar te enviar uma DM
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAwayModeDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSetAwayMode}>
+              Ativar modo ausente
             </Button>
           </DialogFooter>
         </DialogContent>

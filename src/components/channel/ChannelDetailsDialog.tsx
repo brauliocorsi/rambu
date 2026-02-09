@@ -9,6 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { AvatarWithStatus } from '@/components/user/OnlineIndicator';
+import { 
+  useChannelNotificationPreference, 
+  useUpdateChannelNotificationPreference,
+  NotificationLevel,
+  getNotificationLevelLabel,
+} from '@/hooks/useChannelNotificationPreferences';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +27,13 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Hash, 
   Users, 
@@ -32,6 +45,9 @@ import {
   Loader2,
   UserPlus,
   LogOut,
+  Bell,
+  BellOff,
+  AtSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,6 +72,10 @@ export function ChannelDetailsDialog({
   const [muralContent, setMuralContent] = useState('');
   const [description, setDescription] = useState('');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
+
+  // Fetch notification preference for this channel
+  const { data: notificationPref } = useChannelNotificationPreference(channelId);
+  const updateNotificationPref = useUpdateChannelNotificationPreference();
 
   // Fetch channel details
   const { data: channel, isLoading: loadingChannel } = useQuery({
@@ -230,10 +250,14 @@ export function ChannelDetailsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="about" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="about" className="gap-2">
               <Info className="h-4 w-4" />
               Sobre
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Notificações
             </TabsTrigger>
             <TabsTrigger value="mural" className="gap-2">
               <Pin className="h-4 w-4" />
@@ -322,6 +346,71 @@ export function ChannelDetailsDialog({
                 </Button>
               </>
             )}
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-4 mt-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Preferência de Notificação</h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Configure quando você quer ser notificado sobre mensagens neste canal
+                </p>
+                <Select
+                  value={notificationPref?.notification_level || 'all'}
+                  onValueChange={(value: NotificationLevel) => {
+                    updateNotificationPref.mutate({
+                      channelId,
+                      notificationLevel: value,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-full rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        <span>Todas as mensagens</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mentions">
+                      <div className="flex items-center gap-2">
+                        <AtSign className="h-4 w-4" />
+                        <span>Apenas menções</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="none">
+                      <div className="flex items-center gap-2">
+                        <BellOff className="h-4 w-4" />
+                        <span>Silenciado</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <h5 className="text-sm font-medium mb-2">Descrição das opções:</h5>
+                <ul className="text-xs text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">
+                    <Bell className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span><strong>Todas:</strong> Você receberá notificações de todas as mensagens</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <AtSign className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span><strong>Menções:</strong> Apenas quando for mencionado com @</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <BellOff className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span><strong>Silenciado:</strong> Nenhuma notificação deste canal</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Mural Tab */}

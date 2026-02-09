@@ -117,6 +117,29 @@ export function useMessages(channelId: string | null) {
   return query;
 }
 
+// Hook to fetch a single message by ID (for replies)
+export function useMessageById(messageId: string | null) {
+  return useQuery({
+    queryKey: ["message", messageId],
+    queryFn: async () => {
+      if (!messageId) return null;
+      
+      const { data, error } = await supabase
+        .from("messages")
+        .select(`
+          *,
+          profile:profiles!messages_user_id_fkey(display_name, avatar_url)
+        `)
+        .eq("id", messageId)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as Message;
+    },
+    enabled: !!messageId,
+  });
+}
+
 export function useSendMessage() {
   const { user } = useAuth();
 

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Reply, Smile, MessageSquare, Pencil, Trash2, X, Check } from "lucide-react";
+import { Reply, Smile, MessageSquare, Pencil, Trash2, X, Check, CornerDownRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Message, useToggleReaction, useMessageReactions, useEditMessage, useDeleteMessage } from "@/hooks/useMessages";
+import { Message, useToggleReaction, useMessageReactions, useEditMessage, useDeleteMessage, useMessageById } from "@/hooks/useMessages";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { FilePreview } from "./FilePreview";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,9 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread }: Mes
   const editMessage = useEditMessage();
   const deleteMessage = useDeleteMessage();
   const { data: reactions = [] } = useMessageReactions(message.id);
+  
+  // Fetch the original message if this is a reply
+  const { data: originalMessage } = useMessageById(message.reply_to);
 
   const isOwn = user?.id === message.user_id;
   const displayName = message.profile?.display_name || "Usuário";
@@ -127,6 +130,24 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread }: Mes
               <span className="text-xs text-muted-foreground">(editado)</span>
             )}
           </div>
+
+          {/* Reply indicator - show original message */}
+          {originalMessage && (
+            <div className={cn(
+              "flex items-start gap-2 mb-2 p-2 rounded-lg bg-secondary/50 border-l-2 border-primary/50",
+              isOwn && "border-r-2 border-l-0"
+            )}>
+              <CornerDownRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-medium text-primary">
+                  {originalMessage.profile?.display_name || "Usuário"}
+                </span>
+                <p className="text-xs text-muted-foreground truncate">
+                  {formatMentionsForDisplay(originalMessage.content)}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* File attachment */}
           {hasFile && (

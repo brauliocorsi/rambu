@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Paperclip, Image, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSendMessage } from "@/hooks/useMessages";
+import { useSendMessage, useMessageById, Message } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
 import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
 import { parseMentions } from "@/hooks/useMentions";
@@ -14,6 +14,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
 import { ScheduledMessagesList } from "./ScheduledMessagesList";
 import { MentionInput, MentionInputRef } from "./MentionInput";
+import { ReplyPreview } from "./ReplyPreview";
 
 interface MessageInputProps {
   channelId: string;
@@ -146,8 +147,20 @@ export function MessageInput({
     inputRef.current?.focus();
   }, [channelId]);
 
+  // Fetch message being replied to
+  const { data: replyMessage } = useMessageById(replyTo || null);
+
   return (
     <div className="p-4 border-t border-border bg-background">
+      {/* Reply Preview */}
+      <AnimatePresence>
+        {replyTo && replyMessage && (
+          <ReplyPreview
+            message={replyMessage}
+            onCancel={() => onCancelReply?.()}
+          />
+        )}
+      </AnimatePresence>
       {/* Upload progress */}
       <AnimatePresence>
         {isUploading && (
