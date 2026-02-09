@@ -5,6 +5,8 @@ import { useChannelContext } from "@/contexts/ChannelContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useUnreadChannelCounts, useMarkChannelAsRead } from "@/hooks/useNotifications";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useProfile } from "@/hooks/useProfile";
 import { CategoryManager } from "@/components/channel/CategoryManager";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
@@ -23,8 +25,16 @@ function ChannelChatView() {
   const { currentChannel, setCurrentChannel } = useChannelContext();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteMessages(currentChannel?.id || null);
   const [replyTo, setReplyTo] = useState<string | undefined>();
+  const { data: profile } = useProfile();
+  const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(currentChannel?.id || null, false);
 
   if (!currentChannel) return null;
+
+  const handleTyping = () => {
+    if (profile?.display_name) {
+      sendTypingStart(profile.display_name);
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -59,6 +69,7 @@ function ChannelChatView() {
         hasMore={hasMore}
         onLoadMore={loadMore}
         onReply={setReplyTo}
+        typingUsers={typingUsers}
       />
 
       {/* Message Input */}
@@ -67,6 +78,8 @@ function ChannelChatView() {
         channelName={currentChannel.name}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(undefined)}
+        onTyping={handleTyping}
+        onStopTyping={sendTypingStop}
       />
     </div>
   );

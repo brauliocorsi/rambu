@@ -4,6 +4,12 @@ import { Hash, Loader2 } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
 import { MessageBubble } from "./MessageBubble";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { TypingIndicator } from "./TypingIndicator";
+
+interface TypingUser {
+  userId: string;
+  displayName: string;
+}
 
 interface MessageListProps {
   messages: Message[];
@@ -15,6 +21,7 @@ interface MessageListProps {
   onLoadMore?: () => void;
   onReply?: (messageId: string) => void;
   onOpenThread?: (message: Message) => void;
+  typingUsers?: TypingUser[];
 }
 
 export function MessageList({ 
@@ -26,7 +33,8 @@ export function MessageList({
   hasMore,
   onLoadMore,
   onReply, 
-  onOpenThread 
+  onOpenThread,
+  typingUsers = [],
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -161,6 +169,11 @@ export function MessageList({
           onOpenThread={onOpenThread}
         />
       ))}
+
+      {/* Typing Indicator */}
+      {typingUsers.length > 0 && (
+        <TypingIndicator typingUsers={typingUsers} />
+      )}
 
       <div ref={bottomRef} className="h-1" />
     </div>
