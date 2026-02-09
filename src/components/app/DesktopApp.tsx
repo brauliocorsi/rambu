@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useMessages } from "@/hooks/useMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
@@ -15,16 +16,28 @@ import {
   useMarkDMAsRead,
 } from "@/hooks/useNotifications";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
+import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
+import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
+import { MemberManagementDialog } from "@/components/workspace/MemberManagementDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { DMList } from "@/components/dm/DMList";
 import { NewDMDialog } from "@/components/dm/NewDMDialog";
+import { SearchDialog } from "@/components/search/SearchDialog";
+import { SettingsView } from "@/components/settings/SettingsView";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   MessageSquare, 
   Hash, 
@@ -33,6 +46,12 @@ import {
   Smartphone,
   Users,
   Search,
+  Settings,
+  Moon,
+  Sun,
+  Link,
+  UserPlus,
+  ChevronDown,
 } from "lucide-react";
 
 export function DesktopApp() {
@@ -40,6 +59,7 @@ export function DesktopApp() {
   const { currentWorkspace } = useWorkspaceContext();
   const { currentChannel, setCurrentChannel } = useChannelContext();
   const { toggleViewMode } = useViewMode();
+  const { resolvedTheme, setTheme } = useTheme();
   
   const { data: channels = [], isLoading: loadingChannels } = useChannels(currentWorkspace?.id || null);
   const { data: dms = [], isLoading: loadingDMs } = useDirectMessages(currentWorkspace?.id || null);
@@ -52,7 +72,12 @@ export function DesktopApp() {
 
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showInviteLink, setShowInviteLink] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
 
@@ -72,36 +97,131 @@ export function DesktopApp() {
     }
   }, [selectedDM?.id]);
 
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  if (showSettings) {
+    return (
+      <div className="h-screen bg-background">
+        <SettingsView onBack={() => setShowSettings(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* Left Sidebar - Workspace Icon */}
       <div className="w-16 bg-secondary/50 border-r border-border flex flex-col items-center py-4 gap-2">
-        <Avatar className="h-10 w-10 rounded-xl cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-          <AvatarImage src={currentWorkspace?.icon_url || undefined} />
-          <AvatarFallback className="rounded-xl gradient-primary text-white font-bold">
-            {currentWorkspace?.name?.charAt(0).toUpperCase() || "C"}
-          </AvatarFallback>
-        </Avatar>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="relative">
+              <Avatar className="h-10 w-10 rounded-xl cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                <AvatarImage src={currentWorkspace?.icon_url || undefined} />
+                <AvatarFallback className="rounded-xl gradient-primary text-white font-bold">
+                  {currentWorkspace?.name?.charAt(0).toUpperCase() || "C"}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="w-56 rounded-xl">
+            <DropdownMenuItem onClick={() => setShowInviteLink(true)} className="rounded-lg">
+              <Link className="h-4 w-4 mr-2" />
+              Convidar Pessoas
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowMembers(true)} className="rounded-lg">
+              <Users className="h-4 w-4 mr-2" />
+              Gerenciar Membros
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowCreateWorkspace(true)} className="rounded-lg">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Workspace
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         
         <div className="flex-1" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          {resolvedTheme === "dark" ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl"
+          onClick={() => setShowSettings(true)}
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
         
-        <div className="relative">
-          <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="gradient-primary text-white text-sm">
-              {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-online border-2 border-secondary" />
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="relative">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20 cursor-pointer hover:ring-primary transition-all">
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="gradient-primary text-white text-sm">
+                  {displayName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-online border-2 border-secondary" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-56 rounded-xl">
+            <div className="px-2 py-1.5">
+              <p className="font-medium">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowSettings(true)} className="rounded-lg">
+              <Settings className="h-4 w-4 mr-2" />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleViewMode} className="rounded-lg">
+              <Smartphone className="h-4 w-4 mr-2" />
+              Versão Mobile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOut} className="rounded-lg text-destructive focus:text-destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Second Sidebar - Channels & DMs */}
       <div className="w-64 bg-card border-r border-border flex flex-col">
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="font-bold text-lg truncate">
             {currentWorkspace?.name || "ChatFlow"}
           </h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg"
+            onClick={() => setShowSearch(true)}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="flex border-b border-border">
@@ -198,27 +318,6 @@ export function DesktopApp() {
             )}
           </div>
         </ScrollArea>
-
-        <div className="p-2 border-t border-border space-y-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground"
-            onClick={toggleViewMode}
-          >
-            <Smartphone className="h-4 w-4" />
-            Versão Mobile
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-destructive hover:text-destructive"
-            onClick={signOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
-        </div>
       </div>
 
       {/* Main Content Area */}
@@ -234,10 +333,20 @@ export function DesktopApp() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="rounded-lg">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-lg"
+                  onClick={() => setShowMembers(true)}
+                >
                   <Users className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="rounded-lg">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-lg"
+                  onClick={() => setShowSearch(true)}
+                >
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
@@ -278,12 +387,31 @@ export function DesktopApp() {
               <p className="text-muted-foreground max-w-md">
                 Selecione um canal ou inicie uma conversa direta para começar.
               </p>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setShowSearch(true)}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar (⌘K)
+                </Button>
+                <Button
+                  className="rounded-xl"
+                  onClick={() => setShowInviteLink(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Convidar
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}
       </div>
 
+      {/* Dialogs */}
       <CreateChannelDialog open={showCreateChannel} onClose={() => setShowCreateChannel(false)} />
+      <CreateWorkspaceDialog open={showCreateWorkspace} onClose={() => setShowCreateWorkspace(false)} />
       <NewDMDialog 
         open={showNewDM} 
         onClose={() => setShowNewDM(false)} 
@@ -292,6 +420,24 @@ export function DesktopApp() {
           setShowNewDM(false);
         }}
       />
+      <SearchDialog 
+        open={showSearch} 
+        onClose={() => setShowSearch(false)}
+        onSelectChannel={(channelId) => {
+          const channel = channels.find(c => c.id === channelId);
+          if (channel) {
+            setCurrentChannel(channel);
+          }
+        }}
+        onSelectDM={(dmId) => {
+          const dm = dms.find(d => d.id === dmId);
+          if (dm) {
+            setSelectedDM(dm);
+          }
+        }}
+      />
+      <InviteLinkDialog open={showInviteLink} onClose={() => setShowInviteLink(false)} />
+      <MemberManagementDialog open={showMembers} onClose={() => setShowMembers(false)} />
     </div>
   );
 }
