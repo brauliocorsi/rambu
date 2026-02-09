@@ -11,9 +11,10 @@ interface MessageListProps {
   channelName: string;
   isLoading: boolean;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (message: Message) => void;
 }
 
-export function MessageList({ messages, channelId, channelName, isLoading, onReply }: MessageListProps) {
+export function MessageList({ messages, channelId, channelName, isLoading, onReply, onOpenThread }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -69,6 +70,7 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
           message={message}
           channelId={channelId}
           onReply={onReply}
+          onOpenThread={onOpenThread}
         />
       ))}
 

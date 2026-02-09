@@ -36,6 +36,8 @@ import { SearchDialog } from "@/components/search/SearchDialog";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 import { AvatarWithStatus } from "@/components/user/OnlineIndicator";
+import { ThreadPanel } from "@/components/message/ThreadPanel";
+import { Message } from "@/hooks/useMessages";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -102,6 +104,7 @@ export function DesktopApp() {
   const [showChannelDetails, setShowChannelDetails] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
+  const [threadMessage, setThreadMessage] = useState<Message | null>(null);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
 
@@ -350,108 +353,121 @@ export function DesktopApp() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {currentChannel ? (
-          <>
-            <div className="h-14 border-b border-border flex items-center justify-between px-4">
-              <div className="flex items-center gap-2">
-                <Hash className="h-5 w-5 text-muted-foreground" />
-                <h2 className="font-semibold">{currentChannel.name}</h2>
-                {currentChannel.description && (
-                  <span className="text-sm text-muted-foreground">| {currentChannel.description}</span>
-                )}
+      <div className="flex-1 flex">
+        <div className="flex-1 flex flex-col">
+          {currentChannel ? (
+            <>
+              <div className="h-14 border-b border-border flex items-center justify-between px-4">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="font-semibold">{currentChannel.name}</h2>
+                  {currentChannel.description && (
+                    <span className="text-sm text-muted-foreground">| {currentChannel.description}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-lg"
+                    onClick={() => setShowChannelDetails(true)}
+                    title="Detalhes do canal"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-lg"
+                    onClick={() => setShowMembers(true)}
+                  >
+                    <Users className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-lg"
+                    onClick={() => setShowSearch(true)}
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-lg"
-                  onClick={() => setShowChannelDetails(true)}
-                  title="Detalhes do canal"
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-lg"
-                  onClick={() => setShowMembers(true)}
-                >
-                  <Users className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-lg"
-                  onClick={() => setShowSearch(true)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
 
-            <div className="flex-1 overflow-hidden">
-              <MessageList
-                messages={messages}
+              <div className="flex-1 overflow-hidden">
+                <MessageList
+                  messages={messages}
+                  channelId={currentChannel.id}
+                  channelName={currentChannel.name}
+                  isLoading={loadingMessages}
+                  onReply={setReplyTo}
+                  onOpenThread={setThreadMessage}
+                />
+              </div>
+
+              {/* Typing Indicator */}
+              {isAnyoneTyping && (
+                <TypingIndicator typingUsers={typingUsers} />
+              )}
+
+              <MessageInput
                 channelId={currentChannel.id}
                 channelName={currentChannel.name}
-                isLoading={loadingMessages}
-                onReply={setReplyTo}
+                replyTo={replyTo}
+                onCancelReply={() => setReplyTo(undefined)}
+                onTyping={sendTypingStart}
+                onStopTyping={sendTypingStop}
               />
+            </>
+          ) : selectedDM ? (
+            <DMChatView dm={selectedDM} onBack={() => setSelectedDM(null)} />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-4"
+              >
+                <div className="h-20 w-20 mx-auto rounded-2xl gradient-primary flex items-center justify-center">
+                  <MessageSquare className="h-10 w-10 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold">
+                  Bem-vindo ao <span className="gradient-text">ChatFlow</span>!
+                </h2>
+                <p className="text-muted-foreground max-w-md">
+                  Selecione um canal ou inicie uma conversa direta para começar.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => setShowSearch(true)}
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Buscar (⌘K)
+                  </Button>
+                  <Button
+                    className="rounded-xl"
+                    onClick={() => setShowInviteLink(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Convidar
+                  </Button>
+                </div>
+              </motion.div>
             </div>
+          )}
+        </div>
 
-            {/* Typing Indicator */}
-            {isAnyoneTyping && (
-              <TypingIndicator typingUsers={typingUsers} />
-            )}
-
-            <MessageInput
-              channelId={currentChannel.id}
-              channelName={currentChannel.name}
-              replyTo={replyTo}
-              onCancelReply={() => setReplyTo(undefined)}
-              onTyping={sendTypingStart}
-              onStopTyping={sendTypingStop}
+        {/* Thread Panel */}
+        <AnimatePresence>
+          {threadMessage && (
+            <ThreadPanel
+              parentMessage={threadMessage}
+              onClose={() => setThreadMessage(null)}
             />
-          </>
-        ) : selectedDM ? (
-          <DMChatView dm={selectedDM} onBack={() => setSelectedDM(null)} />
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="space-y-4"
-            >
-              <div className="h-20 w-20 mx-auto rounded-2xl gradient-primary flex items-center justify-center">
-                <MessageSquare className="h-10 w-10 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold">
-                Bem-vindo ao <span className="gradient-text">ChatFlow</span>!
-              </h2>
-              <p className="text-muted-foreground max-w-md">
-                Selecione um canal ou inicie uma conversa direta para começar.
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => setShowSearch(true)}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Buscar (⌘K)
-                </Button>
-                <Button
-                  className="rounded-xl"
-                  onClick={() => setShowInviteLink(true)}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Convidar
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Dialogs */}

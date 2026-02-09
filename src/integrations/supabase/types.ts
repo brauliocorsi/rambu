@@ -202,6 +202,7 @@ export type Database = {
           file_url: string | null
           id: string
           is_edited: boolean
+          reply_to: string | null
           updated_at: string
           user_id: string
         }
@@ -214,6 +215,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_edited?: boolean
+          reply_to?: string | null
           updated_at?: string
           user_id: string
         }
@@ -226,6 +228,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_edited?: boolean
+          reply_to?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -235,6 +238,13 @@ export type Database = {
             columns: ["dm_id"]
             isOneToOne: false
             referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
             referencedColumns: ["id"]
           },
           {
@@ -278,6 +288,62 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_mentions: {
+        Row: {
+          created_at: string
+          dm_message_id: string | null
+          id: string
+          mentioned_user_id: string
+          message_id: string | null
+          thread_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dm_message_id?: string | null
+          id?: string
+          mentioned_user_id: string
+          message_id?: string | null
+          thread_message_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dm_message_id?: string | null
+          id?: string
+          mentioned_user_id?: string
+          message_id?: string | null
+          thread_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_mentions_dm_message_id_fkey"
+            columns: ["dm_message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_mentioned_user_id_fkey"
+            columns: ["mentioned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_thread_message_id_fkey"
+            columns: ["thread_message_id"]
+            isOneToOne: false
+            referencedRelation: "thread_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -509,6 +575,76 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      scheduled_messages: {
+        Row: {
+          channel_id: string | null
+          content: string
+          created_at: string
+          dm_id: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          is_cancelled: boolean
+          scheduled_at: string
+          sent_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          content: string
+          created_at?: string
+          dm_id?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          is_cancelled?: boolean
+          scheduled_at: string
+          sent_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          content?: string
+          created_at?: string
+          dm_id?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          is_cancelled?: boolean
+          scheduled_at?: string
+          sent_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_dm_id_fkey"
+            columns: ["dm_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       thread_messages: {
         Row: {

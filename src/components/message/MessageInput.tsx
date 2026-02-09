@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, X, Image } from "lucide-react";
+import { Send, Paperclip, Image, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
+import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
+import { parseMentions } from "@/hooks/useMentions";
 import { FilePreview } from "./FilePreview";
 import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
 import { EmojiPicker } from "./EmojiPicker";
+import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
+import { ScheduledMessagesList } from "./ScheduledMessagesList";
+import { MentionInput, MentionInputRef } from "./MentionInput";
 
 interface MessageInputProps {
   channelId: string;
@@ -19,8 +24,6 @@ interface MessageInputProps {
   onStopTyping?: () => void;
 }
 
-const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉", "💯", "✨"];
-
 export function MessageInput({ 
   channelId, 
   channelName, 
@@ -30,12 +33,13 @@ export function MessageInput({
   onStopTyping,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
-  const [showEmojis, setShowEmojis] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [attachedFile, setAttachedFile] = useState<UploadedFile | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<MentionInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sendMessage = useSendMessage();
+  const createScheduledMessage = useCreateScheduledMessage();
   const { uploadFile, isUploading, progress } = useFileUpload();
   const { data: profile } = useProfile();
   const { getSuggestions, findByShortcut } = useQuickReplies();
@@ -84,18 +88,15 @@ export function MessageInput({
     // Escape to close suggestions
     if (e.key === "Escape") {
       setShowQuickReplies(false);
-      setShowEmojis(false);
     }
   };
 
   const addEmoji = (emoji: string) => {
     setMessage((prev) => prev + emoji);
-    setShowEmojis(false);
     inputRef.current?.focus();
   };
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleInputChange = (value: string) => {
     setMessage(value);
     
     // Show quick replies if message starts with /
@@ -107,6 +108,23 @@ export function MessageInput({
     } else if (!value.trim() && onStopTyping) {
       onStopTyping();
     }
+  };
+
+  const handleSchedule = async (scheduledDate: Date) => {
+    if (!message.trim() && !attachedFile) return;
+
+    await createScheduledMessage.mutateAsync({
+      channelId,
+      content: message.trim() || (attachedFile ? `📎 ${attachedFile.name}` : ""),
+      scheduledAt: scheduledDate,
+      fileUrl: attachedFile?.url,
+      fileType: attachedFile?.type,
+      fileName: attachedFile?.name,
+    });
+
+    setMessage("");
+    setAttachedFile(null);
+    inputRef.current?.focus();
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,18 +240,28 @@ export function MessageInput({
 
         <EmojiPicker onSelect={addEmoji} />
 
-        <div className="flex-1 relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={message}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onBlur={() => onStopTyping?.()}
-            placeholder={`Mensagem em #${channelName}`}
-            className="w-full h-12 px-4 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
-          />
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl shrink-0"
+          onClick={() => setShowScheduleDialog(true)}
+          disabled={!message.trim() && !attachedFile}
+          title="Agendar mensagem"
+        >
+          <Clock className="h-5 w-5 text-muted-foreground" />
+        </Button>
+
+        <ScheduledMessagesList />
+
+        <MentionInput
+          ref={inputRef}
+          value={message}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onBlur={() => onStopTyping?.()}
+          placeholder={`Mensagem em #${channelName}`}
+          className="w-full h-12 px-4 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+        />
 
         <Button
           size="icon"
@@ -252,6 +280,14 @@ export function MessageInput({
           )}
         </Button>
       </div>
+
+      {/* Schedule Dialog */}
+      <ScheduleMessageDialog
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        onSchedule={handleSchedule}
+        messagePreview={message || attachedFile?.name}
+      />
     </div>
   );
 }
