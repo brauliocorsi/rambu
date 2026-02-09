@@ -62,9 +62,12 @@
       - Configuração de notificações (todas, apenas menções, nenhuma)
       - Resposta automática opcional
 
-11. **📋 Sistema de Permissões de Canais** (A implementar futuramente)
-    - Adicionar coluna `role` em `channel_members`
-    - Criar UI para gerenciamento de roles
+11. **✅ Sistema de Permissões de Canais**
+    - Adicionada coluna `role` em `channel_members` com enum (owner, admin, member)
+    - Criadas funções `get_channel_role`, `is_channel_admin`, `is_channel_owner`
+    - Criado hook `useChannelMembers.tsx` com gerenciamento de roles
+    - UI de gerenciamento de roles no `ChannelDetailsDialog.tsx`
+    - Owners podem promover/rebaixar membros e remover do canal
 
 ---
 

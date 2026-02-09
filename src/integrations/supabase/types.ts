@@ -55,18 +55,21 @@ export type Database = {
           channel_id: string
           id: string
           joined_at: string
+          role: Database["public"]["Enums"]["channel_role"]
           user_id: string
         }
         Insert: {
           channel_id: string
           id?: string
           joined_at?: string
+          role?: Database["public"]["Enums"]["channel_role"]
           user_id: string
         }
         Update: {
           channel_id?: string
           id?: string
           joined_at?: string
+          role?: Database["public"]["Enums"]["channel_role"]
           user_id?: string
         }
         Relationships: [
@@ -974,11 +977,17 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: boolean
       }
+      get_channel_role: {
+        Args: { p_channel_id: string; p_user_id?: string }
+        Returns: Database["public"]["Enums"]["channel_role"]
+      }
       get_workspace_role: {
         Args: { p_workspace_id: string }
         Returns: Database["public"]["Enums"]["workspace_role"]
       }
+      is_channel_admin: { Args: { p_channel_id: string }; Returns: boolean }
       is_channel_member: { Args: { p_channel_id: string }; Returns: boolean }
+      is_channel_owner: { Args: { p_channel_id: string }; Returns: boolean }
       is_dm_participant: { Args: { p_dm_id: string }; Returns: boolean }
       is_workspace_admin: { Args: { p_workspace_id: string }; Returns: boolean }
       is_workspace_member: {
@@ -987,6 +996,7 @@ export type Database = {
       }
     }
     Enums: {
+      channel_role: "owner" | "admin" | "member"
       workspace_role: "admin" | "member"
     }
     CompositeTypes: {
@@ -1115,6 +1125,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      channel_role: ["owner", "admin", "member"],
       workspace_role: ["admin", "member"],
     },
   },
