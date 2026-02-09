@@ -42,6 +42,8 @@ import { NotificationCenter } from "@/components/notifications/NotificationCente
 import { MentionsFeed } from "@/components/mentions/MentionsFeed";
 import { Notification } from "@/hooks/useInAppNotifications";
 import { useUnreadMentionsCount } from "@/hooks/useMentionsFeed";
+import { useTotalUnreadCount as useFeedUnreadCount } from "@/hooks/useUnreadFeed";
+import { UnreadFeed } from "@/components/unread/UnreadFeed";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,7 @@ import {
   Info,
   AtSign,
   Clock,
+  Inbox,
 } from "lucide-react";
 import { ScheduledMessagesList } from "@/components/message/ScheduledMessagesList";
 import { useScheduledMessages } from "@/hooks/useScheduledMessages";
@@ -94,6 +97,7 @@ export function DesktopApp() {
   const { data: unreadDMCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
   const { channels: totalUnreadChannels, dms: totalUnreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
   const { data: mentionsCount = 0 } = useUnreadMentionsCount();
+  const totalFeedUnread = useFeedUnreadCount();
   const { data: scheduledMessages = [] } = useScheduledMessages();
   const markChannelAsRead = useMarkChannelAsRead();
   const markDMAsRead = useMarkDMAsRead();
@@ -118,6 +122,7 @@ export function DesktopApp() {
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const [showChannelDetails, setShowChannelDetails] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
+  const [showUnreadFeed, setShowUnreadFeed] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [threadMessage, setThreadMessage] = useState<Message | null>(null);
@@ -253,6 +258,55 @@ export function DesktopApp() {
                 setShowMentions(false);
               }}
               onClose={() => setShowMentions(false)}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {/* Unread Feed Button */}
+        <Popover open={showUnreadFeed} onOpenChange={setShowUnreadFeed}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl relative"
+            >
+              <Inbox className="h-5 w-5" />
+              {totalFeedUnread > 0 && (
+                <span className="absolute -top-1 -right-1">
+                  <UnreadBadge count={totalFeedUnread} size="sm" />
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-80 p-0 rounded-xl">
+            <div className="p-3 border-b border-border">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Inbox className="h-4 w-4 text-primary" />
+                Não Lidas
+              </h3>
+            </div>
+            <UnreadFeed
+              onSelectChannel={(channelId) => {
+                const channel = channels.find(c => c.id === channelId);
+                if (channel) {
+                  setCurrentChannel(channel);
+                  setSelectedDM(null);
+                }
+                setShowUnreadFeed(false);
+              }}
+              onSelectDM={(dmId) => {
+                const dm = dms.find(d => d.id === dmId);
+                if (dm) {
+                  setSelectedDM(dm);
+                  setCurrentChannel(null);
+                }
+                setShowUnreadFeed(false);
+              }}
+              onSelectGroup={(groupId) => {
+                // Navigate to group chat - would need to handle this separately
+                setShowUnreadFeed(false);
+              }}
+              className="max-h-96"
             />
           </PopoverContent>
         </Popover>
