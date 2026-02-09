@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Users, MoreHorizontal, UserPlus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,17 +9,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DMGroup, useDMGroupMessages, useSendGroupMessage, useLeaveGroup } from "@/hooks/useDMGroups";
+import { DMGroup, useDMGroupMessages, useSendGroupMessage, useLeaveGroup, DMGroupMessage } from "@/hooks/useDMGroups";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageInput } from "./DMMessageInput";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
-import { format } from "date-fns";
+import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface GroupChatViewProps {
   group: DMGroup;
@@ -30,6 +32,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const { currentWorkspace } = useWorkspaceContext();
+  const { preferences } = useLayoutPreferences();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useDMGroupMessages(group.id);
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(`group:${group.id}`, true);
   const sendMessage = useSendGroupMessage();
@@ -100,6 +103,31 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
     prevMessagesLengthRef.current = messages.length;
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
   }, [group.id]);
+
+  // Helper to format day separator
+  const formatDaySeparator = (date: Date): string => {
+    if (isToday(date)) return "Hoje";
+    if (isYesterday(date)) return "Ontem";
+    return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+  };
+
+  // Group messages by day when in Slack mode
+  const messageGroups = useMemo(() => {
+    if (!preferences.slackMode) return null;
+    
+    const groups: { date: Date; messages: DMGroupMessage[] }[] = [];
+    messages.forEach((message) => {
+      const messageDate = new Date(message.created_at);
+      const lastGroup = groups[groups.length - 1];
+      
+      if (lastGroup && isSameDay(lastGroup.date, messageDate)) {
+        lastGroup.messages.push(message);
+      } else {
+        groups.push({ date: messageDate, messages: [message] });
+      }
+    });
+    return groups;
+  }, [messages, preferences.slackMode]);
 
   const handleSendMessage = async (content: string, replyToId?: string) => {
     await sendMessage.mutateAsync({
@@ -198,51 +226,102 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
               </div>
             )}
 
-            {/* Messages */}
-            {messages.map((msg) => {
-              const isOwn = msg.user_id === user?.id;
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${isOwn ? "justify-end" : "justify-start"} px-4 mb-2`}
-                >
-                  <div className={`flex gap-2 max-w-[85%] ${isOwn ? "flex-row-reverse" : ""}`}>
-                    {!isOwn && (
-                      <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage src={msg.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs gradient-primary text-white">
-                          {(msg.profile?.display_name || "U").charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div>
-                      {!isOwn && (
-                        <p className="text-xs text-muted-foreground mb-1 px-1">
-                          {msg.profile?.display_name || "Usuário"}
-                        </p>
-                      )}
-                      <div
-                        className={`rounded-2xl px-4 py-2 ${
-                          isOwn
-                            ? "gradient-primary text-white rounded-br-md"
-                            : "bg-secondary rounded-bl-md"
-                        }`}
+            {/* Messages - Slack mode with day separators */}
+            {preferences.slackMode && messageGroups ? (
+              messageGroups.map((group) => (
+                <div key={group.date.toISOString()}>
+                  {/* Day separator */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-secondary rounded-full">
+                      {formatDaySeparator(group.date)}
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  
+                  {/* Messages for this day - Slack style */}
+                  {group.messages.map((msg) => {
+                    const displayName = msg.profile?.display_name || "Usuário";
+                    const time = format(new Date(msg.created_at), "HH:mm", { locale: ptBR });
+                    
+                    return (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex gap-3 px-4 py-1.5 hover:bg-secondary/50 transition-colors"
                       >
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {formatMentionsForDisplay(msg.content)}
+                        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                          <AvatarImage src={msg.profile?.avatar_url || undefined} />
+                          <AvatarFallback className="text-xs gradient-primary text-white">
+                            {displayName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-0.5">
+                            <span className="font-semibold text-sm">{displayName}</span>
+                            <span className="text-xs text-muted-foreground">{time}</span>
+                            {msg.is_edited && (
+                              <span className="text-xs text-muted-foreground">(editado)</span>
+                            )}
+                          </div>
+                          <p className="text-sm whitespace-pre-wrap break-words">
+                            {formatMentionsForDisplay(msg.content)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ))
+            ) : (
+              /* Standard mode */
+              messages.map((msg) => {
+                const isOwn = msg.user_id === user?.id;
+                return (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${isOwn ? "justify-end" : "justify-start"} px-4 mb-2`}
+                  >
+                    <div className={`flex gap-2 max-w-[85%] ${isOwn ? "flex-row-reverse" : ""}`}>
+                      {!isOwn && (
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarImage src={msg.profile?.avatar_url || undefined} />
+                          <AvatarFallback className="text-xs gradient-primary text-white">
+                            {(msg.profile?.display_name || "U").charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div>
+                        {!isOwn && (
+                          <p className="text-xs text-muted-foreground mb-1 px-1">
+                            {msg.profile?.display_name || "Usuário"}
+                          </p>
+                        )}
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-2",
+                            isOwn
+                              ? "gradient-primary text-white rounded-br-md"
+                              : "bg-secondary rounded-bl-md"
+                          )}
+                        >
+                          <p className="text-sm whitespace-pre-wrap break-words">
+                            {formatMentionsForDisplay(msg.content)}
+                          </p>
+                        </div>
+                        <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? "text-right" : ""} px-1`}>
+                          {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
+                          {msg.is_edited && " (editado)"}
                         </p>
                       </div>
-                      <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? "text-right" : ""} px-1`}>
-                        {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
-                        {msg.is_edited && " (editado)"}
-                      </p>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+                  </motion.div>
+                );
+              })
+            )}
 
             {/* Typing Indicator */}
             {typingUsers.length > 0 && (
