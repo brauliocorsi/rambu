@@ -36,6 +36,9 @@ import {
   Keyboard,
   AlignLeft,
   LayoutList,
+  Rows3,
+  Rows2,
+  Rows4,
 } from "lucide-react";
 import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
@@ -48,7 +51,7 @@ interface SettingsViewProps {
 export function SettingsView({ onBack }: SettingsViewProps) {
   const { user, signOut } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const { preferences, setSlackMode } = useLayoutPreferences();
+  const { preferences, setSlackMode, setDensity } = useLayoutPreferences();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: notifPrefs } = useNotificationPreferences();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission } = useBrowserNotifications();
@@ -397,6 +400,42 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                     </>
                   )}
                 </div>
+              </div>
+
+              {/* Density */}
+              <div className="pt-4 border-t border-border">
+                <p className="font-medium mb-3">Densidade das mensagens</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    variant={preferences.density === "compact" ? "default" : "outline"}
+                    className="rounded-xl flex flex-col gap-1 h-auto py-3"
+                    onClick={() => setDensity("compact")}
+                  >
+                    <Rows4 className="h-5 w-5" />
+                    <span className="text-xs">Compacto</span>
+                  </Button>
+                  <Button
+                    variant={preferences.density === "normal" ? "default" : "outline"}
+                    className="rounded-xl flex flex-col gap-1 h-auto py-3"
+                    onClick={() => setDensity("normal")}
+                  >
+                    <Rows3 className="h-5 w-5" />
+                    <span className="text-xs">Normal</span>
+                  </Button>
+                  <Button
+                    variant={preferences.density === "comfortable" ? "default" : "outline"}
+                    className="rounded-xl flex flex-col gap-1 h-auto py-3"
+                    onClick={() => setDensity("comfortable")}
+                  >
+                    <Rows2 className="h-5 w-5" />
+                    <span className="text-xs">Confortável</span>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {preferences.density === "compact" && "Menos espaçamento entre mensagens"}
+                  {preferences.density === "normal" && "Espaçamento padrão"}
+                  {preferences.density === "comfortable" && "Mais espaçamento para leitura"}
+                </p>
               </div>
             </div>
           </Card>

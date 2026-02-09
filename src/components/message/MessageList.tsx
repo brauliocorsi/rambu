@@ -218,6 +218,7 @@ export function MessageList({
                 onReply={onReply}
                 onOpenThread={onOpenThread}
                 slackMode
+                density={preferences.density}
               />
             ))}
           </div>
@@ -231,6 +232,7 @@ export function MessageList({
             channelId={channelId}
             onReply={onReply}
             onOpenThread={onOpenThread}
+            density={preferences.density}
           />
         ))
       )}

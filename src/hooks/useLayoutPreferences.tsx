@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 
+export type MessageDensity = "compact" | "normal" | "comfortable";
+
 interface LayoutPreferences {
   slackMode: boolean; // All messages aligned left with day separators
+  density: MessageDensity; // Message spacing density
 }
 
 interface LayoutPreferencesContextType {
   preferences: LayoutPreferences;
   setSlackMode: (enabled: boolean) => void;
+  setDensity: (density: MessageDensity) => void;
 }
 
 const defaultPreferences: LayoutPreferences = {
   slackMode: false,
+  density: "normal",
 };
 
 const LayoutPreferencesContext = createContext<LayoutPreferencesContextType | null>(null);
@@ -43,8 +48,12 @@ export function LayoutPreferencesProvider({ children }: { children: ReactNode })
     setPreferences((prev) => ({ ...prev, slackMode: enabled }));
   }, []);
 
+  const setDensity = useCallback((density: MessageDensity) => {
+    setPreferences((prev) => ({ ...prev, density }));
+  }, []);
+
   return (
-    <LayoutPreferencesContext.Provider value={{ preferences, setSlackMode }}>
+    <LayoutPreferencesContext.Provider value={{ preferences, setSlackMode, setDensity }}>
       {children}
     </LayoutPreferencesContext.Provider>
   );

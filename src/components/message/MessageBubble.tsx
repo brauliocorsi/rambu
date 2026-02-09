@@ -21,17 +21,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import type { MessageDensity } from "@/hooks/useLayoutPreferences";
+
 interface MessageBubbleProps {
   message: Message;
   channelId: string;
   onReply?: (messageId: string) => void;
   onOpenThread?: (message: Message) => void;
   slackMode?: boolean;
+  density?: MessageDensity;
 }
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉"];
 
-export function MessageBubble({ message, channelId, onReply, onOpenThread, slackMode = false }: MessageBubbleProps) {
+// Density-based styles
+const densityStyles = {
+  compact: {
+    container: "py-0.5",
+    avatar: "h-7 w-7",
+    text: "text-sm",
+  },
+  normal: {
+    container: "py-1.5",
+    avatar: "h-9 w-9",
+    text: "text-sm",
+  },
+  comfortable: {
+    container: "py-3",
+    avatar: "h-10 w-10",
+    text: "text-base",
+  },
+};
+
+export function MessageBubble({ message, channelId, onReply, onOpenThread, slackMode = false, density = "normal" }: MessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -104,13 +126,16 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
   // In Slack mode, all messages are left-aligned without bubble styling
   const useSlackLayout = slackMode;
 
+  const styles = densityStyles[density];
+
   return (
     <>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className={cn(
-          "group flex gap-3 px-4 py-1.5 hover:bg-secondary/50 transition-colors",
+          "group flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
+          styles.container,
           !useSlackLayout && isOwn && "flex-row-reverse"
         )}
         onMouseEnter={() => setShowActions(true)}
@@ -120,7 +145,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
         }}
       >
         {/* Avatar */}
-        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
           <AvatarFallback className="text-sm gradient-primary text-white">
             {displayName.charAt(0).toUpperCase()}
