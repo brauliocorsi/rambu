@@ -6,7 +6,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DirectMessage } from "@/hooks/useDirectMessages";
 import { useInfiniteDMMessages } from "@/hooks/useInfiniteDMMessages";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
 import { DMMessageInput } from "./DMMessageInput";
 
@@ -17,7 +20,9 @@ interface DMChatViewProps {
 
 export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteDMMessages(dm.id);
+  const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(dm.id, true);
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -155,6 +160,11 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                 onReply={setReplyTo}
               />
             ))}
+
+            {/* Typing Indicator */}
+            {typingUsers.length > 0 && (
+              <TypingIndicator typingUsers={typingUsers} />
+            )}
           </>
         )}
         <div ref={bottomRef} />
@@ -166,6 +176,8 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
         otherUserName={displayName}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(undefined)}
+        onTyping={() => profile?.display_name && sendTypingStart(profile.display_name)}
+        onStopTyping={sendTypingStop}
       />
     </div>
   );

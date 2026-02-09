@@ -34,6 +34,8 @@ interface DMMessageInputProps {
   otherUserName: string;
   replyTo?: string;
   onCancelReply?: () => void;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
 }
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉", "💯", "✨"];
@@ -45,7 +47,7 @@ const QUICK_SCHEDULE_OPTIONS = [
   { label: "Amanhã às 14h", getValue: () => setMinutes(setHours(addDays(new Date(), 1), 14), 0) },
 ];
 
-export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply }: DMMessageInputProps) {
+export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, onTyping, onStopTyping }: DMMessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
@@ -118,8 +120,15 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply }: 
     inputRef.current?.focus();
   };
 
-  // Handle quick replies
+  // Handle quick replies and typing indicator
   const handleMessageChange = (value: string) => {
+    // Notify typing
+    if (value.trim() && onTyping) {
+      onTyping();
+    } else if (!value.trim() && onStopTyping) {
+      onStopTyping();
+    }
+    
     // Check for quick reply shortcuts
     if (value.startsWith("/")) {
       const shortcut = value.slice(0).toLowerCase();
