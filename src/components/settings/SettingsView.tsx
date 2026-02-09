@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { 
   useProfile, 
   useUpdateProfile, 
@@ -33,6 +34,8 @@ import {
   Loader2,
   MessageSquare,
   Keyboard,
+  AlignLeft,
+  LayoutList,
 } from "lucide-react";
 import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
@@ -45,6 +48,7 @@ interface SettingsViewProps {
 export function SettingsView({ onBack }: SettingsViewProps) {
   const { user, signOut } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { preferences, setSlackMode } = useLayoutPreferences();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: notifPrefs } = useNotificationPreferences();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission } = useBrowserNotifications();
@@ -317,6 +321,83 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                 <Monitor className="h-5 w-5" />
                 <span className="text-xs">Sistema</span>
               </Button>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Layout Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <Card className="p-6 rounded-2xl space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <LayoutList className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Layout das Mensagens</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <AlignLeft className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Modo Slack</p>
+                    <p className="text-sm text-muted-foreground">
+                      Todas as mensagens alinhadas à esquerda com separadores por dia
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences.slackMode}
+                  onCheckedChange={setSlackMode}
+                />
+              </div>
+
+              {/* Preview */}
+              <div className="p-3 bg-secondary/50 rounded-xl">
+                <p className="text-xs text-muted-foreground mb-2">Prévia:</p>
+                <div className="space-y-2">
+                  {preferences.slackMode ? (
+                    <>
+                      <div className="text-xs text-center text-muted-foreground py-1 border-t border-b border-border">
+                        Hoje
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/20" />
+                        <div>
+                          <span className="text-xs font-medium">João</span>
+                          <span className="text-xs text-muted-foreground ml-2">10:30</span>
+                          <p className="text-xs">Olá!</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-accent/50" />
+                        <div>
+                          <span className="text-xs font-medium">Você</span>
+                          <span className="text-xs text-muted-foreground ml-2">10:31</span>
+                          <p className="text-xs">Oi!</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/20" />
+                        <div className="bg-secondary px-2 py-1 rounded-lg">
+                          <p className="text-xs">Olá!</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 flex-row-reverse">
+                        <div className="h-6 w-6 rounded-full bg-accent/50" />
+                        <div className="bg-primary/20 px-2 py-1 rounded-lg">
+                          <p className="text-xs">Oi!</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </Card>
         </motion.div>

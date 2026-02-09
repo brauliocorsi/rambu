@@ -8,6 +8,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ChannelProvider } from "@/contexts/ChannelContext";
 import { ViewModeProvider, useViewMode } from "@/contexts/ViewModeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LayoutPreferencesProvider } from "@/hooks/useLayoutPreferences";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MainApp } from "@/components/app/MainApp";
 import { DesktopApp } from "@/components/app/DesktopApp";
@@ -46,9 +47,11 @@ function AuthenticatedApp() {
   return (
     <WorkspaceProvider>
       <ChannelProvider>
-        <ViewModeProvider>
-          <AppContent />
-        </ViewModeProvider>
+        <LayoutPreferencesProvider>
+          <ViewModeProvider>
+            <AppContent />
+          </ViewModeProvider>
+        </LayoutPreferencesProvider>
       </ChannelProvider>
     </WorkspaceProvider>
   );

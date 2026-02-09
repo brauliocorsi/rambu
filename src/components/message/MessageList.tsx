@@ -1,10 +1,13 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Hash, Loader2 } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
 import { MessageBubble } from "./MessageBubble";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "./TypingIndicator";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
+import { format, isToday, isYesterday, isSameDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface TypingUser {
   userId: string;
@@ -24,6 +27,31 @@ interface MessageListProps {
   typingUsers?: TypingUser[];
 }
 
+// Helper to format day separator
+function formatDaySeparator(date: Date): string {
+  if (isToday(date)) return "Hoje";
+  if (isYesterday(date)) return "Ontem";
+  return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+}
+
+// Group messages by day
+function groupMessagesByDay(messages: Message[]): { date: Date; messages: Message[] }[] {
+  const groups: { date: Date; messages: Message[] }[] = [];
+  
+  messages.forEach((message) => {
+    const messageDate = new Date(message.created_at);
+    const lastGroup = groups[groups.length - 1];
+    
+    if (lastGroup && isSameDay(lastGroup.date, messageDate)) {
+      lastGroup.messages.push(message);
+    } else {
+      groups.push({ date: messageDate, messages: [message] });
+    }
+  });
+  
+  return groups;
+}
+
 export function MessageList({ 
   messages, 
   channelId, 
@@ -36,6 +64,7 @@ export function MessageList({
   onOpenThread,
   typingUsers = [],
 }: MessageListProps) {
+  const { preferences } = useLayoutPreferences();
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -101,6 +130,14 @@ export function MessageList({
     setTimeout(() => scrollToBottom("instant"), 50);
   }, [channelId, scrollToBottom]);
 
+  // Group messages by day when in Slack mode (must be before any returns)
+  const messageGroups = useMemo(() => {
+    if (preferences.slackMode) {
+      return groupMessagesByDay(messages);
+    }
+    return null;
+  }, [messages, preferences.slackMode]);
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -159,16 +196,44 @@ export function MessageList({
         </div>
       )}
 
-      {/* Messages */}
-      {messages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          channelId={channelId}
-          onReply={onReply}
-          onOpenThread={onOpenThread}
-        />
-      ))}
+      {/* Messages - Slack mode with day separators */}
+      {preferences.slackMode && messageGroups ? (
+        messageGroups.map((group, groupIndex) => (
+          <div key={group.date.toISOString()}>
+            {/* Day separator */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-secondary rounded-full">
+                {formatDaySeparator(group.date)}
+              </span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            
+            {/* Messages for this day */}
+            {group.messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                channelId={channelId}
+                onReply={onReply}
+                onOpenThread={onOpenThread}
+                slackMode
+              />
+            ))}
+          </div>
+        ))
+      ) : (
+        /* Standard mode - messages without day separators */
+        messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            channelId={channelId}
+            onReply={onReply}
+            onOpenThread={onOpenThread}
+          />
+        ))
+      )}
 
       {/* Typing Indicator */}
       {typingUsers.length > 0 && (
