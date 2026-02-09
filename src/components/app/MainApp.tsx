@@ -4,7 +4,11 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useChannelContext } from "@/contexts/ChannelContext";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
+import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
+import { ChannelList } from "@/components/channel/ChannelList";
+import { useChannels } from "@/hooks/useChannels";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,13 +23,17 @@ import {
   Bell,
   Moon,
   Smartphone,
-  Briefcase
+  Briefcase,
+  ArrowLeft,
+  Send
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 // Home View
 function HomeView() {
   const { user } = useAuth();
-  const { currentWorkspace, workspaces, isLoading } = useWorkspaceContext();
+  const { currentWorkspace } = useWorkspaceContext();
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
 
   return (
@@ -54,8 +62,17 @@ function HomeView() {
       {/* Quick actions */}
       {currentWorkspace && (
         <div className="grid grid-cols-2 gap-3">
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            onClick={() => setShowCreateChannel(true)}
+            className="gradient-primary p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft"
+          >
+            <Hash className="h-6 w-6" />
+            <span className="text-sm font-medium">Criar Canal</span>
+          </motion.button>
           {[
-            { icon: Hash, label: "Criar Canal", color: "gradient-primary" },
             { icon: MessageSquare, label: "Nova Mensagem", color: "bg-primary" },
             { icon: Users, label: "Convidar", color: "bg-accent" },
             { icon: Briefcase, label: "Novo Workspace", color: "bg-accent" },
@@ -64,8 +81,8 @@ function HomeView() {
               key={action.label}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 + 0.2 }}
-              className={`${i === 0 ? action.color : ""} ${i !== 0 ? action.color : ""} p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft`}
+              transition={{ delay: (i + 1) * 0.1 + 0.2 }}
+              className={`${action.color} p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft`}
             >
               <action.icon className="h-6 w-6" />
               <span className="text-sm font-medium">{action.label}</span>
@@ -87,6 +104,8 @@ function HomeView() {
           </div>
         </Card>
       </div>
+
+      <CreateChannelDialog open={showCreateChannel} onClose={() => setShowCreateChannel(false)} />
     </div>
   );
 }
@@ -136,9 +155,81 @@ function DMsView() {
   );
 }
 
+// Channel Chat View
+function ChannelChatView() {
+  const { currentChannel, setCurrentChannel } = useChannelContext();
+  const [message, setMessage] = useState("");
+
+  if (!currentChannel) return null;
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      {/* Channel Header */}
+      <div className="flex items-center gap-3 p-4 border-b border-border">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl"
+          onClick={() => setCurrentChannel(null)}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h2 className="font-bold flex items-center gap-1">
+            <Hash className="h-4 w-4" />
+            {currentChannel.name}
+          </h2>
+          {currentChannel.description && (
+            <p className="text-xs text-muted-foreground">{currentChannel.description}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center mb-4">
+            <Hash className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="font-bold text-lg">Início de #{currentChannel.name}</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Este é o início do canal. Envie a primeira mensagem!
+          </p>
+        </div>
+      </div>
+
+      {/* Message Input */}
+      <div className="p-4 border-t border-border">
+        <div className="flex items-center gap-2">
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={`Mensagem em #${currentChannel.name}`}
+            className="flex-1 h-12 rounded-xl"
+          />
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-xl gradient-primary text-white"
+            disabled={!message.trim()}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Channels View
 function ChannelsView() {
   const { currentWorkspace } = useWorkspaceContext();
+  const { currentChannel, setCurrentChannel } = useChannelContext();
+  const { data: channels = [], isLoading } = useChannels(currentWorkspace?.id || null);
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+
+  if (currentChannel) {
+    return <ChannelChatView />;
+  }
 
   if (!currentWorkspace) {
     return (
@@ -160,23 +251,52 @@ function ChannelsView() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Canais</h2>
-        <Button size="icon" variant="ghost" className="rounded-xl">
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          className="rounded-xl"
+          onClick={() => setShowCreateChannel(true)}
+        >
           <Plus className="h-5 w-5" />
         </Button>
       </div>
-      <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-        <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-          <Hash className="h-8 w-8 text-primary" />
-        </div>
-        <div className="text-center">
-          <h3 className="font-semibold">Nenhum canal</h3>
-          <p className="text-sm text-muted-foreground">Crie o primeiro canal em {currentWorkspace.name}!</p>
-        </div>
-        <Button className="rounded-xl gradient-primary text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Criar Canal
-        </Button>
-      </Card>
+
+      {isLoading ? (
+        <Card className="p-8 rounded-2xl flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full"
+          />
+        </Card>
+      ) : channels.length === 0 ? (
+        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
+          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
+            <Hash className="h-8 w-8 text-primary" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-semibold">Nenhum canal</h3>
+            <p className="text-sm text-muted-foreground">Crie o primeiro canal em {currentWorkspace.name}!</p>
+          </div>
+          <Button 
+            className="rounded-xl gradient-primary text-white"
+            onClick={() => setShowCreateChannel(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Canal
+          </Button>
+        </Card>
+      ) : (
+        <Card className="p-2 rounded-2xl">
+          <ChannelList
+            channels={channels}
+            selectedChannel={currentChannel}
+            onSelectChannel={setCurrentChannel}
+          />
+        </Card>
+      )}
+
+      <CreateChannelDialog open={showCreateChannel} onClose={() => setShowCreateChannel(false)} />
     </div>
   );
 }
@@ -273,12 +393,16 @@ function ProfileView() {
 export function MainApp() {
   const [activeTab, setActiveTab] = useState("home");
   const { currentWorkspace } = useWorkspaceContext();
+  const { currentChannel } = useChannelContext();
 
   const getTitle = () => {
+    if (activeTab === "channels" && currentChannel) {
+      return `#${currentChannel.name}`;
+    }
     switch (activeTab) {
       case "home": return "ChatFlow";
       case "dms": return "Mensagens";
-      case "channels": return currentWorkspace ? `# ${currentWorkspace.name}` : "Canais";
+      case "channels": return currentWorkspace ? currentWorkspace.name : "Canais";
       case "notifications": return "Notificações";
       case "profile": return "Perfil";
       default: return "ChatFlow";
@@ -302,7 +426,7 @@ export function MainApp() {
       <main className="pb-24">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
+            key={activeTab + (currentChannel?.id || "")}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}

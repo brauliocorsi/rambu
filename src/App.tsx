@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { ChannelProvider } from "@/contexts/ChannelContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MainApp } from "@/components/app/MainApp";
 import { LoadingScreen } from "@/components/ui/LoadingSpinner";
@@ -25,7 +26,9 @@ function AppContent() {
 
   return (
     <WorkspaceProvider>
-      <MainApp />
+      <ChannelProvider>
+        <MainApp />
+      </ChannelProvider>
     </WorkspaceProvider>
   );
 }

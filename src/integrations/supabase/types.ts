@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      channel_members: {
+        Row: {
+          channel_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_private: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -142,6 +226,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_channel: { Args: { p_channel_id: string }; Returns: boolean }
+      is_channel_member: { Args: { p_channel_id: string }; Returns: boolean }
       is_workspace_admin: { Args: { p_workspace_id: string }; Returns: boolean }
       is_workspace_member: {
         Args: { p_workspace_id: string }
