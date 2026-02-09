@@ -61,6 +61,8 @@ export default {
         online: "hsl(var(--online))",
         offline: "hsl(var(--offline))",
         busy: "hsl(var(--busy))",
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
       },
       borderRadius: {
         lg: "var(--radius)",

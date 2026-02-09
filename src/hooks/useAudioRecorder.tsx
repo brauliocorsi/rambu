@@ -20,6 +20,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const mimeTypeRef = useRef<string>('audio/webm');
 
   const startTimer = useCallback(() => {
     timerRef.current = setInterval(() => {
@@ -47,11 +48,32 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       streamRef.current = stream;
       chunksRef.current = [];
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-          ? 'audio/webm;codecs=opus' 
-          : 'audio/webm'
-      });
+      // Try different MIME types for better browser compatibility
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        ''  // Let browser choose default
+      ];
+      
+      let selectedMimeType = '';
+      for (const mimeType of mimeTypes) {
+        if (mimeType === '' || MediaRecorder.isTypeSupported(mimeType)) {
+          selectedMimeType = mimeType;
+          break;
+        }
+      }
+      
+      const options: MediaRecorderOptions = selectedMimeType 
+        ? { mimeType: selectedMimeType }
+        : {};
+      
+      const mediaRecorder = new MediaRecorder(stream, options);
+      
+      // Store the actual MIME type being used
+      const actualMimeType = mediaRecorder.mimeType || 'audio/webm';
       
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -60,6 +82,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       };
       
       mediaRecorderRef.current = mediaRecorder;
+      mimeTypeRef.current = actualMimeType;
       mediaRecorder.start(100); // Collect data every 100ms
       
       setIsRecording(true);
@@ -80,7 +103,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       }
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
         chunksRef.current = [];
         
         // Stop all tracks
