@@ -9,6 +9,9 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
 import { useChannels } from "@/hooks/useChannels";
+import { useMessages } from "@/hooks/useMessages";
+import { MessageList } from "@/components/message/MessageList";
+import { MessageInput } from "@/components/message/MessageInput";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,10 +27,8 @@ import {
   Moon,
   Smartphone,
   Briefcase,
-  ArrowLeft,
-  Send
+  ArrowLeft
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 
 // Home View
 function HomeView() {
@@ -158,7 +159,8 @@ function DMsView() {
 // Channel Chat View
 function ChannelChatView() {
   const { currentChannel, setCurrentChannel } = useChannelContext();
-  const [message, setMessage] = useState("");
+  const { data: messages = [], isLoading } = useMessages(currentChannel?.id || null);
+  const [replyTo, setReplyTo] = useState<string | undefined>();
 
   if (!currentChannel) return null;
 
@@ -186,36 +188,21 @@ function ChannelChatView() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center mb-4">
-            <Hash className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="font-bold text-lg">Início de #{currentChannel.name}</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Este é o início do canal. Envie a primeira mensagem!
-          </p>
-        </div>
-      </div>
+      <MessageList
+        messages={messages}
+        channelId={currentChannel.id}
+        channelName={currentChannel.name}
+        isLoading={isLoading}
+        onReply={setReplyTo}
+      />
 
       {/* Message Input */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-2">
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={`Mensagem em #${currentChannel.name}`}
-            className="flex-1 h-12 rounded-xl"
-          />
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-xl gradient-primary text-white"
-            disabled={!message.trim()}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
+      <MessageInput
+        channelId={currentChannel.id}
+        channelName={currentChannel.name}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(undefined)}
+      />
     </div>
   );
 }
