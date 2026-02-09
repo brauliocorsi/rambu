@@ -239,3 +239,55 @@ export function useToggleReaction() {
     },
   });
 }
+
+export function useEditMessage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ messageId, content, channelId }: { messageId: string; content: string; channelId: string }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("messages")
+        .update({ content, is_edited: true })
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return { messageId, channelId };
+    },
+    onSuccess: (_, { channelId }) => {
+      queryClient.invalidateQueries({ queryKey: ["messages", channelId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao editar mensagem");
+    },
+  });
+}
+
+export function useDeleteMessage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ messageId, channelId }: { messageId: string; channelId: string }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return { messageId, channelId };
+    },
+    onSuccess: (_, { channelId }) => {
+      queryClient.invalidateQueries({ queryKey: ["messages", channelId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao deletar mensagem");
+    },
+  });
+}
