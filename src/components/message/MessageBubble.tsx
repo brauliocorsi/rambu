@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MoreHorizontal, Reply, Smile } from "lucide-react";
+import { Reply, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Message, useToggleReaction, useMessageReactions } from "@/hooks/useMessages";
+import { FilePreview } from "./FilePreview";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,6 +28,7 @@ export function MessageBubble({ message, channelId, onReply }: MessageBubbleProp
   const isOwn = user?.id === message.user_id;
   const displayName = message.profile?.display_name || "Usuário";
   const time = format(new Date(message.created_at), "HH:mm", { locale: ptBR });
+  const hasFile = message.file_url && message.file_type && message.file_name;
 
   // Group reactions by emoji
   const groupedReactions = reactions.reduce((acc, r) => {
@@ -73,17 +75,30 @@ export function MessageBubble({ message, channelId, onReply }: MessageBubbleProp
           )}
         </div>
 
-        {/* Message bubble */}
-        <div
-          className={cn(
-            "px-4 py-2 rounded-2xl inline-block",
-            isOwn
-              ? "bg-primary text-primary-foreground rounded-br-md"
-              : "bg-secondary text-secondary-foreground rounded-bl-md"
-          )}
-        >
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-        </div>
+        {/* File attachment */}
+        {hasFile && (
+          <div className="mb-2">
+            <FilePreview
+              url={message.file_url!}
+              name={message.file_name!}
+              type={message.file_type!}
+            />
+          </div>
+        )}
+
+        {/* Message bubble - only show if there's actual text content beyond just the file indicator */}
+        {message.content && !message.content.startsWith("📎 ") && (
+          <div
+            className={cn(
+              "px-4 py-2 rounded-2xl inline-block",
+              isOwn
+                ? "bg-primary text-primary-foreground rounded-br-md"
+                : "bg-secondary text-secondary-foreground rounded-bl-md"
+            )}
+          >
+            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          </div>
+        )}
 
         {/* Reactions */}
         {Object.keys(groupedReactions).length > 0 && (

@@ -11,6 +11,9 @@ export interface Message {
   content: string;
   reply_to: string | null;
   is_edited: boolean;
+  file_url: string | null;
+  file_type: string | null;
+  file_name: string | null;
   created_at: string;
   updated_at: string;
   profile?: {
@@ -121,11 +124,17 @@ export function useSendMessage() {
     mutationFn: async ({ 
       channelId, 
       content,
-      replyTo 
+      replyTo,
+      fileUrl,
+      fileType,
+      fileName,
     }: { 
       channelId: string; 
       content: string;
       replyTo?: string;
+      fileUrl?: string;
+      fileType?: string;
+      fileName?: string;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -136,6 +145,9 @@ export function useSendMessage() {
           user_id: user.id,
           content,
           reply_to: replyTo || null,
+          file_url: fileUrl || null,
+          file_type: fileType || null,
+          file_name: fileName || null,
         })
         .select()
         .single();

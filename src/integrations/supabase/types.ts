@@ -152,6 +152,9 @@ export type Database = {
           content: string
           created_at: string
           dm_id: string
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
           is_edited: boolean
           updated_at: string
@@ -161,6 +164,9 @@ export type Database = {
           content: string
           created_at?: string
           dm_id: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           is_edited?: boolean
           updated_at?: string
@@ -170,6 +176,9 @@ export type Database = {
           content?: string
           created_at?: string
           dm_id?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           is_edited?: boolean
           updated_at?: string
@@ -236,6 +245,9 @@ export type Database = {
           channel_id: string
           content: string
           created_at: string
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
           is_edited: boolean
           reply_to: string | null
@@ -247,6 +259,9 @@ export type Database = {
           channel_id: string
           content: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           is_edited?: boolean
           reply_to?: string | null
@@ -258,6 +273,9 @@ export type Database = {
           channel_id?: string
           content?: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           is_edited?: boolean
           reply_to?: string | null
