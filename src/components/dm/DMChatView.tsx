@@ -1,17 +1,20 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DirectMessage } from "@/hooks/useDirectMessages";
+import { DirectMessage, DMMessage } from "@/hooks/useDirectMessages";
 import { useInfiniteDMMessages } from "@/hooks/useInfiniteDMMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
 import { DMMessageInput } from "./DMMessageInput";
+import { format, isToday, isYesterday, isSameDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface DMChatViewProps {
   dm: DirectMessage;
@@ -21,6 +24,7 @@ interface DMChatViewProps {
 export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const { user } = useAuth();
   const { data: profile } = useProfile();
+  const { preferences } = useLayoutPreferences();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteDMMessages(dm.id);
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(dm.id, true);
   const [replyTo, setReplyTo] = useState<string | undefined>();
@@ -82,6 +86,31 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     prevMessagesLengthRef.current = messages.length;
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
   }, [dm.id]);
+
+  // Helper to format day separator
+  const formatDaySeparator = (date: Date): string => {
+    if (isToday(date)) return "Hoje";
+    if (isYesterday(date)) return "Ontem";
+    return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+  };
+
+  // Group messages by day when in Slack mode
+  const messageGroups = useMemo(() => {
+    if (!preferences.slackMode) return null;
+    
+    const groups: { date: Date; messages: DMMessage[] }[] = [];
+    messages.forEach((message) => {
+      const messageDate = new Date(message.created_at);
+      const lastGroup = groups[groups.length - 1];
+      
+      if (lastGroup && isSameDay(lastGroup.date, messageDate)) {
+        lastGroup.messages.push(message);
+      } else {
+        groups.push({ date: messageDate, messages: [message] });
+      }
+    });
+    return groups;
+  }, [messages, preferences.slackMode]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -151,15 +180,42 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
               </div>
             )}
 
-            {/* Messages */}
-            {messages.map((msg) => (
-              <DMMessageBubble 
-                key={msg.id} 
-                message={msg} 
-                dmId={dm.id}
-                onReply={setReplyTo}
-              />
-            ))}
+            {/* Messages - Slack mode with day separators */}
+            {preferences.slackMode && messageGroups ? (
+              messageGroups.map((group) => (
+                <div key={group.date.toISOString()}>
+                  {/* Day separator */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-secondary rounded-full">
+                      {formatDaySeparator(group.date)}
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  
+                  {/* Messages for this day */}
+                  {group.messages.map((msg) => (
+                    <DMMessageBubble 
+                      key={msg.id} 
+                      message={msg} 
+                      dmId={dm.id}
+                      onReply={setReplyTo}
+                      slackMode
+                    />
+                  ))}
+                </div>
+              ))
+            ) : (
+              /* Standard mode */
+              messages.map((msg) => (
+                <DMMessageBubble 
+                  key={msg.id} 
+                  message={msg} 
+                  dmId={dm.id}
+                  onReply={setReplyTo}
+                />
+              ))
+            )}
 
             {/* Typing Indicator */}
             {typingUsers.length > 0 && (

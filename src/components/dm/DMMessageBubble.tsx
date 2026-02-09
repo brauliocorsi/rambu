@@ -27,9 +27,10 @@ interface DMMessageBubbleProps {
   message: DMMessage;
   dmId: string;
   onReply?: (messageId: string) => void;
+  slackMode?: boolean;
 }
 
-export function DMMessageBubble({ message, dmId, onReply }: DMMessageBubbleProps) {
+export function DMMessageBubble({ message, dmId, onReply, slackMode = false }: DMMessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -86,12 +87,18 @@ export function DMMessageBubble({ message, dmId, onReply }: DMMessageBubbleProps
     setShowReactions(false);
   };
 
+  // In Slack mode, all messages are left-aligned
+  const useSlackLayout = slackMode;
+
   return (
     <>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cn("group flex gap-3 px-4 py-2 hover:bg-secondary/50 transition-colors", isOwn && "flex-row-reverse")}
+        className={cn(
+          "group flex gap-3 px-4 py-1.5 hover:bg-secondary/50 transition-colors",
+          !useSlackLayout && isOwn && "flex-row-reverse"
+        )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => {
           setShowActions(false);
@@ -99,7 +106,7 @@ export function DMMessageBubble({ message, dmId, onReply }: DMMessageBubbleProps
         }}
       >
         {/* Avatar */}
-        <Avatar className="h-9 w-9 shrink-0">
+        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
           <AvatarImage src={message.profile?.avatar_url || undefined} />
           <AvatarFallback className="text-sm gradient-primary text-white">
             {displayName.charAt(0).toUpperCase()}
@@ -107,9 +114,9 @@ export function DMMessageBubble({ message, dmId, onReply }: DMMessageBubbleProps
         </Avatar>
 
         {/* Content */}
-        <div className={cn("flex-1 max-w-[75%]", isOwn && "flex flex-col items-end")}>
+        <div className={cn("flex-1 min-w-0", !useSlackLayout && isOwn && "flex flex-col items-end")}>
           {/* Header */}
-          <div className={cn("flex items-center gap-2 mb-1", isOwn && "flex-row-reverse")}>
+          <div className={cn("flex items-baseline gap-2 mb-0.5", !useSlackLayout && isOwn && "flex-row-reverse")}>
             <span className="font-semibold text-sm">{displayName}</span>
             <span className="text-xs text-muted-foreground">{time}</span>
             {message.is_edited && (
@@ -121,7 +128,7 @@ export function DMMessageBubble({ message, dmId, onReply }: DMMessageBubbleProps
           {originalMessage && (
             <div className={cn(
               "flex items-start gap-2 mb-2 p-2 rounded-lg bg-secondary/50 border-l-2 border-primary/50",
-              isOwn && "border-r-2 border-l-0"
+              !useSlackLayout && isOwn && "border-r-2 border-l-0"
             )}>
               <CornerDownRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
@@ -184,18 +191,26 @@ export function DMMessageBubble({ message, dmId, onReply }: DMMessageBubbleProps
           ) : (
             /* Message bubble - display mode */
             message.content && !message.content.startsWith("📎 ") && (
-              <div
-                className={cn(
-                  "px-4 py-2 rounded-2xl inline-block",
-                  isOwn
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-secondary text-secondary-foreground rounded-bl-md"
-                )}
-              >
+              useSlackLayout ? (
+                // Slack mode - plain text without bubble
                 <p className="text-sm whitespace-pre-wrap break-words">
                   {formatMentionsForDisplay(message.content)}
                 </p>
-              </div>
+              ) : (
+                // Standard mode - bubble styling
+                <div
+                  className={cn(
+                    "px-4 py-2 rounded-2xl inline-block max-w-[85%]",
+                    isOwn
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-secondary text-secondary-foreground rounded-bl-md"
+                  )}
+                >
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {formatMentionsForDisplay(message.content)}
+                  </p>
+                </div>
+              )
             )
           )}
         </div>
