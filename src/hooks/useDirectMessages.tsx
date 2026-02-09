@@ -29,6 +29,9 @@ export interface DMMessage {
   user_id: string;
   content: string;
   is_edited: boolean;
+  file_url: string | null;
+  file_type: string | null;
+  file_name: string | null;
   created_at: string;
   updated_at: string;
   profile?: {
@@ -204,7 +207,19 @@ export function useSendDMMessage() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ dmId, content }: { dmId: string; content: string }) => {
+    mutationFn: async ({ 
+      dmId, 
+      content,
+      fileUrl,
+      fileType,
+      fileName,
+    }: { 
+      dmId: string; 
+      content: string;
+      fileUrl?: string;
+      fileType?: string;
+      fileName?: string;
+    }) => {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
@@ -213,6 +228,9 @@ export function useSendDMMessage() {
           dm_id: dmId,
           user_id: user.id,
           content,
+          file_url: fileUrl || null,
+          file_type: fileType || null,
+          file_name: fileName || null,
         })
         .select()
         .single();
