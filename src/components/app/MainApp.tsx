@@ -10,8 +10,12 @@ import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
 import { useChannels } from "@/hooks/useChannels";
 import { useMessages } from "@/hooks/useMessages";
+import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
+import { DMChatView } from "@/components/dm/DMChatView";
+import { DMList } from "@/components/dm/DMList";
+import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -114,6 +118,13 @@ function HomeView() {
 // DMs View
 function DMsView() {
   const { currentWorkspace } = useWorkspaceContext();
+  const { data: dms = [], isLoading } = useDirectMessages(currentWorkspace?.id || null);
+  const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
+  const [showNewDM, setShowNewDM] = useState(false);
+
+  if (selectedDM) {
+    return <DMChatView dm={selectedDM} onBack={() => setSelectedDM(null)} />;
+  }
 
   if (!currentWorkspace) {
     return (
@@ -135,23 +146,59 @@ function DMsView() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Mensagens Diretas</h2>
-        <Button size="icon" variant="ghost" className="rounded-xl">
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          className="rounded-xl"
+          onClick={() => setShowNewDM(true)}
+        >
           <Plus className="h-5 w-5" />
         </Button>
       </div>
-      <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-        <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-          <MessageSquare className="h-8 w-8 text-primary" />
-        </div>
-        <div className="text-center">
-          <h3 className="font-semibold">Nenhuma conversa</h3>
-          <p className="text-sm text-muted-foreground">Inicie uma nova conversa!</p>
-        </div>
-        <Button className="rounded-xl gradient-primary text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Mensagem
-        </Button>
-      </Card>
+
+      {isLoading ? (
+        <Card className="p-8 rounded-2xl flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full"
+          />
+        </Card>
+      ) : dms.length === 0 ? (
+        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
+          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
+            <MessageSquare className="h-8 w-8 text-primary" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-semibold">Nenhuma conversa</h3>
+            <p className="text-sm text-muted-foreground">Inicie uma nova conversa!</p>
+          </div>
+          <Button 
+            className="rounded-xl gradient-primary text-white"
+            onClick={() => setShowNewDM(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Mensagem
+          </Button>
+        </Card>
+      ) : (
+        <Card className="p-2 rounded-2xl">
+          <DMList 
+            dms={dms} 
+            selectedDM={selectedDM} 
+            onSelectDM={setSelectedDM} 
+          />
+        </Card>
+      )}
+
+      <NewDMDialog 
+        open={showNewDM} 
+        onClose={() => setShowNewDM(false)} 
+        onSelectDM={(dm) => {
+          setSelectedDM(dm);
+          setShowNewDM(false);
+        }}
+      />
     </div>
   );
 }
