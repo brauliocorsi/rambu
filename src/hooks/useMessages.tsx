@@ -138,6 +138,7 @@ export function useSendMessage() {
     }) => {
       if (!user) throw new Error("Not authenticated");
 
+      // Insert the message
       const { data, error } = await supabase
         .from("messages")
         .insert({
@@ -153,6 +154,25 @@ export function useSendMessage() {
         .single();
 
       if (error) throw error;
+
+      // Parse and create mentions
+      const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+      const mentions: string[] = [];
+      let match;
+      
+      while ((match = mentionRegex.exec(content)) !== null) {
+        mentions.push(match[2]); // User ID is in second capture group
+      }
+
+      if (mentions.length > 0 && data) {
+        const mentionInserts = mentions.map((userId) => ({
+          message_id: data.id,
+          mentioned_user_id: userId,
+        }));
+
+        await supabase.from("message_mentions").insert(mentionInserts);
+      }
+
       return data;
     },
     onError: (error: any) => {
