@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
@@ -383,13 +384,14 @@ function NotificationsView() {
 // Profile View
 function ProfileView() {
   const { user, signOut } = useAuth();
+  const { toggleViewMode } = useViewMode();
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
 
   const menuItems = [
     { icon: Settings, label: "Configurações", action: () => {} },
     { icon: Bell, label: "Notificações", action: () => {} },
     { icon: Moon, label: "Modo Escuro", action: () => {} },
-    { icon: Smartphone, label: "Versão Desktop", action: () => {} },
+    { icon: Smartphone, label: "Versão Desktop", action: toggleViewMode },
   ];
 
   return (
