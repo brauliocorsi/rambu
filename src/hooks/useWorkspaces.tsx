@@ -138,3 +138,60 @@ export function useInviteMemberByUserId() {
     },
   });
 }
+
+export function useUpdateWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      id, 
+      name, 
+      description, 
+      icon_url 
+    }: { 
+      id: string; 
+      name: string; 
+      description?: string | null; 
+      icon_url?: string | null; 
+    }) => {
+      const { error } = await supabase
+        .from("workspaces")
+        .update({
+          name,
+          description,
+          icon_url,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao atualizar workspace");
+    },
+  });
+}
+
+export function useDeleteWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (workspaceId: string) => {
+      const { error } = await supabase
+        .from("workspaces")
+        .delete()
+        .eq("id", workspaceId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      toast.success("Workspace excluído");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao excluir workspace");
+    },
+  });
+}

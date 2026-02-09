@@ -19,12 +19,15 @@ import {
   useMarkDMAsRead,
 } from "@/hooks/useNotifications";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
+import { ChannelDetailsDialog } from "@/components/channel/ChannelDetailsDialog";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
+import { WorkspaceSettingsDialog } from "@/components/workspace/WorkspaceSettingsDialog";
 import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
 import { MemberManagementDialog } from "@/components/workspace/MemberManagementDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
+import { EmojiPicker } from "@/components/message/EmojiPicker";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { DMList } from "@/components/dm/DMList";
@@ -59,6 +62,7 @@ import {
   UserPlus,
   ChevronDown,
   Keyboard,
+  Info,
 } from "lucide-react";
 
 export function DesktopApp() {
@@ -94,6 +98,8 @@ export function DesktopApp() {
   const [showInviteLink, setShowInviteLink] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
+  const [showChannelDetails, setShowChannelDetails] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
 
@@ -152,6 +158,10 @@ export function DesktopApp() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-56 rounded-xl">
+            <DropdownMenuItem onClick={() => setShowWorkspaceSettings(true)} className="rounded-lg">
+              <Settings className="h-4 w-4 mr-2" />
+              Configurações
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowInviteLink(true)} className="rounded-lg">
               <Link className="h-4 w-4 mr-2" />
               Convidar Pessoas
@@ -356,6 +366,15 @@ export function DesktopApp() {
                   variant="ghost" 
                   size="icon" 
                   className="rounded-lg"
+                  onClick={() => setShowChannelDetails(true)}
+                  title="Detalhes do canal"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-lg"
                   onClick={() => setShowMembers(true)}
                 >
                   <Users className="h-4 w-4" />
@@ -465,6 +484,15 @@ export function DesktopApp() {
       <InviteLinkDialog open={showInviteLink} onClose={() => setShowInviteLink(false)} />
       <MemberManagementDialog open={showMembers} onClose={() => setShowMembers(false)} />
       <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
+      <WorkspaceSettingsDialog open={showWorkspaceSettings} onClose={() => setShowWorkspaceSettings(false)} />
+      {currentChannel && (
+        <ChannelDetailsDialog 
+          open={showChannelDetails} 
+          onClose={() => setShowChannelDetails(false)}
+          channelId={currentChannel.id}
+          channelName={currentChannel.name}
+        />
+      )}
     </div>
   );
 }

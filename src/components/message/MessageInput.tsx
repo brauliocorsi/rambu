@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Smile, Paperclip, X, Image } from "lucide-react";
+import { Send, Paperclip, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
@@ -8,6 +8,7 @@ import { FilePreview } from "./FilePreview";
 import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
+import { EmojiPicker } from "./EmojiPicker";
 
 interface MessageInputProps {
   channelId: string;
@@ -197,27 +198,7 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
-      {/* Quick Emoji Picker */}
-      <AnimatePresence>
-        {showEmojis && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="mb-2 flex gap-1 flex-wrap"
-          >
-            {QUICK_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                onClick={() => addEmoji(emoji)}
-                className="p-2 text-xl hover:bg-secondary rounded-lg transition-colors"
-              >
-                {emoji}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Quick Emoji Picker - legacy, replaced by EmojiPicker component */}
 
       <div className="flex items-center gap-2">
         {/* Hidden file input */}
@@ -239,14 +220,7 @@ export function MessageInput({
           <Paperclip className="h-5 w-5 text-muted-foreground" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-xl shrink-0"
-          onClick={() => setShowEmojis(!showEmojis)}
-        >
-          <Smile className="h-5 w-5 text-muted-foreground" />
-        </Button>
+        <EmojiPicker onSelect={addEmoji} />
 
         <div className="flex-1 relative">
           <input
