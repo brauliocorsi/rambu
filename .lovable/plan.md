@@ -1,112 +1,147 @@
 
-# Plano: Adicionar Lembretes no Modo Desktop
+# Plano: Melhorar Experiencia de Mensagens em Tempo Real
 
-## Problema
-No modo desktop, não existe acesso à visualização de lembretes. O botão com ícone de relógio (`Clock`) mostra apenas mensagens agendadas para envio, não os lembretes de mensagens.
+## Problemas Identificados
 
-## Solução
-Adicionar um botão na barra lateral esquerda do desktop que abre um popover com o feed de lembretes, similar aos botões de Menções e Não Lidas.
+Analisando o codigo atual, identifiquei os seguintes problemas:
+
+1. **Envio sem feedback instantaneo** - Quando o usuario envia uma mensagem, ela so aparece apos a confirmacao do servidor + evento realtime
+2. **Delay perceptivel** - O fluxo atual e: enviar -> esperar servidor -> esperar realtime -> buscar profile -> atualizar UI
+3. **Possivel duplicacao** - Se o realtime chegar antes da mutacao terminar, pode haver comportamento inconsistente
+4. **Scroll nao automatico** - Em alguns casos o chat nao rola automaticamente para a nova mensagem
+
+## Solucao Proposta
+
+Implementar **Optimistic Updates** para que a mensagem apareca instantaneamente ao enviar, e sincronizar com o servidor em background.
 
 ---
 
-## Alterações
+## Alteracoes Tecnicas
 
-### Arquivo: `src/components/app/DesktopApp.tsx`
+### 1. Hook `useMessages.tsx` - Adicionar Optimistic Update
 
-**Adicionar imports:**
+**Modificar `useSendMessage()`:**
+- Adicionar `onMutate` para inserir mensagem temporaria na lista antes do servidor responder
+- Adicionar `onError` para reverter a mensagem se houver erro
+- Adicionar `onSettled` para garantir sincronizacao
+- Evitar duplicacao quando realtime chegar
+
 ```typescript
-import { Bell } from "lucide-react";
-import { useReminders } from "@/hooks/useMessageReminders";
-import { RemindersFeed } from "@/components/reminders/RemindersFeed";
+export function useSendMessage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { data: profile } = useProfile();
+
+  return useMutation({
+    mutationFn: async ({ channelId, content, ... }) => {
+      // ... codigo existente
+    },
+    onMutate: async (variables) => {
+      // Cancelar refetches pendentes
+      await queryClient.cancelQueries({ queryKey: ["infinite-messages", variables.channelId] });
+      
+      // Snapshot do estado anterior
+      const previousMessages = queryClient.getQueryData(["infinite-messages", variables.channelId]);
+      
+      // Mensagem temporaria com ID otimista
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        channel_id: variables.channelId,
+        user_id: user.id,
+        content: variables.content,
+        created_at: new Date().toISOString(),
+        profile: {
+          display_name: profile?.display_name,
+          avatar_url: profile?.avatar_url,
+        },
+        _isOptimistic: true, // Flag para identificar
+      };
+      
+      // Adicionar mensagem otimista
+      queryClient.setQueryData(["infinite-messages", variables.channelId], (old) => {
+        // ... adicionar ao final da ultima pagina
+      });
+      
+      return { previousMessages };
+    },
+    onError: (err, variables, context) => {
+      // Reverter para estado anterior
+      queryClient.setQueryData(
+        ["infinite-messages", variables.channelId],
+        context?.previousMessages
+      );
+    },
+    onSettled: (data, error, variables) => {
+      // Remover mensagem otimista e deixar realtime cuidar
+      // Ou substituir pelo dado real
+    },
+  });
+}
 ```
 
-**Adicionar estado:**
+### 2. Hook `useInfiniteMessages.tsx` - Evitar Duplicacao
+
+**Modificar callback de INSERT:**
 ```typescript
-const [showReminders, setShowReminders] = useState(false);
-const { data: pendingReminders = [] } = useReminders();
+if (payload.eventType === "INSERT") {
+  // Verificar se ja existe (pode ser mensagem otimista)
+  const existingMessages = queryClient.getQueryData(["infinite-messages", channelId]);
+  
+  // Se a mensagem ja existe (mesmo conteudo, mesmo user, recente), ignorar
+  // Ou substituir mensagem otimista pelo dado real
+}
 ```
 
-**Adicionar botão com Popover na barra lateral:**
+### 3. Hook `useSendDMMessage` - Mesmo Tratamento
+
+Aplicar as mesmas melhorias ao hook de DMs em `useDirectMessages.tsx`
+
+### 4. Hook `useInfiniteDMMessages.tsx` - Evitar Duplicacao
+
+Mesma logica de deduplicacao para mensagens DM
+
+### 5. MessageList e DMChatView - Melhorar Auto-Scroll
+
+Garantir que o scroll para baixo seja suave e imediato ao enviar:
+
+```typescript
+// Ao detectar nova mensagem do proprio usuario, sempre rolar
+if (newMessage.user_id === currentUserId) {
+  scrollToBottom("smooth");
+}
+```
+
+---
+
+## Fluxo Apos Alteracoes
+
 ```text
-Posição: Após o botão de Mensagens Agendadas (ScheduledMessagesList)
+ANTES:
+[Usuario clica Enviar] --> [Espera servidor ~200ms] --> [Espera realtime ~100ms] --> [Fetch profile] --> [Exibe mensagem]
+Total: ~400-500ms de delay
 
-[🌙] Theme toggle
-[@ ] Menções
-[📥] Não Lidas  
-[⏰] Agendadas     ← botão existente
-[🔔] Lembretes    ← NOVO BOTÃO
-[🔔] Notificações
-[⚙️] Configurações
-```
-
-**Estrutura do novo botão:**
-- Ícone: `Bell`
-- Badge: Quantidade de lembretes pendentes
-- Ao clicar: Abre popover com `RemindersFeed`
-
----
-
-## Design Visual
-
-```text
-[🔔] Lembretes (3)
-       ↓ (click)
-┌──────────────────────────────────┐
-│ 🔔 Lembretes                     │
-├──────────────────────────────────┤
-│ [Pendentes] [Concluídos]        │
-│                                  │
-│ 📝 João em #geral               │
-│    "Mensagem importante..."      │
-│    ⏰ Em 2 horas                 │
-│                                  │
-│ 📝 Maria (DM)                   │
-│    "Não esquecer de..."          │
-│    ⏰ Amanhã às 09:00            │
-└──────────────────────────────────┘
+DEPOIS:
+[Usuario clica Enviar] --> [Mensagem aparece INSTANTANEAMENTE] --> [Servidor confirma em background]
+Total: 0ms de delay percebido
 ```
 
 ---
 
-## Código a Adicionar
+## Resumo de Arquivos a Alterar
 
-Na barra lateral, logo após `ScheduledMessagesList`:
-
-```tsx
-{/* Reminders Button */}
-<Popover open={showReminders} onOpenChange={setShowReminders}>
-  <PopoverTrigger asChild>
-    <Button
-      variant="ghost"
-      size="icon"
-      className="rounded-xl relative"
-    >
-      <Bell className="h-5 w-5" />
-      {pendingReminders.length > 0 && (
-        <span className="absolute -top-1 -right-1">
-          <UnreadBadge count={pendingReminders.length} size="sm" />
-        </span>
-      )}
-    </Button>
-  </PopoverTrigger>
-  <PopoverContent side="right" align="start" className="w-96 p-0 rounded-xl">
-    <RemindersFeed />
-  </PopoverContent>
-</Popover>
-```
-
----
-
-## Resumo de Alterações
-
-| Arquivo | Alteração |
+| Arquivo | Alteracao |
 |---------|-----------|
-| `src/components/app/DesktopApp.tsx` | Adicionar import de `Bell`, `useReminders`, `RemindersFeed`; adicionar estado `showReminders`; adicionar botão Popover para lembretes |
+| `src/hooks/useMessages.tsx` | Adicionar optimistic updates em `useSendMessage`; usar profile cacheado |
+| `src/hooks/useInfiniteMessages.tsx` | Adicionar logica de deduplicacao; substituir mensagem otimista pelo dado real |
+| `src/hooks/useDirectMessages.tsx` | Adicionar optimistic updates em `useSendDMMessage` |
+| `src/hooks/useInfiniteDMMessages.tsx` | Adicionar logica de deduplicacao para DMs |
 
 ---
 
-## Resultado Esperado
-- Botão de sino (🔔) aparece na barra lateral do desktop
-- Badge mostra quantidade de lembretes pendentes
-- Ao clicar, abre popover com abas de pendentes/concluídos
-- Usuário pode editar ou deletar lembretes diretamente do popover
+## Beneficios
+
+1. **Feedback instantaneo** - Mensagem aparece no momento do clique
+2. **Experiencia fluida** - Sem delays visiveis
+3. **Sincronizacao segura** - Se houver erro, mensagem e removida automaticamente
+4. **Sem duplicacao** - Sistema inteligente evita mensagens duplicadas
+5. **Scroll automatico** - Chat sempre rola para a mensagem mais recente ao enviar
