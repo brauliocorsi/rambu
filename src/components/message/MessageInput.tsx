@@ -6,24 +6,40 @@ import { useSendMessage } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
 import { FilePreview } from "./FilePreview";
 import { Progress } from "@/components/ui/progress";
+import { useProfile } from "@/hooks/useProfile";
+import { useQuickReplies } from "@/hooks/useQuickReplies";
 
 interface MessageInputProps {
   channelId: string;
   channelName: string;
   replyTo?: string;
   onCancelReply?: () => void;
+  onTyping?: (displayName: string) => void;
+  onStopTyping?: () => void;
 }
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉", "💯", "✨"];
 
-export function MessageInput({ channelId, channelName, replyTo, onCancelReply }: MessageInputProps) {
+export function MessageInput({ 
+  channelId, 
+  channelName, 
+  replyTo, 
+  onCancelReply,
+  onTyping,
+  onStopTyping,
+}: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [attachedFile, setAttachedFile] = useState<UploadedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sendMessage = useSendMessage();
   const { uploadFile, isUploading, progress } = useFileUpload();
+  const { data: profile } = useProfile();
+  const { getSuggestions, findByShortcut } = useQuickReplies();
+  
+  const quickReplySuggestions = getSuggestions(message);
 
   const handleSend = async () => {
     if (!message.trim() && !attachedFile) return;
@@ -46,7 +62,28 @@ export function MessageInput({ channelId, channelName, replyTo, onCancelReply }:
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      
+      // Check if we should use a quick reply
+      const quickReply = findByShortcut(message);
+      if (quickReply) {
+        setMessage(quickReply.content);
+        return;
+      }
+      
       handleSend();
+    }
+    
+    // Tab to select quick reply suggestion
+    if (e.key === "Tab" && quickReplySuggestions.length > 0) {
+      e.preventDefault();
+      setMessage(quickReplySuggestions[0].content);
+      setShowQuickReplies(false);
+    }
+    
+    // Escape to close suggestions
+    if (e.key === "Escape") {
+      setShowQuickReplies(false);
+      setShowEmojis(false);
     }
   };
 
@@ -54,6 +91,21 @@ export function MessageInput({ channelId, channelName, replyTo, onCancelReply }:
     setMessage((prev) => prev + emoji);
     setShowEmojis(false);
     inputRef.current?.focus();
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    
+    // Show quick replies if message starts with /
+    setShowQuickReplies(value.startsWith('/') && value.length > 0);
+    
+    // Notify typing
+    if (value.trim() && onTyping && profile?.display_name) {
+      onTyping(profile.display_name);
+    } else if (!value.trim() && onStopTyping) {
+      onStopTyping();
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,6 +167,36 @@ export function MessageInput({ channelId, channelName, replyTo, onCancelReply }:
         )}
       </AnimatePresence>
 
+      {/* Quick Replies Suggestions */}
+      <AnimatePresence>
+        {showQuickReplies && quickReplySuggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="mb-2 bg-popover border border-border rounded-lg shadow-lg p-1"
+          >
+            {quickReplySuggestions.map((qr) => (
+              <button
+                key={qr.id}
+                onClick={() => {
+                  setMessage(qr.content);
+                  setShowQuickReplies(false);
+                  inputRef.current?.focus();
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-secondary rounded-md transition-colors"
+              >
+                <span className="font-mono text-xs text-primary mr-2">{qr.shortcut}</span>
+                <span className="text-sm text-muted-foreground truncate">{qr.content}</span>
+              </button>
+            ))}
+            <div className="px-3 py-1 text-xs text-muted-foreground border-t border-border mt-1 pt-1">
+              Pressione Tab para usar • Esc para fechar
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Quick Emoji Picker */}
       <AnimatePresence>
         {showEmojis && (
@@ -171,8 +253,9 @@ export function MessageInput({ channelId, channelName, replyTo, onCancelReply }:
             ref={inputRef}
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            onBlur={() => onStopTyping?.()}
             placeholder={`Mensagem em #${channelName}`}
             className="w-full h-12 px-4 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
           />

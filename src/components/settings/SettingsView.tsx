@@ -29,7 +29,12 @@ import {
   LogOut,
   Save,
   Loader2,
+  MessageSquare,
+  Keyboard,
 } from "lucide-react";
+import { StatusSelector } from "@/components/user/StatusSelector";
+import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
+import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -49,6 +54,8 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [statusText, setStatusText] = useState("");
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [activeSection, setActiveSection] = useState<'profile' | 'quick-replies'>('profile');
   const [hasChanges, setHasChanges] = useState(false);
 
   // Initialize form when profile loads
@@ -123,11 +130,70 @@ export function SettingsView({ onBack }: SettingsViewProps) {
         )}
       </div>
 
+      {/* Section Tabs */}
+      <div className="flex border-b border-border px-4">
+        <button
+          onClick={() => setActiveSection('profile')}
+          className={`py-3 px-4 text-sm font-medium transition-colors relative ${
+            activeSection === 'profile' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Perfil
+          </span>
+          {activeSection === 'profile' && (
+            <motion.div layoutId="settings-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveSection('quick-replies')}
+          className={`py-3 px-4 text-sm font-medium transition-colors relative ${
+            activeSection === 'quick-replies' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Respostas Rápidas
+          </span>
+          {activeSection === 'quick-replies' && (
+            <motion.div layoutId="settings-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
+        </button>
+        <button
+          onClick={() => setShowShortcuts(true)}
+          className="py-3 px-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Keyboard className="h-4 w-4" />
+            Atalhos
+          </span>
+        </button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {activeSection === 'quick-replies' ? (
+          <QuickRepliesSettings />
+        ) : (
+          <>
+        {/* Status Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="p-6 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Status</h3>
+              <StatusSelector />
+            </div>
+          </Card>
+        </motion.div>
+
         {/* Profile Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
         >
           <Card className="p-6 rounded-2xl space-y-4">
             <div className="flex items-center gap-2 mb-4">
@@ -362,7 +428,12 @@ export function SettingsView({ onBack }: SettingsViewProps) {
             </div>
           </Card>
         </motion.div>
+        </>
+        )}
       </div>
+
+      {/* Shortcuts Dialog */}
+      <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
   );
 }

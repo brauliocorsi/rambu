@@ -93,6 +93,9 @@ export type Database = {
           description: string | null
           id: string
           is_private: boolean
+          mural_content: string | null
+          mural_updated_at: string | null
+          mural_updated_by: string | null
           name: string
           updated_at: string
           workspace_id: string
@@ -103,6 +106,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_private?: boolean
+          mural_content?: string | null
+          mural_updated_at?: string | null
+          mural_updated_by?: string | null
           name: string
           updated_at?: string
           workspace_id: string
@@ -113,6 +119,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_private?: boolean
+          mural_content?: string | null
+          mural_updated_at?: string | null
+          mural_updated_by?: string | null
           name?: string
           updated_at?: string
           workspace_id?: string
@@ -386,6 +395,7 @@ export type Database = {
           dm_notifications: boolean
           id: string
           mention_notifications: boolean
+          push_notifications: boolean | null
           sound_enabled: boolean
           sound_volume: number
           updated_at: string
@@ -397,6 +407,7 @@ export type Database = {
           dm_notifications?: boolean
           id?: string
           mention_notifications?: boolean
+          push_notifications?: boolean | null
           sound_enabled?: boolean
           sound_volume?: number
           updated_at?: string
@@ -408,6 +419,7 @@ export type Database = {
           dm_notifications?: boolean
           id?: string
           mention_notifications?: boolean
+          push_notifications?: boolean | null
           sound_enabled?: boolean
           sound_volume?: number
           updated_at?: string
@@ -426,10 +438,14 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          away_message: string | null
           bio: string | null
           created_at: string
           display_name: string | null
+          dnd_until: string | null
+          do_not_disturb: boolean | null
           id: string
+          last_seen: string | null
           status: string | null
           status_emoji: string | null
           status_text: string | null
@@ -437,10 +453,14 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          away_message?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          dnd_until?: string | null
+          do_not_disturb?: boolean | null
           id: string
+          last_seen?: string | null
           status?: string | null
           status_emoji?: string | null
           status_text?: string | null
@@ -448,14 +468,45 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          away_message?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          dnd_until?: string | null
+          do_not_disturb?: boolean | null
           id?: string
+          last_seen?: string | null
           status?: string | null
           status_emoji?: string | null
           status_text?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      quick_replies: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          shortcut: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          shortcut: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          shortcut?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
