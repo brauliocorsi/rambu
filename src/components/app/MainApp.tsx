@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
 import { useTotalUnreadCount } from "@/hooks/useNotifications";
+import { useTotalUnreadCount as useFeedUnreadCount } from "@/hooks/useUnreadFeed";
 import { DirectMessage } from "@/hooks/useDirectMessages";
 
 // Views
@@ -12,29 +13,9 @@ import { HomeView } from "@/components/app/views/HomeView";
 import { DMsView } from "@/components/app/views/DMsView";
 import { ChannelsView } from "@/components/app/views/ChannelsView";
 import { ProfileView } from "@/components/app/views/ProfileView";
+import { UnreadView } from "@/components/app/views/UnreadView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { SearchDialog } from "@/components/search/SearchDialog";
-
-// Notification placeholder
-import { Card } from "@/components/ui/card";
-import { Bell } from "lucide-react";
-
-function NotificationsView() {
-  return (
-    <div className="p-4 space-y-4">
-      <h2 className="text-xl font-bold">Notificações</h2>
-      <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-        <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-          <Bell className="h-8 w-8 text-primary" />
-        </div>
-        <div className="text-center">
-          <h3 className="font-semibold">Tudo em dia!</h3>
-          <p className="text-sm text-muted-foreground">Você não tem notificações pendentes.</p>
-        </div>
-      </Card>
-    </div>
-  );
-}
 
 export function MainApp() {
   const [activeTab, setActiveTab] = useState("home");
@@ -45,6 +26,7 @@ export function MainApp() {
   const { currentWorkspace } = useWorkspaceContext();
   const { currentChannel, setCurrentChannel } = useChannelContext();
   const { channels: unreadChannels, dms: unreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
+  const totalUnread = useFeedUnreadCount();
 
   const getTitle = () => {
     if (showSettings) return "Configurações";
@@ -56,9 +38,9 @@ export function MainApp() {
     }
     switch (activeTab) {
       case "home": return "ChatFlow";
+      case "unread": return "Não Lidas";
       case "dms": return "Mensagens";
       case "channels": return currentWorkspace ? currentWorkspace.name : "Canais";
-      case "notifications": return "Notificações";
       case "profile": return "Perfil";
       default: return "ChatFlow";
     }
@@ -93,6 +75,19 @@ export function MainApp() {
             onSelectDM={handleSelectDM}
           />
         );
+      case "unread":
+        return (
+          <UnreadView
+            onSelectChannel={handleSelectChannel}
+            onSelectDM={(dmId) => {
+              // Navigate to DMs view - this needs to find the DM by ID
+              setActiveTab("dms");
+            }}
+            onSelectGroup={(groupId) => {
+              setActiveTab("dms");
+            }}
+          />
+        );
       case "dms": 
         return (
           <DMsView 
@@ -102,8 +97,6 @@ export function MainApp() {
         );
       case "channels": 
         return <ChannelsView />;
-      case "notifications": 
-        return <NotificationsView />;
       case "profile": 
         return <ProfileView onOpenSettings={() => setShowSettings(true)} />;
       default: 
@@ -152,6 +145,7 @@ export function MainApp() {
         onTabChange={handleTabChange}
         unreadDMs={unreadDMs}
         unreadChannels={unreadChannels}
+        totalUnread={totalUnread}
       />
       <SearchDialog 
         open={showSearch} 

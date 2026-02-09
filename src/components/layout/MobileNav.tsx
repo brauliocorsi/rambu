@@ -1,4 +1,4 @@
-import { Home, MessageSquare, Hash, Bell, User } from "lucide-react";
+import { Home, MessageSquare, Hash, Bell, User, Inbox } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
@@ -8,20 +8,22 @@ interface MobileNavProps {
   onTabChange: (tab: string) => void;
   unreadDMs?: number;
   unreadChannels?: number;
+  totalUnread?: number;
 }
 
 const tabs = [
   { id: "home", icon: Home, label: "Home" },
+  { id: "unread", icon: Inbox, label: "Não Lidas" },
   { id: "dms", icon: MessageSquare, label: "DMs" },
   { id: "channels", icon: Hash, label: "Canais" },
-  { id: "notifications", icon: Bell, label: "Alertas" },
   { id: "profile", icon: User, label: "Perfil" },
 ];
 
-export function MobileNav({ activeTab, onTabChange, unreadDMs = 0, unreadChannels = 0 }: MobileNavProps) {
+export function MobileNav({ activeTab, onTabChange, unreadDMs = 0, unreadChannels = 0, totalUnread = 0 }: MobileNavProps) {
   const getUnreadCount = (tabId: string) => {
     if (tabId === "dms") return unreadDMs;
     if (tabId === "channels") return unreadChannels;
+    if (tabId === "unread") return totalUnread;
     return 0;
   };
 
