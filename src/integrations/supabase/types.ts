@@ -733,6 +733,68 @@ export type Database = {
           },
         ]
       }
+      message_reminders: {
+        Row: {
+          created_at: string
+          dm_message_id: string | null
+          group_message_id: string | null
+          id: string
+          is_completed: boolean
+          message_id: string | null
+          remind_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dm_message_id?: string | null
+          group_message_id?: string | null
+          id?: string
+          is_completed?: boolean
+          message_id?: string | null
+          remind_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dm_message_id?: string | null
+          group_message_id?: string | null
+          id?: string
+          is_completed?: boolean
+          message_id?: string | null
+          remind_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reminders_dm_message_id_fkey"
+            columns: ["dm_message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reminders_group_message_id_fkey"
+            columns: ["group_message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_group_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reminders_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           channel_id: string

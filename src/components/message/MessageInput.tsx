@@ -37,12 +37,12 @@ export function MessageInput({
   const [message, setMessage] = useState("");
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<UploadedFile | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
   const inputRef = useRef<MentionInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sendMessage = useSendMessage();
   const createScheduledMessage = useCreateScheduledMessage();
-  const { uploadFile, isUploading, progress } = useFileUpload();
+  const { uploadFiles, isUploading, progress, maxFiles } = useFileUpload();
   const { data: profile } = useProfile();
   const { getSuggestions, findByShortcut } = useQuickReplies();
   const { 
@@ -59,19 +59,34 @@ export function MessageInput({
   const quickReplySuggestions = getSuggestions(message);
 
   const handleSend = async () => {
-    if (!message.trim() && !attachedFile) return;
+    if (!message.trim() && attachedFiles.length === 0) return;
 
+    // Send message with first file, then additional files as separate messages
+    const firstFile = attachedFiles[0];
+    
     await sendMessage.mutateAsync({
       channelId,
-      content: message.trim() || (attachedFile ? `📎 ${attachedFile.name}` : ""),
+      content: message.trim() || (firstFile ? `📎 ${firstFile.name}` : ""),
       replyTo,
-      fileUrl: attachedFile?.url,
-      fileType: attachedFile?.type,
-      fileName: attachedFile?.name,
+      fileUrl: firstFile?.url,
+      fileType: firstFile?.type,
+      fileName: firstFile?.name,
     });
 
+    // Send additional files as separate messages
+    for (let i = 1; i < attachedFiles.length; i++) {
+      const file = attachedFiles[i];
+      await sendMessage.mutateAsync({
+        channelId,
+        content: `📎 ${file.name}`,
+        fileUrl: file.url,
+        fileType: file.type,
+        fileName: file.name,
+      });
+    }
+
     setMessage("");
-    setAttachedFile(null);
+    setAttachedFiles([]);
     onCancelReply?.();
     inputRef.current?.focus();
   };
@@ -123,35 +138,46 @@ export function MessageInput({
   };
 
   const handleSchedule = async (scheduledDate: Date) => {
-    if (!message.trim() && !attachedFile) return;
+    if (!message.trim() && attachedFiles.length === 0) return;
 
+    const firstFile = attachedFiles[0];
+    
     await createScheduledMessage.mutateAsync({
       channelId,
-      content: message.trim() || (attachedFile ? `📎 ${attachedFile.name}` : ""),
+      content: message.trim() || (firstFile ? `📎 ${firstFile.name}` : ""),
       scheduledAt: scheduledDate,
-      fileUrl: attachedFile?.url,
-      fileType: attachedFile?.type,
-      fileName: attachedFile?.name,
+      fileUrl: firstFile?.url,
+      fileType: firstFile?.type,
+      fileName: firstFile?.name,
     });
 
     setMessage("");
-    setAttachedFile(null);
+    setAttachedFiles([]);
     inputRef.current?.focus();
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    const uploaded = await uploadFile(file);
-    if (uploaded) {
-      setAttachedFile(uploaded);
+    const totalFiles = attachedFiles.length + files.length;
+    if (totalFiles > maxFiles) {
+      return; // Error is shown in uploadFiles
+    }
+
+    const uploaded = await uploadFiles(files);
+    if (uploaded.length > 0) {
+      setAttachedFiles((prev) => [...prev, ...uploaded]);
     }
 
     // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -177,15 +203,15 @@ export function MessageInput({
         type: 'audio/webm' 
       });
       
-      const uploaded = await uploadFile(audioFile);
-      if (uploaded) {
+      const uploaded = await uploadFiles([audioFile]);
+      if (uploaded.length > 0) {
         await sendMessage.mutateAsync({
           channelId,
           content: "🎤 Mensagem de áudio",
           replyTo,
-          fileUrl: uploaded.url,
-          fileType: uploaded.type,
-          fileName: uploaded.name,
+          fileUrl: uploaded[0].url,
+          fileType: uploaded[0].type,
+          fileName: uploaded[0].name,
         });
         onCancelReply?.();
       }
@@ -221,22 +247,25 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
-      {/* Attached file preview */}
+      {/* Attached files preview */}
       <AnimatePresence>
-        {attachedFile && (
+        {attachedFiles.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="mb-3"
+            className="mb-3 flex flex-wrap gap-2"
           >
-            <FilePreview
-              url={attachedFile.url}
-              name={attachedFile.name}
-              type={attachedFile.type}
-              onRemove={() => setAttachedFile(null)}
-              compact
-            />
+            {attachedFiles.map((file, index) => (
+              <FilePreview
+                key={`${file.url}-${index}`}
+                url={file.url}
+                name={file.name}
+                type={file.type}
+                onRemove={() => handleRemoveFile(index)}
+                compact
+              />
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -292,6 +321,7 @@ export function MessageInput({
           ref={fileInputRef}
           type="file"
           accept="image/*,.pdf,.doc,.docx,.txt"
+          multiple
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -315,7 +345,7 @@ export function MessageInput({
             size="icon"
             className="rounded-xl shrink-0 h-10 w-10"
             onClick={() => setShowScheduleDialog(true)}
-            disabled={!message.trim() && !attachedFile}
+            disabled={!message.trim() && attachedFiles.length === 0}
             title="Agendar mensagem"
           >
             <Clock className="h-5 w-5 text-muted-foreground" />
@@ -352,7 +382,7 @@ export function MessageInput({
             size="icon"
             className="rounded-xl shrink-0 h-9 w-9"
             onClick={() => setShowScheduleDialog(true)}
-            disabled={!message.trim() && !attachedFile}
+            disabled={!message.trim() && attachedFiles.length === 0}
             title="Agendar mensagem"
           >
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -386,7 +416,7 @@ export function MessageInput({
         <Button
           size="icon"
           className="h-11 w-11 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
-          disabled={(!message.trim() && !attachedFile) || sendMessage.isPending || isUploading}
+          disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
           {sendMessage.isPending ? (
@@ -406,7 +436,7 @@ export function MessageInput({
         open={showScheduleDialog}
         onOpenChange={setShowScheduleDialog}
         onSchedule={handleSchedule}
-        messagePreview={message || attachedFile?.name}
+        messagePreview={message || attachedFiles.map(f => f.name).join(", ")}
       />
     </div>
   );

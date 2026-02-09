@@ -9,6 +9,24 @@ export interface UploadedFile {
   type: string;
 }
 
+const MAX_FILES = 5;
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/webm",
+  "audio/ogg",
+];
+
 export function useFileUpload() {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
@@ -20,39 +38,19 @@ export function useFileUpload() {
       return null;
     }
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      toast.error("Arquivo muito grande. Máximo: 10MB");
+    if (file.size > MAX_SIZE) {
+      toast.error(`Arquivo "${file.name}" muito grande. Máximo: 10MB`);
       return null;
     }
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "application/pdf",
-      "text/plain",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Tipo de arquivo não suportado");
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error(`Tipo de arquivo "${file.name}" não suportado`);
       return null;
     }
-
-    setIsUploading(true);
-    setProgress(0);
 
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      // Simulate progress since Supabase doesn't provide upload progress
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 10, 90));
-      }, 100);
 
       const { data, error } = await supabase.storage
         .from("message-attachments")
@@ -61,11 +59,7 @@ export function useFileUpload() {
           upsert: false,
         });
 
-      clearInterval(progressInterval);
-
       if (error) throw error;
-
-      setProgress(100);
 
       const { data: { publicUrl } } = supabase.storage
         .from("message-attachments")
@@ -77,13 +71,44 @@ export function useFileUpload() {
         type: file.type,
       };
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer upload");
+      toast.error(error.message || `Erro ao fazer upload de "${file.name}"`);
       return null;
-    } finally {
-      setIsUploading(false);
-      setProgress(0);
     }
   };
 
-  return { uploadFile, isUploading, progress };
+  const uploadFiles = async (files: File[]): Promise<UploadedFile[]> => {
+    if (!user) {
+      toast.error("Você precisa estar logado para enviar arquivos");
+      return [];
+    }
+
+    if (files.length > MAX_FILES) {
+      toast.error(`Máximo de ${MAX_FILES} arquivos por vez`);
+      return [];
+    }
+
+    setIsUploading(true);
+    setProgress(0);
+
+    const results: UploadedFile[] = [];
+    const totalFiles = files.length;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const result = await uploadFile(file);
+      
+      if (result) {
+        results.push(result);
+      }
+      
+      setProgress(Math.round(((i + 1) / totalFiles) * 100));
+    }
+
+    setIsUploading(false);
+    setProgress(0);
+
+    return results;
+  };
+
+  return { uploadFile, uploadFiles, isUploading, progress, maxFiles: MAX_FILES };
 }
