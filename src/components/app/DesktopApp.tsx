@@ -18,6 +18,7 @@ import {
   useMarkChannelAsRead,
   useMarkDMAsRead,
 } from "@/hooks/useNotifications";
+import { useReminders } from "@/hooks/useMessageReminders";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelDetailsDialog } from "@/components/channel/ChannelDetailsDialog";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
@@ -45,6 +46,7 @@ import { useUnreadMentionsCount } from "@/hooks/useMentionsFeed";
 import { useTotalUnreadCount as useFeedUnreadCount } from "@/hooks/useUnreadFeed";
 import { UnreadFeed } from "@/components/unread/UnreadFeed";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
+import { RemindersFeed } from "@/components/reminders/RemindersFeed";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -79,6 +81,7 @@ import {
   AtSign,
   Clock,
   Inbox,
+  Bell,
 } from "lucide-react";
 import { ScheduledMessagesList } from "@/components/message/ScheduledMessagesList";
 import { useScheduledMessages } from "@/hooks/useScheduledMessages";
@@ -99,6 +102,7 @@ export function DesktopApp() {
   const { data: mentionsCount = 0 } = useUnreadMentionsCount();
   const totalFeedUnread = useFeedUnreadCount();
   const { data: scheduledMessages = [] } = useScheduledMessages();
+  const { data: pendingReminders = [] } = useReminders();
   const markChannelAsRead = useMarkChannelAsRead();
   const markDMAsRead = useMarkDMAsRead();
 
@@ -123,6 +127,7 @@ export function DesktopApp() {
   const [showChannelDetails, setShowChannelDetails] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
   const [showUnreadFeed, setShowUnreadFeed] = useState(false);
+  const [showReminders, setShowReminders] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [threadMessage, setThreadMessage] = useState<Message | null>(null);
@@ -328,6 +333,27 @@ export function DesktopApp() {
             </Button>
           }
         />
+
+        {/* Reminders Button */}
+        <Popover open={showReminders} onOpenChange={setShowReminders}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl relative"
+            >
+              <Bell className="h-5 w-5" />
+              {pendingReminders.length > 0 && (
+                <span className="absolute -top-1 -right-1">
+                  <UnreadBadge count={pendingReminders.length} size="sm" />
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-96 p-0 rounded-xl">
+            <RemindersFeed />
+          </PopoverContent>
+        </Popover>
 
         <NotificationCenter
           onNavigate={(notification: Notification) => {
