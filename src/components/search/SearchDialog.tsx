@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearch, SearchResult, SearchFilters } from "@/hooks/useSearch";
 import { useChannelContext } from "@/contexts/ChannelContext";
 import { useChannels } from "@/hooks/useChannels";
+import { useDirectMessages } from "@/hooks/useDirectMessages";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import {
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Popover,
   PopoverContent,
@@ -29,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import {
   Search,
   Hash,
@@ -38,9 +41,14 @@ import {
   SlidersHorizontal,
   X,
   CalendarIcon,
+  FileText,
+  Clock,
+  Users,
+  ArrowRight,
 } from "lucide-react";
-import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
+import { formatDistanceToNow, format, subDays, startOfDay, endOfDay, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 
 interface SearchDialogProps {
   open: boolean;
@@ -61,9 +69,10 @@ const typeOptions: { value: SearchType; label: string; icon: React.ReactNode }[]
 const periodOptions = [
   { value: "all", label: "Qualquer período" },
   { value: "today", label: "Hoje" },
+  { value: "yesterday", label: "Ontem" },
   { value: "week", label: "Última semana" },
   { value: "month", label: "Último mês" },
-  { value: "custom", label: "Personalizado" },
+  { value: "custom", label: "Período personalizado" },
 ];
 
 export function SearchDialog({ 
@@ -76,23 +85,46 @@ export function SearchDialog({
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<SearchType[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string>("all");
+  const [selectedDMId, setSelectedDMId] = useState<string>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [singleDate, setSingleDate] = useState<Date | undefined>();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState<"single" | "range">("range");
   
   const { currentWorkspace } = useWorkspaceContext();
   const { data: channels = [] } = useChannels(currentWorkspace?.id || null);
+  const { data: dms = [] } = useDirectMessages(currentWorkspace?.id || null);
   const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const { setCurrentChannel } = useChannelContext();
 
+  // Calculate date filters
+  const dateFrom = useMemo(() => {
+    if (datePickerMode === "single" && singleDate) {
+      return startOfDay(singleDate);
+    }
+    return dateRange?.from ? startOfDay(dateRange.from) : undefined;
+  }, [dateRange, singleDate, datePickerMode]);
+
+  const dateTo = useMemo(() => {
+    if (datePickerMode === "single" && singleDate) {
+      return endOfDay(singleDate);
+    }
+    return dateRange?.to ? endOfDay(dateRange.to) : undefined;
+  }, [dateRange, singleDate, datePickerMode]);
+
   // Build filters object - only include non-"all" values
   const channelFilter = selectedChannelId !== "all" ? selectedChannelId : undefined;
+  const dmFilter = selectedDMId !== "all" ? selectedDMId : undefined;
   const userFilter = selectedUserId !== "all" ? selectedUserId : undefined;
   
-  const filters: SearchFilters | undefined = (selectedTypes.length > 0 || channelFilter || userFilter || dateFrom || dateTo) ? {
+  const hasActiveFilters = selectedTypes.length > 0 || channelFilter || dmFilter || userFilter || dateFrom || dateTo;
+  
+  const filters: SearchFilters | undefined = hasActiveFilters ? {
     types: selectedTypes.length > 0 ? selectedTypes : [],
     channelId: channelFilter,
+    dmId: dmFilter,
     userId: userFilter,
     dateFrom: dateFrom,
     dateTo: dateTo,
@@ -105,22 +137,32 @@ export function SearchDialog({
     const now = new Date();
     switch (selectedPeriod) {
       case "today":
-        setDateFrom(startOfDay(now));
-        setDateTo(endOfDay(now));
+        setDatePickerMode("single");
+        setSingleDate(now);
+        setDateRange(undefined);
+        break;
+      case "yesterday":
+        setDatePickerMode("single");
+        setSingleDate(subDays(now, 1));
+        setDateRange(undefined);
         break;
       case "week":
-        setDateFrom(startOfDay(subDays(now, 7)));
-        setDateTo(endOfDay(now));
+        setDatePickerMode("range");
+        setSingleDate(undefined);
+        setDateRange({ from: subDays(now, 7), to: now });
         break;
       case "month":
-        setDateFrom(startOfDay(subDays(now, 30)));
-        setDateTo(endOfDay(now));
+        setDatePickerMode("range");
+        setSingleDate(undefined);
+        setDateRange({ from: subDays(now, 30), to: now });
         break;
       case "all":
-        setDateFrom(undefined);
-        setDateTo(undefined);
+        setSingleDate(undefined);
+        setDateRange(undefined);
         break;
-      // "custom" keeps current values
+      case "custom":
+        // Keep current values, user will select manually
+        break;
     }
   }, [selectedPeriod]);
 
@@ -130,10 +172,11 @@ export function SearchDialog({
       setShowFilters(false);
       setSelectedTypes([]);
       setSelectedChannelId("all");
+      setSelectedDMId("all");
       setSelectedUserId("all");
       setSelectedPeriod("all");
-      setDateFrom(undefined);
-      setDateTo(undefined);
+      setSingleDate(undefined);
+      setDateRange(undefined);
     }
   }, [open]);
 
@@ -161,18 +204,44 @@ export function SearchDialog({
   const clearFilters = () => {
     setSelectedTypes([]);
     setSelectedChannelId("all");
+    setSelectedDMId("all");
     setSelectedUserId("all");
     setSelectedPeriod("all");
-    setDateFrom(undefined);
-    setDateTo(undefined);
+    setSingleDate(undefined);
+    setDateRange(undefined);
   };
 
   const activeFiltersCount = [
     selectedTypes.length > 0,
     selectedChannelId !== "all",
+    selectedDMId !== "all",
     selectedUserId !== "all",
     selectedPeriod !== "all",
   ].filter(Boolean).length;
+
+  // Results statistics
+  const resultsStats = useMemo(() => {
+    const stats = {
+      total: results.length,
+      messages: results.filter(r => r.type === "message").length,
+      dmMessages: results.filter(r => r.type === "dm_message").length,
+      channels: results.filter(r => r.type === "channel").length,
+      users: results.filter(r => r.type === "user").length,
+    };
+    return stats;
+  }, [results]);
+
+  // Highlight search term in content
+  const highlightText = (text: string, searchTerm: string) => {
+    if (!searchTerm || searchTerm.length < 2) return text;
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) => 
+      regex.test(part) ? (
+        <mark key={i} className="bg-primary/30 text-foreground rounded px-0.5">{part}</mark>
+      ) : part
+    );
+  };
 
   const getIcon = (type: SearchResult["type"]) => {
     switch (type) {
@@ -271,8 +340,8 @@ export function SearchDialog({
                     </div>
                   </div>
 
-                  {/* Channel and User Filters */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Channel, DM and User Filters */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">Canal</label>
                       <Select value={selectedChannelId} onValueChange={setSelectedChannelId}>
@@ -286,6 +355,26 @@ export function SearchDialog({
                               <span className="flex items-center gap-2">
                                 <Hash className="h-3 w-3" />
                                 {channel.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">DM</label>
+                      <Select value={selectedDMId} onValueChange={setSelectedDMId}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Todas as conversas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas as conversas</SelectItem>
+                          {dms.map((dm) => (
+                            <SelectItem key={dm.id} value={dm.id}>
+                              <span className="flex items-center gap-2">
+                                <MessageSquare className="h-3 w-3" />
+                                {dm.other_user?.display_name || "Conversa"}
                               </span>
                             </SelectItem>
                           ))}
@@ -337,38 +426,80 @@ export function SearchDialog({
                       </Select>
 
                       {selectedPeriod === "custom" && (
-                        <div className="flex gap-2 items-center">
-                          <Popover>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <div className="flex gap-1">
+                            <Button
+                              variant={datePickerMode === "single" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                setDatePickerMode("single");
+                                setDateRange(undefined);
+                              }}
+                              className="rounded-l-xl rounded-r-none text-xs"
+                            >
+                              Dia específico
+                            </Button>
+                            <Button
+                              variant={datePickerMode === "range" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                setDatePickerMode("range");
+                                setSingleDate(undefined);
+                              }}
+                              className="rounded-r-xl rounded-l-none text-xs"
+                            >
+                              Período
+                            </Button>
+                          </div>
+
+                          <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" size="sm" className="rounded-xl">
-                                <CalendarIcon className="h-4 w-4 mr-2" />
-                                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
+                              <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                                <CalendarIcon className="h-4 w-4" />
+                                {datePickerMode === "single" ? (
+                                  singleDate ? format(singleDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar dia"
+                                ) : (
+                                  dateRange?.from ? (
+                                    dateRange.to ? (
+                                      <>
+                                        {format(dateRange.from, "dd/MM", { locale: ptBR })}
+                                        <ArrowRight className="h-3 w-3" />
+                                        {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                                      </>
+                                    ) : format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                                  ) : "Selecionar período"
+                                )}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={dateFrom}
-                                onSelect={setDateFrom}
-                                locale={ptBR}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <span className="text-muted-foreground">até</span>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" size="sm" className="rounded-xl">
-                                <CalendarIcon className="h-4 w-4 mr-2" />
-                                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={dateTo}
-                                onSelect={setDateTo}
-                                locale={ptBR}
-                              />
+                            <PopoverContent className="w-auto p-0" align="start">
+                              {datePickerMode === "single" ? (
+                                <Calendar
+                                  mode="single"
+                                  selected={singleDate}
+                                  onSelect={(date) => {
+                                    setSingleDate(date);
+                                    setShowDatePicker(false);
+                                  }}
+                                  locale={ptBR}
+                                  className={cn("p-3 pointer-events-auto")}
+                                  disabled={(date) => date > new Date()}
+                                />
+                              ) : (
+                                <Calendar
+                                  mode="range"
+                                  selected={dateRange}
+                                  onSelect={(range) => {
+                                    setDateRange(range);
+                                    if (range?.from && range?.to) {
+                                      setShowDatePicker(false);
+                                    }
+                                  }}
+                                  locale={ptBR}
+                                  className={cn("p-3 pointer-events-auto")}
+                                  numberOfMonths={2}
+                                  disabled={(date) => date > new Date()}
+                                />
+                              )}
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -409,6 +540,13 @@ export function SearchDialog({
                   <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedChannelId("all")} />
                 </Badge>
               )}
+              {selectedDMId !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  {dms.find(d => d.id === selectedDMId)?.other_user?.display_name}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedDMId("all")} />
+                </Badge>
+              )}
               {selectedUserId !== "all" && (
                 <Badge variant="secondary" className="gap-1">
                   <User className="h-3 w-3" />
@@ -418,7 +556,14 @@ export function SearchDialog({
               )}
               {selectedPeriod !== "all" && (
                 <Badge variant="secondary" className="gap-1">
-                  {periodOptions.find(p => p.value === selectedPeriod)?.label}
+                  <Clock className="h-3 w-3" />
+                  {selectedPeriod === "custom" ? (
+                    datePickerMode === "single" && singleDate ? (
+                      format(singleDate, "dd/MM/yyyy", { locale: ptBR })
+                    ) : dateRange?.from ? (
+                      `${format(dateRange.from, "dd/MM", { locale: ptBR })} - ${dateRange.to ? format(dateRange.to, "dd/MM", { locale: ptBR }) : "..."}`
+                    ) : periodOptions.find(p => p.value === selectedPeriod)?.label
+                  ) : periodOptions.find(p => p.value === selectedPeriod)?.label}
                   <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedPeriod("all")} />
                 </Badge>
               )}
@@ -467,10 +612,43 @@ export function SearchDialog({
                   exit={{ opacity: 0 }}
                   className="space-y-4"
                 >
+                  {/* Results Statistics */}
+                  <div className="flex items-center gap-4 px-2 py-2 bg-muted/50 rounded-xl text-sm">
+                    <span className="text-muted-foreground">
+                      <strong className="text-foreground">{resultsStats.total}</strong> resultados
+                    </span>
+                    {resultsStats.messages > 0 && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Hash className="h-3 w-3" />
+                        {resultsStats.messages}
+                      </span>
+                    )}
+                    {resultsStats.dmMessages > 0 && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <MessageSquare className="h-3 w-3" />
+                        {resultsStats.dmMessages}
+                      </span>
+                    )}
+                    {resultsStats.channels > 0 && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <FileText className="h-3 w-3" />
+                        {resultsStats.channels}
+                      </span>
+                    )}
+                    {resultsStats.users > 0 && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Users className="h-3 w-3" />
+                        {resultsStats.users}
+                      </span>
+                    )}
+                  </div>
+
                   {Object.entries(groupedResults).map(([type, items]) => (
                     <div key={type}>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2 px-1">
-                        {getTypeLabel(type as SearchResult["type"])} ({items.length})
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2 px-1 flex items-center gap-2">
+                        {getIcon(type as SearchResult["type"])}
+                        {getTypeLabel(type as SearchResult["type"])} 
+                        <Badge variant="secondary" className="text-xs">{items.length}</Badge>
                       </h4>
                       <div className="space-y-1">
                         {items.map((result, index) => (
@@ -480,57 +658,72 @@ export function SearchDialog({
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.02 }}
                             onClick={() => handleSelectResult(result)}
-                            className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-secondary transition-colors text-left"
+                            className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-secondary transition-colors text-left group"
                           >
                             {result.userAvatar ? (
-                              <Avatar className="h-8 w-8">
+                              <Avatar className="h-8 w-8 shrink-0">
                                 <AvatarImage src={result.userAvatar} />
                                 <AvatarFallback>
                                   {(result.userName || result.name || "?").charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                             ) : (
-                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                                 {getIcon(result.type)}
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {result.type === "channel" ? (
                                   <span className="font-medium flex items-center gap-1">
                                     <Hash className="h-3 w-3" />
-                                    {result.name}
+                                    {highlightText(result.name || "", query)}
                                   </span>
                                 ) : result.type === "user" ? (
-                                  <span className="font-medium">{result.name}</span>
+                                  <span className="font-medium">{highlightText(result.name || "", query)}</span>
                                 ) : (
                                   <>
                                     <span className="font-medium">{result.userName}</span>
                                     {result.channelName && (
-                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                        em <Hash className="h-3 w-3" />{result.channelName}
-                                      </span>
+                                      <Badge variant="outline" className="text-xs gap-1">
+                                        <Hash className="h-2.5 w-2.5" />
+                                        {result.channelName}
+                                      </Badge>
+                                    )}
+                                    {result.type === "dm_message" && (
+                                      <Badge variant="outline" className="text-xs gap-1 bg-success/10 text-success border-success/30">
+                                        <MessageSquare className="h-2.5 w-2.5" />
+                                        DM
+                                      </Badge>
                                     )}
                                   </>
                                 )}
                               </div>
                               {result.content && (
-                                <p className="text-sm text-muted-foreground truncate">
-                                  {result.content}
+                                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                  {highlightText(result.content, query)}
                                 </p>
                               )}
                               {result.createdAt && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {formatDistanceToNow(new Date(result.createdAt), {
-                                    addSuffix: true,
-                                    locale: ptBR,
-                                  })}
-                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {format(new Date(result.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </p>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({formatDistanceToNow(new Date(result.createdAt), {
+                                      addSuffix: true,
+                                      locale: ptBR,
+                                    })})
+                                  </span>
+                                </div>
                               )}
                             </div>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                           </motion.button>
                         ))}
                       </div>
+                      <Separator className="mt-4" />
                     </div>
                   ))}
                 </motion.div>
