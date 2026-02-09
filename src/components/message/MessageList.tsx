@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Hash } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
@@ -15,12 +15,46 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, channelId, channelName, isLoading, onReply, onOpenThread }: MessageListProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
 
-  // Auto-scroll to bottom on new messages
+  // Check if user is near bottom (within 150px)
+  const checkIfNearBottom = useCallback(() => {
+    if (!containerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    return scrollHeight - scrollTop - clientHeight < 150;
+  }, []);
+
+  // Track scroll position
+  const handleScroll = useCallback(() => {
+    isNearBottomRef.current = checkIfNearBottom();
+  }, [checkIfNearBottom]);
+
+  // Scroll to bottom smoothly
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  // Auto-scroll on new messages only if user is near bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    if (messages.length > prevMessagesLengthRef.current) {
+      // New message arrived
+      if (isNearBottomRef.current) {
+        scrollToBottom("smooth");
+      }
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length, scrollToBottom]);
+
+  // Scroll to bottom instantly when channel changes
+  useEffect(() => {
+    isNearBottomRef.current = true;
+    prevMessagesLengthRef.current = messages.length;
+    // Use instant scroll for channel change
+    setTimeout(() => scrollToBottom("instant"), 50);
+  }, [channelId, scrollToBottom]);
 
   if (isLoading) {
     return (
@@ -49,7 +83,11 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
   }
 
   return (
-    <div className="flex-1 overflow-y-auto py-4">
+    <div 
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto py-4 scroll-smooth"
+    >
       {/* Channel start message */}
       <div className="text-center py-8 px-4">
         <motion.div
@@ -74,7 +112,7 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
         />
       ))}
 
-      <div ref={bottomRef} />
+      <div ref={bottomRef} className="h-1" />
     </div>
   );
 }

@@ -75,7 +75,10 @@ import {
   Keyboard,
   Info,
   AtSign,
+  Clock,
 } from "lucide-react";
+import { ScheduledMessagesList } from "@/components/message/ScheduledMessagesList";
+import { useScheduledMessages } from "@/hooks/useScheduledMessages";
 
 export function DesktopApp() {
   const { user, signOut } = useAuth();
@@ -91,6 +94,7 @@ export function DesktopApp() {
   const { data: unreadDMCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
   const { channels: totalUnreadChannels, dms: totalUnreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
   const { data: mentionsCount = 0 } = useUnreadMentionsCount();
+  const { data: scheduledMessages = [] } = useScheduledMessages();
   const markChannelAsRead = useMarkChannelAsRead();
   const markDMAsRead = useMarkDMAsRead();
 
@@ -252,6 +256,24 @@ export function DesktopApp() {
             />
           </PopoverContent>
         </Popover>
+
+        {/* Scheduled Messages Button */}
+        <ScheduledMessagesList
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl relative"
+            >
+              <Clock className="h-5 w-5" />
+              {scheduledMessages.length > 0 && (
+                <span className="absolute -top-1 -right-1">
+                  <UnreadBadge count={scheduledMessages.length} size="sm" />
+                </span>
+              )}
+            </Button>
+          }
+        />
 
         <NotificationCenter
           onNavigate={(notification: Notification) => {
