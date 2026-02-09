@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, X, Clock, Smile } from "lucide-react";
+import { Send, Paperclip, X, Clock, Smile, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/message/MentionInput";
 import { FilePreview } from "@/components/message/FilePreview";
+import { AudioRecordingIndicator } from "@/components/message/AudioRecordingIndicator";
 import { useSendDMMessage, useDMMessageById } from "@/hooks/useDirectMessages";
 import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { toast } from "sonner";
 import { format, addHours, addDays, setHours, setMinutes } from "date-fns";
@@ -62,6 +64,16 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   const { uploadFile, isUploading } = useFileUpload();
   const { quickReplies } = useQuickReplies();
   const { data: replyMessage } = useDMMessageById(replyTo || null);
+  const { 
+    isRecording, 
+    isPaused, 
+    recordingTime, 
+    startRecording, 
+    stopRecording, 
+    pauseRecording, 
+    resumeRecording, 
+    cancelRecording 
+  } = useAudioRecorder();
 
   // Focus input when replying
   useEffect(() => {
@@ -178,6 +190,36 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
     handleSchedule(scheduledDate);
   };
 
+  const handleStartRecording = async () => {
+    try {
+      await startRecording();
+    } catch (error) {
+      toast.error("Não foi possível acessar o microfone. Verifique as permissões.");
+    }
+  };
+
+  const handleStopRecording = async () => {
+    const audioBlob = await stopRecording();
+    if (audioBlob) {
+      const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, { 
+        type: 'audio/webm' 
+      });
+      
+      const uploaded = await uploadFile(audioFile);
+      if (uploaded) {
+        await sendMessage.mutateAsync({
+          dmId,
+          content: "🎤 Mensagem de áudio",
+          replyTo,
+          fileUrl: uploaded.url,
+          fileType: uploaded.type,
+          fileName: uploaded.name,
+        });
+        onCancelReply?.();
+      }
+    }
+  };
+
   return (
     <div className="p-3 md:p-4 border-t border-border bg-background">
       {/* Reply Preview */}
@@ -249,6 +291,21 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         )}
       </AnimatePresence>
 
+      {/* Audio Recording Indicator */}
+      <AnimatePresence>
+        {isRecording && (
+          <AudioRecordingIndicator
+            recordingTime={recordingTime}
+            isPaused={isPaused}
+            onStop={handleStopRecording}
+            onPause={pauseRecording}
+            onResume={resumeRecording}
+            onCancel={cancelRecording}
+            className="mb-3"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Input Area */}
       <div className="flex items-end gap-2">
         {/* Left actions */}
@@ -290,6 +347,17 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             title="Agendar mensagem"
           >
             <Clock className="h-5 w-5 text-muted-foreground" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-xl"
+            onClick={handleStartRecording}
+            disabled={isRecording || isUploading}
+            title="Gravar áudio"
+          >
+            <Mic className="h-5 w-5 text-muted-foreground" />
           </Button>
         </div>
 
