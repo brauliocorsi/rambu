@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, X, Clock, Smile, Mic } from "lucide-react";
+import { Send, Paperclip, X, Clock, Smile, Mic, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/message/MentionInput";
 import { FilePreview } from "@/components/message/FilePreview";
@@ -28,6 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { Calendar, Reply } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,15 +54,16 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   const [message, setMessage] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState("09:00");
   const [showCalendar, setShowCalendar] = useState(false);
   const inputRef = useRef<{ focus: () => void }>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const sendMessage = useSendDMMessage();
   const scheduleMessage = useCreateScheduledMessage();
-  const { uploadFile, isUploading } = useFileUpload();
+  const { uploadFiles, isUploading, progress, maxFiles } = useFileUpload();
   const { quickReplies } = useQuickReplies();
   const { data: replyMessage } = useDMMessageById(replyTo || null);
   const { 
@@ -83,23 +85,36 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   }, [replyTo]);
 
   const handleSend = async () => {
-    if ((!message.trim() && !uploadedFile) || sendMessage.isPending) return;
+    if ((!message.trim() && attachedFiles.length === 0) || sendMessage.isPending) return;
 
-    const content = uploadedFile 
-      ? message.trim() || `📎 ${uploadedFile.name}` 
+    const firstFile = attachedFiles[0];
+    const content = firstFile 
+      ? message.trim() || `📎 ${firstFile.name}` 
       : message.trim();
 
     await sendMessage.mutateAsync({
       dmId,
       content,
       replyTo,
-      fileUrl: uploadedFile?.url,
-      fileType: uploadedFile?.type,
-      fileName: uploadedFile?.name,
+      fileUrl: firstFile?.url,
+      fileType: firstFile?.type,
+      fileName: firstFile?.name,
     });
 
+    // Send additional files as separate messages
+    for (let i = 1; i < attachedFiles.length; i++) {
+      const file = attachedFiles[i];
+      await sendMessage.mutateAsync({
+        dmId,
+        content: `📎 ${file.name}`,
+        fileUrl: file.url,
+        fileType: file.type,
+        fileName: file.name,
+      });
+    }
+
     setMessage("");
-    setUploadedFile(null);
+    setAttachedFiles([]);
     onCancelReply?.();
   };
 
@@ -111,19 +126,28 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Arquivo muito grande. Máximo 10MB.");
+    const totalFiles = attachedFiles.length + files.length;
+    if (totalFiles > maxFiles) {
+      toast.error(`Máximo de ${maxFiles} arquivos por vez`);
       return;
     }
 
-    const result = await uploadFile(file);
-    if (result) {
-      setUploadedFile(result);
+    const uploaded = await uploadFiles(files);
+    if (uploaded.length > 0) {
+      setAttachedFiles((prev) => [...prev, ...uploaded]);
     }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const addEmoji = (emoji: string) => {
@@ -205,15 +229,15 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         type: 'audio/webm' 
       });
       
-      const uploaded = await uploadFile(audioFile);
-      if (uploaded) {
+      const uploaded = await uploadFiles([audioFile]);
+      if (uploaded.length > 0) {
         await sendMessage.mutateAsync({
           dmId,
           content: "🎤 Mensagem de áudio",
           replyTo,
-          fileUrl: uploaded.url,
-          fileType: uploaded.type,
-          fileName: uploaded.name,
+          fileUrl: uploaded[0].url,
+          fileType: uploaded[0].type,
+          fileName: uploaded[0].name,
         });
         onCancelReply?.();
       }
@@ -250,24 +274,46 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         </motion.div>
       )}
 
-      {/* File Preview */}
-      {uploadedFile && (
-        <div className="mb-3 relative inline-block">
-          <FilePreview
-            url={uploadedFile.url}
-            name={uploadedFile.name}
-            type={uploadedFile.type}
-          />
-          <Button
-            size="icon"
-            variant="destructive"
-            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-            onClick={() => setUploadedFile(null)}
+      {/* Upload progress */}
+      <AnimatePresence>
+        {isUploading && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3"
           >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Image className="h-4 w-4" />
+              <span>Enviando arquivo...</span>
+            </div>
+            <Progress value={progress} className="h-1" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Files Preview */}
+      <AnimatePresence>
+        {attachedFiles.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="mb-3 flex flex-wrap gap-2"
+          >
+            {attachedFiles.map((file, index) => (
+              <FilePreview
+                key={`${file.url}-${index}`}
+                url={file.url}
+                name={file.name}
+                type={file.type}
+                onRemove={() => handleRemoveFile(index)}
+                compact
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Emoji picker */}
       <AnimatePresence>
@@ -319,25 +365,23 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             <Smile className="h-5 w-5 text-muted-foreground" />
           </Button>
 
-          <label>
-            <input
-              type="file"
-              className="hidden"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-xl"
-              disabled={isUploading}
-              asChild
-            >
-              <span>
-                <Paperclip className="h-5 w-5 text-muted-foreground" />
-              </span>
-            </Button>
-          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx,.txt"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-xl"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            <Paperclip className="h-5 w-5 text-muted-foreground" />
+          </Button>
 
           <Button
             variant="ghost"
@@ -372,25 +416,15 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             <Smile className="h-4 w-4 text-muted-foreground" />
           </Button>
 
-          <label>
-            <input
-              type="file"
-              className="hidden"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-xl"
-              disabled={isUploading}
-              asChild
-            >
-              <span>
-                <Paperclip className="h-4 w-4 text-muted-foreground" />
-              </span>
-            </Button>
-          </label>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            <Paperclip className="h-4 w-4 text-muted-foreground" />
+          </Button>
 
           <Button
             variant="ghost"
@@ -430,7 +464,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         <Button
           size="icon"
           className="h-11 w-11 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
-          disabled={(!message.trim() && !uploadedFile) || sendMessage.isPending || isUploading}
+          disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
           {sendMessage.isPending || isUploading ? (

@@ -11,6 +11,7 @@ import { CategoryManager } from "@/components/channel/CategoryManager";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
+import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -48,15 +49,16 @@ function ChannelChatView() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
+        <div className="flex-1 min-w-0">
           <h2 className="font-bold flex items-center gap-1">
             <Hash className="h-4 w-4" />
             {currentChannel.name}
           </h2>
           {currentChannel.description && (
-            <p className="text-xs text-muted-foreground">{currentChannel.description}</p>
+            <p className="text-xs text-muted-foreground truncate">{currentChannel.description}</p>
           )}
         </div>
+        <ChannelMembersPopover channelId={currentChannel.id} />
       </div>
 
       {/* Messages Area */}
