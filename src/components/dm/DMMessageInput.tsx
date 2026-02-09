@@ -252,11 +252,11 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
       {/* Input Area */}
       <div className="flex items-end gap-2">
         {/* Left actions */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 md:h-10 md:w-10 rounded-xl shrink-0"
+            className="h-10 w-10 rounded-xl"
             onClick={() => setShowEmojis(!showEmojis)}
           >
             <Smile className="h-5 w-5 text-muted-foreground" />
@@ -272,7 +272,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 md:h-10 md:w-10 rounded-xl shrink-0"
+              className="h-10 w-10 rounded-xl"
               disabled={isUploading}
               asChild
             >
@@ -285,7 +285,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 md:h-10 md:w-10 rounded-xl shrink-0"
+            className="h-10 w-10 rounded-xl"
             onClick={() => setShowSchedule(true)}
             title="Agendar mensagem"
           >
@@ -293,20 +293,45 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           </Button>
         </div>
 
+        {/* Mobile action - only file attachment */}
+        <div className="flex md:hidden items-center shrink-0">
+          <label>
+            <input
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              disabled={isUploading}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-xl"
+              disabled={isUploading}
+              asChild
+            >
+              <span>
+                <Paperclip className="h-5 w-5 text-muted-foreground" />
+              </span>
+            </Button>
+          </label>
+        </div>
+
         {/* Message Input */}
-        <MentionInput
-          ref={inputRef}
-          value={message}
-          onChange={handleMessageChange}
-          onKeyDown={handleKeyDown}
-          placeholder={`Mensagem para ${otherUserName}`}
-          className="flex-1 min-h-[44px] md:min-h-[48px] px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-        />
+        <div className="flex-1 min-w-0">
+          <MentionInput
+            ref={inputRef}
+            value={message}
+            onChange={handleMessageChange}
+            onKeyDown={handleKeyDown}
+            placeholder={`Mensagem para ${otherUserName}`}
+            className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-base resize-none"
+          />
+        </div>
 
         {/* Send Button */}
         <Button
           size="icon"
-          className="h-10 w-10 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
+          className="h-11 w-11 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
           disabled={(!message.trim() && !uploadedFile) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
