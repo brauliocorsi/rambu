@@ -12,6 +12,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { MainApp } from "@/components/app/MainApp";
 import { DesktopApp } from "@/components/app/DesktopApp";
 import { LoadingScreen } from "@/components/ui/LoadingSpinner";
+import { BrowserNotificationPrompt } from "@/components/notifications/BrowserNotificationPrompt";
 import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
 
@@ -29,7 +30,12 @@ function AppContent() {
     return <AuthForm onSuccess={() => {}} />;
   }
 
-  return isMobile ? <MainApp /> : <DesktopApp />;
+  return (
+    <>
+      {isMobile ? <MainApp /> : <DesktopApp />}
+      <BrowserNotificationPrompt />
+    </>
+  );
 }
 
 function AuthenticatedApp() {

@@ -9,6 +9,7 @@ import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
 } from "@/hooks/useProfile";
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import {
   Camera,
   User,
   Bell,
+  BellRing,
   Moon,
   Sun,
   Monitor,
@@ -45,6 +47,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: notifPrefs } = useNotificationPreferences();
+  const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission } = useBrowserNotifications();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
   const updateNotifPrefs = useUpdateNotificationPreferences();
@@ -398,6 +401,45 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                     }
                     className="py-2"
                   />
+                </div>
+              )}
+
+              {/* Push Notifications */}
+              {pushSupported && (
+                <div className="pt-2 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium flex items-center gap-2">
+                        <BellRing className="h-4 w-4 text-primary" />
+                        Notificações Push
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {pushPermission === "granted" 
+                          ? "Ativas - você receberá alertas em outras abas"
+                          : pushPermission === "denied"
+                          ? "Bloqueadas pelo navegador"
+                          : "Receba alertas mesmo em outras abas"}
+                      </p>
+                    </div>
+                    {pushPermission === "granted" ? (
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                        Ativadas
+                      </span>
+                    ) : pushPermission === "denied" ? (
+                      <span className="text-xs text-destructive font-medium px-2 py-1 bg-destructive/10 rounded-full">
+                        Bloqueadas
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={requestPushPermission}
+                      >
+                        Ativar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
