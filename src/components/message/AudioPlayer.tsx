@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Volume2 } from "lucide-react";
+import { Play, Pause, Volume2, AlertCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
       setIsLoaded(true);
+      setHasError(false);
     };
 
     const handleTimeUpdate = () => {
@@ -36,16 +38,31 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
       setCurrentTime(0);
     };
 
+    const handleError = () => {
+      console.error("Audio playback error:", audio.error);
+      setHasError(true);
+      setIsLoaded(false);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoaded(true);
+      setHasError(false);
+    };
+
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("canplay", handleCanPlay);
 
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("canplay", handleCanPlay);
     };
-  }, []);
+  }, [url]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -74,6 +91,32 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  if (hasError) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 p-2 rounded-xl bg-secondary/50",
+          compact ? "min-w-[180px]" : "min-w-[220px]",
+          className
+        )}
+      >
+        <div className="flex items-center gap-2 text-muted-foreground flex-1">
+          <AlertCircle className="h-4 w-4 text-warning" />
+          <span className="text-xs">Formato não suportado</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg"
+          onClick={() => window.open(url, '_blank')}
+          title="Baixar áudio"
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -93,6 +136,7 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
           "bg-primary/10 hover:bg-primary/20"
         )}
         onClick={togglePlay}
+        disabled={!isLoaded}
       >
         {isPlaying ? (
           <Pause className={cn(compact ? "h-4 w-4" : "h-5 w-5", "text-primary")} />
@@ -111,6 +155,7 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
             step={0.1}
             onValueChange={handleSeek}
             className="cursor-pointer"
+            disabled={!isLoaded}
           />
         </div>
 
