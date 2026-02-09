@@ -38,6 +38,8 @@ import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 import { AvatarWithStatus } from "@/components/user/OnlineIndicator";
 import { ThreadPanel } from "@/components/message/ThreadPanel";
 import { Message } from "@/hooks/useMessages";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { Notification } from "@/hooks/useInAppNotifications";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -195,6 +197,19 @@ export function DesktopApp() {
             <Moon className="h-5 w-5" />
           )}
         </Button>
+
+        <NotificationCenter
+          onNavigate={(notification: Notification) => {
+            // Navigate to the relevant channel/DM based on notification metadata
+            if (notification.metadata?.channel_id) {
+              const channel = channels.find(c => c.id === notification.metadata?.channel_id);
+              if (channel) {
+                setCurrentChannel(channel);
+                setSelectedDM(null);
+              }
+            }
+          }}
+        />
 
         <Button
           variant="ghost"

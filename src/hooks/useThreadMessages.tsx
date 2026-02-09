@@ -127,11 +127,29 @@ export function useSendThreadMessage() {
         .single();
 
       if (error) throw error;
+
+      // Parse and create mentions
+      const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+      const mentions: string[] = [];
+      let match;
+      
+      while ((match = mentionRegex.exec(content)) !== null) {
+        mentions.push(match[2]);
+      }
+
+      if (mentions.length > 0 && data) {
+        const mentionInserts = mentions.map((userId) => ({
+          thread_message_id: data.id,
+          mentioned_user_id: userId,
+        }));
+
+        await supabase.from("message_mentions").insert(mentionInserts);
+      }
+
       return data;
     },
     onSuccess: (_, { parentMessageId }) => {
       queryClient.invalidateQueries({ queryKey: ["thread_messages", parentMessageId] });
-      // Also invalidate the parent message to update thread_count
       queryClient.invalidateQueries({ queryKey: ["messages"] });
     },
     onError: (error: any) => {
