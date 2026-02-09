@@ -98,6 +98,100 @@ export type Database = {
           },
         ]
       }
+      direct_messages: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          user1_id: string
+          user2_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          user1_id: string
+          user2_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          user1_id?: string
+          user2_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_messages: {
+        Row: {
+          content: string
+          created_at: string
+          dm_id: string
+          id: string
+          is_edited: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          dm_id: string
+          id?: string
+          is_edited?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          dm_id?: string
+          id?: string
+          is_edited?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_dm_id_fkey"
+            columns: ["dm_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -145,6 +239,7 @@ export type Database = {
           id: string
           is_edited: boolean
           reply_to: string | null
+          thread_count: number
           updated_at: string
           user_id: string
         }
@@ -155,6 +250,7 @@ export type Database = {
           id?: string
           is_edited?: boolean
           reply_to?: string | null
+          thread_count?: number
           updated_at?: string
           user_id: string
         }
@@ -165,6 +261,7 @@ export type Database = {
           id?: string
           is_edited?: boolean
           reply_to?: string | null
+          thread_count?: number
           updated_at?: string
           user_id?: string
         }
@@ -227,6 +324,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      thread_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_edited: boolean
+          parent_message_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_edited?: boolean
+          parent_message_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_edited?: boolean
+          parent_message_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_members: {
         Row: {
@@ -322,6 +464,7 @@ export type Database = {
     Functions: {
       can_access_channel: { Args: { p_channel_id: string }; Returns: boolean }
       is_channel_member: { Args: { p_channel_id: string }; Returns: boolean }
+      is_dm_participant: { Args: { p_dm_id: string }; Returns: boolean }
       is_workspace_admin: { Args: { p_workspace_id: string }; Returns: boolean }
       is_workspace_member: {
         Args: { p_workspace_id: string }
