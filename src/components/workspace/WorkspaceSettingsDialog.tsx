@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useUpdateWorkspace, useDeleteWorkspace } from '@/hooks/useWorkspaces';
+import { useLeaveWorkspace } from '@/hooks/useLeaveWorkspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
@@ -24,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Camera, Loader2, Trash2 } from 'lucide-react';
+import { Camera, Loader2, Trash2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,21 +38,25 @@ interface WorkspaceSettingsDialogProps {
 
 export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDialogProps) {
   const { user } = useAuth();
-  const { currentWorkspace, setCurrentWorkspace } = useWorkspaceContext();
+  const { currentWorkspace, setCurrentWorkspace, workspaces } = useWorkspaceContext();
   const updateWorkspaceMutation = useUpdateWorkspace();
   const deleteWorkspaceMutation = useDeleteWorkspace();
+  const leaveWorkspaceMutation = useLeaveWorkspace();
   
   const [name, setName] = useState(currentWorkspace?.name || '');
   const [description, setDescription] = useState(currentWorkspace?.description || '');
   const [iconUrl, setIconUrl] = useState(currentWorkspace?.icon_url || '');
+  const [allowMemberChannels, setAllowMemberChannels] = useState(currentWorkspace?.allow_member_channels ?? true);
   const [isUploading, setIsUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
     if (currentWorkspace) {
       setName(currentWorkspace.name || '');
       setDescription(currentWorkspace.description || '');
       setIconUrl(currentWorkspace.icon_url || '');
+      setAllowMemberChannels(currentWorkspace.allow_member_channels ?? true);
     }
   }, [currentWorkspace]);
 
@@ -92,6 +98,7 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
       name: name.trim(),
       description: description.trim() || null,
       icon_url: iconUrl || null,
+      allow_member_channels: allowMemberChannels,
     }, {
       onSuccess: () => {
         toast.success('Workspace atualizado!');
@@ -111,6 +118,19 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
     });
   };
 
+  const handleLeave = () => {
+    if (!currentWorkspace) return;
+
+    leaveWorkspaceMutation.mutate(currentWorkspace.id, {
+      onSuccess: () => {
+        // Select another workspace or null
+        const remainingWorkspaces = workspaces.filter(w => w.id !== currentWorkspace.id);
+        setCurrentWorkspace(remainingWorkspaces[0] || null);
+        onClose();
+      },
+    });
+  };
+
   if (!currentWorkspace) return null;
 
   return (
@@ -120,7 +140,7 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
           <DialogHeader>
             <DialogTitle>Configurações do Workspace</DialogTitle>
             <DialogDescription>
-              Edite as informações do workspace
+              {isOwner ? 'Edite as informações do workspace' : 'Visualize as informações do workspace'}
             </DialogDescription>
           </DialogHeader>
 
@@ -134,20 +154,22 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
                     {name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <label className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    disabled={isUploading}
-                  />
-                </label>
+                {isOwner && (
+                  <label className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      disabled={isUploading}
+                    />
+                  </label>
+                )}
               </div>
             </div>
 
@@ -160,6 +182,7 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Nome do workspace"
                 className="rounded-xl"
+                disabled={!isOwner}
               />
             </div>
 
@@ -173,12 +196,30 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
                 placeholder="Descrição do workspace"
                 className="rounded-xl resize-none"
                 rows={3}
+                disabled={!isOwner}
               />
             </div>
+
+            {/* Channel creation permission - Only for owner */}
+            {isOwner && (
+              <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl">
+                <div className="space-y-0.5">
+                  <Label htmlFor="allow-channels">Membros podem criar canais</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Se desativado, apenas administradores podem criar canais
+                  </p>
+                </div>
+                <Switch
+                  id="allow-channels"
+                  checked={allowMemberChannels}
+                  onCheckedChange={setAllowMemberChannels}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {isOwner && (
+            {isOwner ? (
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -187,22 +228,33 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
                 <Trash2 className="h-4 w-4 mr-2" />
                 Excluir
               </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setShowLeaveConfirm(true)}
+                className="rounded-xl text-destructive hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair do Workspace
+              </Button>
             )}
             <div className="flex-1" />
             <Button variant="outline" onClick={onClose} className="rounded-xl">
               Cancelar
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!name.trim() || updateWorkspaceMutation.isPending}
-              className="rounded-xl"
-            >
-              {updateWorkspaceMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Salvar'
-              )}
-            </Button>
+            {isOwner && (
+              <Button
+                onClick={handleSave}
+                disabled={!name.trim() || updateWorkspaceMutation.isPending}
+                className="rounded-xl"
+              >
+                {updateWorkspaceMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Salvar'
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -228,6 +280,33 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leave Confirmation */}
+      <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do Workspace?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você deixará de ter acesso ao workspace "{currentWorkspace.name}" e todas as suas conversas.
+              Você poderá ser convidado novamente por um administrador.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeave}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={leaveWorkspaceMutation.isPending}
+            >
+              {leaveWorkspaceMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Sair'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

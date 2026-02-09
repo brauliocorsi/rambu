@@ -1090,6 +1090,59 @@ export type Database = {
           },
         ]
       }
+      user_onboarding: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          skipped_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          skipped_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          skipped_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workspace_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_favorites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invites: {
         Row: {
           created_at: string
@@ -1192,6 +1245,7 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          allow_member_channels: boolean
           created_at: string
           created_by: string
           description: string | null
@@ -1201,6 +1255,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_member_channels?: boolean
           created_at?: string
           created_by: string
           description?: string | null
@@ -1210,6 +1265,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_member_channels?: boolean
           created_at?: string
           created_by?: string
           description?: string | null
