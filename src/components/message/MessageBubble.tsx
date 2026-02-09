@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Reply, Smile, MessageSquare, Pencil, Trash2, X, Check, CornerDownRight } from "lucide-react";
+import { X, Check, CornerDownRight, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Message, useToggleReaction, useMessageReactions, useEditMessage, useDeleteMessage, useMessageById } from "@/hooks/useMessages";
+import { useMarkChannelAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { FilePreview } from "./FilePreview";
+import { MessageActionsMenu } from "./MessageActionsMenu";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,8 +34,6 @@ interface MessageBubbleProps {
   density?: MessageDensity;
 }
 
-const REACTION_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉"];
-
 // Density-based styles
 const densityStyles = {
   compact: {
@@ -56,7 +56,6 @@ const densityStyles = {
 export function MessageBubble({ message, channelId, onReply, onOpenThread, slackMode = false, density = "normal" }: MessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
-  const [showReactions, setShowReactions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -64,6 +63,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
   const toggleReaction = useToggleReaction();
   const editMessage = useEditMessage();
   const deleteMessage = useDeleteMessage();
+  const markAsUnread = useMarkChannelAsUnread();
   const { data: reactions = [] } = useMessageReactions(message.id);
   
   // Fetch the original message if this is a reply
@@ -87,7 +87,10 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
 
   const handleReaction = (emoji: string) => {
     toggleReaction.mutate({ messageId: message.id, emoji, channelId });
-    setShowReactions(false);
+  };
+
+  const handleMarkAsUnread = () => {
+    markAsUnread.mutate({ channelId, messageCreatedAt: message.created_at });
   };
 
   const handleEdit = async () => {
@@ -139,10 +142,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
           !useSlackLayout && isOwn && "flex-row-reverse"
         )}
         onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => {
-          setShowActions(false);
-          setShowReactions(false);
-        }}
+        onMouseLeave={() => setShowActions(false)}
       >
         {/* Avatar */}
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
@@ -288,88 +288,26 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
 
         {/* Actions */}
         {showActions && !isEditing && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-1 self-start"
-          >
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-lg"
-                onClick={() => setShowReactions(!showReactions)}
-              >
-                <Smile className="h-4 w-4" />
-              </Button>
-
-              {showReactions && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card rounded-xl shadow-lg border border-border p-1 z-10"
-                >
-                  {REACTION_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => handleReaction(emoji)}
-                      className="p-1.5 text-base hover:bg-secondary rounded-lg transition-colors"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-lg"
-              onClick={() => onReply?.(message.id)}
-              title="Responder"
-            >
-              <Reply className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-lg"
-              onClick={() => onOpenThread?.(message)}
-              title="Abrir thread"
-            >
-              <MessageSquare className="h-4 w-4" />
-            </Button>
-
-            {/* Edit and Delete for own messages */}
-            {isOwn && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-lg"
-                  onClick={() => {
-                    setIsEditing(true);
-                    setEditContent(message.content);
-                  }}
-                  title="Editar"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-lg text-destructive hover:text-destructive"
-                  onClick={() => setShowDeleteDialog(true)}
-                  title="Deletar"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-          </motion.div>
+          <MessageActionsMenu
+            messageId={message.id}
+            messageContent={message.content}
+            messageCreatedAt={message.created_at}
+            isOwn={isOwn}
+            messageType="channel"
+            contextId={channelId}
+            senderName={displayName}
+            onMarkAsUnread={handleMarkAsUnread}
+            onReply={() => onReply?.(message.id)}
+            onOpenThread={() => onOpenThread?.(message)}
+            onEdit={() => {
+              setIsEditing(true);
+              setEditContent(message.content);
+            }}
+            onDelete={() => setShowDeleteDialog(true)}
+            onAddReaction={handleReaction}
+            showThread
+            threadCount={threadCount}
+          />
         )}
       </motion.div>
 
