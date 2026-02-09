@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Header } from "@/components/layout/Header";
@@ -11,6 +11,13 @@ import { ChannelList } from "@/components/channel/ChannelList";
 import { useChannels } from "@/hooks/useChannels";
 import { useMessages } from "@/hooks/useMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
+import { 
+  useUnreadChannelCounts, 
+  useUnreadDMCounts, 
+  useTotalUnreadCount,
+  useMarkChannelAsRead,
+  useMarkDMAsRead,
+} from "@/hooks/useNotifications";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { DMChatView } from "@/components/dm/DMChatView";
@@ -119,8 +126,17 @@ function HomeView() {
 function DMsView() {
   const { currentWorkspace } = useWorkspaceContext();
   const { data: dms = [], isLoading } = useDirectMessages(currentWorkspace?.id || null);
+  const { data: unreadCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
+  const markAsRead = useMarkDMAsRead();
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showNewDM, setShowNewDM] = useState(false);
+
+  // Mark DM as read when selected
+  useEffect(() => {
+    if (selectedDM) {
+      markAsRead.mutate(selectedDM.id);
+    }
+  }, [selectedDM?.id]);
 
   if (selectedDM) {
     return <DMChatView dm={selectedDM} onBack={() => setSelectedDM(null)} />;
@@ -186,7 +202,8 @@ function DMsView() {
           <DMList 
             dms={dms} 
             selectedDM={selectedDM} 
-            onSelectDM={setSelectedDM} 
+            onSelectDM={setSelectedDM}
+            unreadCounts={unreadCounts}
           />
         </Card>
       )}
@@ -259,7 +276,16 @@ function ChannelsView() {
   const { currentWorkspace } = useWorkspaceContext();
   const { currentChannel, setCurrentChannel } = useChannelContext();
   const { data: channels = [], isLoading } = useChannels(currentWorkspace?.id || null);
+  const { data: unreadCounts = {} } = useUnreadChannelCounts(currentWorkspace?.id || null);
+  const markAsRead = useMarkChannelAsRead();
   const [showCreateChannel, setShowCreateChannel] = useState(false);
+
+  // Mark channel as read when selected
+  useEffect(() => {
+    if (currentChannel) {
+      markAsRead.mutate(currentChannel.id);
+    }
+  }, [currentChannel?.id]);
 
   if (currentChannel) {
     return <ChannelChatView />;
@@ -326,6 +352,7 @@ function ChannelsView() {
             channels={channels}
             selectedChannel={currentChannel}
             onSelectChannel={setCurrentChannel}
+            unreadCounts={unreadCounts}
           />
         </Card>
       )}
@@ -428,6 +455,7 @@ export function MainApp() {
   const [activeTab, setActiveTab] = useState("home");
   const { currentWorkspace } = useWorkspaceContext();
   const { currentChannel } = useChannelContext();
+  const { channels: unreadChannels, dms: unreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
 
   const getTitle = () => {
     if (activeTab === "channels" && currentChannel) {
@@ -470,7 +498,12 @@ export function MainApp() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <MobileNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <MobileNav 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        unreadDMs={unreadDMs}
+        unreadChannels={unreadChannels}
+      />
     </div>
   );
 }

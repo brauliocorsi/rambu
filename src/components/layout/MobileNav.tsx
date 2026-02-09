@@ -1,10 +1,13 @@
 import { Home, MessageSquare, Hash, Bell, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { UnreadBadge } from "@/components/ui/UnreadBadge";
 
 interface MobileNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  unreadDMs?: number;
+  unreadChannels?: number;
 }
 
 const tabs = [
@@ -15,13 +18,20 @@ const tabs = [
   { id: "profile", icon: User, label: "Perfil" },
 ];
 
-export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
+export function MobileNav({ activeTab, onTabChange, unreadDMs = 0, unreadChannels = 0 }: MobileNavProps) {
+  const getUnreadCount = (tabId: string) => {
+    if (tabId === "dms") return unreadDMs;
+    if (tabId === "channels") return unreadChannels;
+    return 0;
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border safe-bottom">
       <div className="flex items-center justify-around py-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
+          const unreadCount = getUnreadCount(tab.id);
 
           return (
             <button
@@ -43,8 +53,14 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
               <motion.div
                 animate={{ scale: isActive ? 1.1 : 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                className="relative"
               >
                 <Icon className="h-5 w-5 relative z-10" />
+                {unreadCount > 0 && (
+                  <div className="absolute -top-1.5 -right-1.5">
+                    <UnreadBadge count={unreadCount} size="sm" />
+                  </div>
+                )}
               </motion.div>
               <span className="text-xs font-medium relative z-10">{tab.label}</span>
             </button>
