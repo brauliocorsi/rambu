@@ -24,7 +24,7 @@ function getSystemTheme(): "light" | "dark" {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("chatflow-theme");
+      const saved = localStorage.getItem("rambu-theme");
       if (saved === "light" || saved === "dark" || saved === "system") {
         return saved;
       }
@@ -65,7 +65,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem("chatflow-theme", theme);
+    localStorage.setItem("rambu-theme", theme);
   }, [theme]);
 
   return (

@@ -20,12 +20,12 @@ const ViewModeContext = createContext<ViewModeContextType>({
 
 export function ViewModeProvider({ children }: { children: ReactNode }) {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem("chatflow-view-mode");
+    const saved = localStorage.getItem("rambu-view-mode");
     return (saved as ViewMode) || "mobile";
   });
 
   useEffect(() => {
-    localStorage.setItem("chatflow-view-mode", viewMode);
+    localStorage.setItem("rambu-view-mode", viewMode);
   }, [viewMode]);
 
   const toggleViewMode = () => {
