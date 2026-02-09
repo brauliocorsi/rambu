@@ -7,11 +7,13 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ChannelProvider } from "@/contexts/ChannelContext";
 import { ViewModeProvider, useViewMode } from "@/contexts/ViewModeContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MainApp } from "@/components/app/MainApp";
 import { DesktopApp } from "@/components/app/DesktopApp";
 import { LoadingScreen } from "@/components/ui/LoadingSpinner";
 import NotFound from "./pages/NotFound";
+import JoinWorkspace from "./pages/JoinWorkspace";
 
 const queryClient = new QueryClient();
 
@@ -58,18 +60,21 @@ function RootContent() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<RootContent />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<RootContent />} />
+              <Route path="/join/:code" element={<JoinWorkspace />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
