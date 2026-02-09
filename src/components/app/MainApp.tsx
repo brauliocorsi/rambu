@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,13 +18,14 @@ import {
   Settings,
   Bell,
   Moon,
-  Sun,
-  Smartphone
+  Smartphone,
+  Briefcase
 } from "lucide-react";
 
 // Home View
 function HomeView() {
   const { user } = useAuth();
+  const { currentWorkspace, workspaces, isLoading } = useWorkspaceContext();
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
 
   return (
@@ -39,33 +42,48 @@ function HomeView() {
         <p className="text-muted-foreground">O que você quer fazer hoje?</p>
       </motion.div>
 
+      {/* Workspace Switcher */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <WorkspaceSwitcher />
+      </motion.div>
+
       {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { icon: Plus, label: "Novo Workspace", color: "gradient-primary" },
-          { icon: Hash, label: "Criar Canal", color: "bg-accent" },
-          { icon: MessageSquare, label: "Nova Mensagem", color: "bg-primary" },
-          { icon: Users, label: "Convidar", color: "bg-accent" },
-        ].map((action, i) => (
-          <motion.button
-            key={action.label}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
-            className={`${i === 0 ? action.color : ""} ${i !== 0 ? action.color : ""} p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft`}
-          >
-            <action.icon className="h-6 w-6" />
-            <span className="text-sm font-medium">{action.label}</span>
-          </motion.button>
-        ))}
-      </div>
+      {currentWorkspace && (
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { icon: Hash, label: "Criar Canal", color: "gradient-primary" },
+            { icon: MessageSquare, label: "Nova Mensagem", color: "bg-primary" },
+            { icon: Users, label: "Convidar", color: "bg-accent" },
+            { icon: Briefcase, label: "Novo Workspace", color: "bg-accent" },
+          ].map((action, i) => (
+            <motion.button
+              key={action.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 + 0.2 }}
+              className={`${i === 0 ? action.color : ""} ${i !== 0 ? action.color : ""} p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft`}
+            >
+              <action.icon className="h-6 w-6" />
+              <span className="text-sm font-medium">{action.label}</span>
+            </motion.button>
+          ))}
+        </div>
+      )}
 
       {/* Recent activity */}
       <div className="space-y-3">
         <h3 className="font-semibold text-lg">Atividade Recente</h3>
         <Card className="p-4 rounded-2xl">
           <div className="flex items-center justify-center h-24 text-muted-foreground">
-            <p>Nenhuma atividade recente</p>
+            {currentWorkspace ? (
+              <p>Nenhuma atividade recente em {currentWorkspace.name}</p>
+            ) : (
+              <p>Crie um workspace para começar!</p>
+            )}
           </div>
         </Card>
       </div>
@@ -75,6 +93,24 @@ function HomeView() {
 
 // DMs View
 function DMsView() {
+  const { currentWorkspace } = useWorkspaceContext();
+
+  if (!currentWorkspace) {
+    return (
+      <div className="p-4">
+        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
+          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
+            <Briefcase className="h-8 w-8 text-primary" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-semibold">Nenhum workspace</h3>
+            <p className="text-sm text-muted-foreground">Crie um workspace para iniciar conversas!</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -102,6 +138,24 @@ function DMsView() {
 
 // Channels View
 function ChannelsView() {
+  const { currentWorkspace } = useWorkspaceContext();
+
+  if (!currentWorkspace) {
+    return (
+      <div className="p-4">
+        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
+          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
+            <Briefcase className="h-8 w-8 text-primary" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-semibold">Nenhum workspace</h3>
+            <p className="text-sm text-muted-foreground">Crie um workspace para criar canais!</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -116,7 +170,7 @@ function ChannelsView() {
         </div>
         <div className="text-center">
           <h3 className="font-semibold">Nenhum canal</h3>
-          <p className="text-sm text-muted-foreground">Crie ou entre em um canal!</p>
+          <p className="text-sm text-muted-foreground">Crie o primeiro canal em {currentWorkspace.name}!</p>
         </div>
         <Button className="rounded-xl gradient-primary text-white">
           <Plus className="h-4 w-4 mr-2" />
@@ -218,12 +272,13 @@ function ProfileView() {
 
 export function MainApp() {
   const [activeTab, setActiveTab] = useState("home");
+  const { currentWorkspace } = useWorkspaceContext();
 
   const getTitle = () => {
     switch (activeTab) {
       case "home": return "ChatFlow";
       case "dms": return "Mensagens";
-      case "channels": return "Canais";
+      case "channels": return currentWorkspace ? `# ${currentWorkspace.name}` : "Canais";
       case "notifications": return "Notificações";
       case "profile": return "Perfil";
       default: return "ChatFlow";
