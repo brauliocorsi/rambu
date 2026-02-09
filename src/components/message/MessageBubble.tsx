@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Reply, Smile } from "lucide-react";
+import { Reply, Smile, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Message, useToggleReaction, useMessageReactions } from "@/hooks/useMessages";
+import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { FilePreview } from "./FilePreview";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -14,11 +15,12 @@ interface MessageBubbleProps {
   message: Message;
   channelId: string;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (message: Message) => void;
 }
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉"];
 
-export function MessageBubble({ message, channelId, onReply }: MessageBubbleProps) {
+export function MessageBubble({ message, channelId, onReply, onOpenThread }: MessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -29,6 +31,7 @@ export function MessageBubble({ message, channelId, onReply }: MessageBubbleProp
   const displayName = message.profile?.display_name || "Usuário";
   const time = format(new Date(message.created_at), "HH:mm", { locale: ptBR });
   const hasFile = message.file_url && message.file_type && message.file_name;
+  const threadCount = (message as any).thread_count || 0;
 
   // Group reactions by emoji
   const groupedReactions = reactions.reduce((acc, r) => {
@@ -96,8 +99,21 @@ export function MessageBubble({ message, channelId, onReply }: MessageBubbleProp
                 : "bg-secondary text-secondary-foreground rounded-bl-md"
             )}
           >
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {formatMentionsForDisplay(message.content)}
+            </p>
           </div>
+        )}
+
+        {/* Thread indicator */}
+        {threadCount > 0 && (
+          <button
+            onClick={() => onOpenThread?.(message)}
+            className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
+          >
+            <MessageSquare className="h-3 w-3" />
+            <span>{threadCount} {threadCount === 1 ? "resposta" : "respostas"}</span>
+          </button>
         )}
 
         {/* Reactions */}
@@ -163,8 +179,19 @@ export function MessageBubble({ message, channelId, onReply }: MessageBubbleProp
             size="icon"
             className="h-7 w-7 rounded-lg"
             onClick={() => onReply?.(message.id)}
+            title="Responder"
           >
             <Reply className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-lg"
+            onClick={() => onOpenThread?.(message)}
+            title="Abrir thread"
+          >
+            <MessageSquare className="h-4 w-4" />
           </Button>
         </motion.div>
       )}
