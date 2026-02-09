@@ -361,8 +361,17 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           </Button>
         </div>
 
-        {/* Mobile action - only file attachment */}
-        <div className="flex md:hidden items-center shrink-0">
+        {/* Mobile action buttons - compact row with all actions */}
+        <div className="flex md:hidden items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl"
+            onClick={() => setShowEmojis(!showEmojis)}
+          >
+            <Smile className="h-4 w-4 text-muted-foreground" />
+          </Button>
+
           <label>
             <input
               type="file"
@@ -373,15 +382,36 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-xl"
+              className="h-9 w-9 rounded-xl"
               disabled={isUploading}
               asChild
             >
               <span>
-                <Paperclip className="h-5 w-5 text-muted-foreground" />
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
               </span>
             </Button>
           </label>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl"
+            onClick={() => setShowSchedule(true)}
+            title="Agendar mensagem"
+          >
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl"
+            onClick={handleStartRecording}
+            disabled={isRecording || isUploading}
+            title="Gravar áudio"
+          >
+            <Mic className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
 
         {/* Message Input */}
