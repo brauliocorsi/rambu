@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { FileText, X, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AudioPlayer } from "./AudioPlayer";
 
 interface FilePreviewProps {
   url: string;
@@ -13,8 +14,32 @@ interface FilePreviewProps {
 
 export function FilePreview({ url, name, type, onRemove, compact = false }: FilePreviewProps) {
   const isImage = type.startsWith("image/");
+  const isAudio = type.startsWith("audio/");
   const isPDF = type === "application/pdf";
   
+  if (isAudio) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative"
+      >
+        <AudioPlayer url={url} compact={compact} />
+        
+        {onRemove && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute -top-1 -right-1 h-5 w-5 bg-destructive hover:bg-destructive/90 text-white rounded-full"
+            onClick={onRemove}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </motion.div>
+    );
+  }
+
   if (isImage) {
     return (
       <motion.div

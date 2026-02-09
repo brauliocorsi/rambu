@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, Image, Clock } from "lucide-react";
+import { Send, Paperclip, Image, Clock, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
 import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { FilePreview } from "./FilePreview";
 import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
@@ -13,6 +14,8 @@ import { EmojiPicker } from "./EmojiPicker";
 import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
 import { MentionInput, MentionInputRef } from "./MentionInput";
 import { ReplyPreview } from "./ReplyPreview";
+import { AudioRecordingIndicator } from "./AudioRecordingIndicator";
+import { toast } from "sonner";
 
 interface MessageInputProps {
   channelId: string;
@@ -42,6 +45,16 @@ export function MessageInput({
   const { uploadFile, isUploading, progress } = useFileUpload();
   const { data: profile } = useProfile();
   const { getSuggestions, findByShortcut } = useQuickReplies();
+  const { 
+    isRecording, 
+    isPaused, 
+    recordingTime, 
+    startRecording, 
+    stopRecording, 
+    pauseRecording, 
+    resumeRecording, 
+    cancelRecording 
+  } = useAudioRecorder();
   
   const quickReplySuggestions = getSuggestions(message);
 
@@ -148,6 +161,37 @@ export function MessageInput({
   // Fetch message being replied to
   const { data: replyMessage } = useMessageById(replyTo || null);
 
+  const handleStartRecording = async () => {
+    try {
+      await startRecording();
+    } catch (error) {
+      toast.error("Não foi possível acessar o microfone. Verifique as permissões.");
+    }
+  };
+
+  const handleStopRecording = async () => {
+    const audioBlob = await stopRecording();
+    if (audioBlob) {
+      // Convert blob to file and upload
+      const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, { 
+        type: 'audio/webm' 
+      });
+      
+      const uploaded = await uploadFile(audioFile);
+      if (uploaded) {
+        await sendMessage.mutateAsync({
+          channelId,
+          content: "🎤 Mensagem de áudio",
+          replyTo,
+          fileUrl: uploaded.url,
+          fileType: uploaded.type,
+          fileName: uploaded.name,
+        });
+        onCancelReply?.();
+      }
+    }
+  };
+
   return (
     <div className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0">
       {/* Reply Preview */}
@@ -227,6 +271,21 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
+      {/* Audio Recording Indicator */}
+      <AnimatePresence>
+        {isRecording && (
+          <AudioRecordingIndicator
+            recordingTime={recordingTime}
+            isPaused={isPaused}
+            onStop={handleStopRecording}
+            onPause={pauseRecording}
+            onResume={resumeRecording}
+            onCancel={cancelRecording}
+            className="mb-3"
+          />
+        )}
+      </AnimatePresence>
+
       <div className="flex items-end gap-2">
         {/* Hidden file input */}
         <input
@@ -260,6 +319,17 @@ export function MessageInput({
             title="Agendar mensagem"
           >
             <Clock className="h-5 w-5 text-muted-foreground" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-10 w-10"
+            onClick={handleStartRecording}
+            disabled={isRecording || isUploading}
+            title="Gravar áudio"
+          >
+            <Mic className="h-5 w-5 text-muted-foreground" />
           </Button>
         </div>
 
