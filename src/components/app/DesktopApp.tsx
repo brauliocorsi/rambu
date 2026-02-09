@@ -8,6 +8,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useMessages } from "@/hooks/useMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
+import { usePresence } from "@/hooks/usePresence";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { 
   useUnreadChannelCounts, 
   useUnreadDMCounts, 
@@ -22,11 +25,14 @@ import { MemberManagementDialog } from "@/components/workspace/MemberManagementD
 import { ChannelList } from "@/components/channel/ChannelList";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
+import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { DMList } from "@/components/dm/DMList";
 import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { SettingsView } from "@/components/settings/SettingsView";
+import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
+import { AvatarWithStatus } from "@/components/user/OnlineIndicator";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -52,6 +58,7 @@ import {
   Link,
   UserPlus,
   ChevronDown,
+  Keyboard,
 } from "lucide-react";
 
 export function DesktopApp() {
@@ -70,6 +77,14 @@ export function DesktopApp() {
   const markChannelAsRead = useMarkChannelAsRead();
   const markDMAsRead = useMarkDMAsRead();
 
+  // Initialize presence tracking
+  usePresence(currentWorkspace?.id);
+
+  // Typing indicator for current channel
+  const { typingUsers, sendTypingStart, sendTypingStop, isAnyoneTyping } = useTypingIndicator(
+    currentChannel?.id || null
+  );
+
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
@@ -78,10 +93,26 @@ export function DesktopApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showInviteLink, setShowInviteLink] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: 'k', ctrl: true, action: () => setShowSearch(true), description: 'Busca global' },
+    { key: 'n', ctrl: true, action: () => setShowNewDM(true), description: 'Nova DM' },
+    { key: 'n', ctrl: true, shift: true, action: () => setShowCreateChannel(true), description: 'Novo canal' },
+    { key: '/', ctrl: true, action: () => setShowShortcuts(true), description: 'Mostrar atalhos' },
+    { key: ',', ctrl: true, action: () => setShowSettings(true), description: 'Configurações' },
+    { key: 'Escape', action: () => {
+      setShowSearch(false);
+      setShowShortcuts(false);
+      setShowCreateChannel(false);
+      setShowNewDM(false);
+    }, description: 'Fechar modal' },
+  ]);
 
   useEffect(() => {
     if (currentChannel) {
@@ -96,18 +127,6 @@ export function DesktopApp() {
       setCurrentChannel(null);
     }
   }, [selectedDM?.id]);
-
-  // Keyboard shortcut for search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setShowSearch(true);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   if (showSettings) {
     return (
@@ -362,11 +381,18 @@ export function DesktopApp() {
               />
             </div>
 
+            {/* Typing Indicator */}
+            {isAnyoneTyping && (
+              <TypingIndicator typingUsers={typingUsers} />
+            )}
+
             <MessageInput
               channelId={currentChannel.id}
               channelName={currentChannel.name}
               replyTo={replyTo}
               onCancelReply={() => setReplyTo(undefined)}
+              onTyping={sendTypingStart}
+              onStopTyping={sendTypingStop}
             />
           </>
         ) : selectedDM ? (
@@ -438,6 +464,7 @@ export function DesktopApp() {
       />
       <InviteLinkDialog open={showInviteLink} onClose={() => setShowInviteLink(false)} />
       <MemberManagementDialog open={showMembers} onClose={() => setShowMembers(false)} />
+      <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
   );
 }

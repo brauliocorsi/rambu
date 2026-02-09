@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
+import { AvatarWithStatus } from "@/components/user/OnlineIndicator";
 import { DirectMessage } from "@/hooks/useDirectMessages";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -18,7 +19,8 @@ export function DMList({ dms, selectedDM, onSelectDM, unreadCounts = {} }: DMLis
     <div className="space-y-1">
       {dms.map((dm, i) => {
         const displayName = dm.other_user?.display_name || "Usuário";
-        const isOnline = dm.other_user?.status === "online";
+        const status = dm.other_user?.status || null;
+        const lastSeen = (dm.other_user as any)?.last_seen || null;
         const lastMessage = dm.last_message?.content || "Nenhuma mensagem";
         const timeAgo = dm.last_message
           ? formatDistanceToNow(new Date(dm.last_message.created_at), {
@@ -41,19 +43,19 @@ export function DMList({ dms, selectedDM, onSelectDM, unreadCounts = {} }: DMLis
               unreadCount > 0 && "font-semibold"
             )}
           >
-            <div className="relative shrink-0">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={dm.other_user?.avatar_url || undefined} />
-                <AvatarFallback className="gradient-primary text-white">
-                  {displayName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div
-                className={cn(
-                  "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card",
-                  isOnline ? "bg-online" : "bg-offline"
-                )}
-              />
+            <div className="shrink-0">
+              <AvatarWithStatus
+                status={status}
+                lastSeen={lastSeen}
+                indicatorSize="sm"
+              >
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={dm.other_user?.avatar_url || undefined} />
+                  <AvatarFallback className="gradient-primary text-white">
+                    {displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </AvatarWithStatus>
             </div>
 
             <div className="flex-1 min-w-0 text-left">
