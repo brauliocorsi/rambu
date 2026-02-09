@@ -227,6 +227,38 @@ export function useCompleteReminder() {
   });
 }
 
+export function useUpdateReminder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      reminderId,
+      remindAt,
+    }: {
+      reminderId: string;
+      remindAt: Date;
+    }) => {
+      const { error } = await supabase
+        .from("message_reminders")
+        .update({ 
+          remind_at: remindAt.toISOString(),
+          is_completed: false // Reset completion when editing
+        })
+        .eq("id", reminderId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["message-reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["all-reminders"] });
+      toast.success("Lembrete atualizado!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao atualizar lembrete");
+    },
+  });
+}
+
 export function useDeleteReminder() {
   const queryClient = useQueryClient();
 
@@ -241,6 +273,7 @@ export function useDeleteReminder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["message-reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["all-reminders"] });
       toast.success("Lembrete removido");
     },
     onError: (error: any) => {
