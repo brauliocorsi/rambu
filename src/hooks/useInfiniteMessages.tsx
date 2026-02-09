@@ -76,7 +76,32 @@ export function useInfiniteMessages(channelId: string | null) {
                 ["infinite-messages", channelId],
                 (oldData: any) => {
                   if (!oldData) return oldData;
-                  // Add to the last page
+
+                  // Check if message already exists (could be optimistic or duplicate)
+                  const allExistingMessages = oldData.pages.flatMap((p: any) => p.messages);
+                  const existingMessage = allExistingMessages.find(
+                    (msg: Message) => 
+                      msg.id === data.id || 
+                      (msg.id.startsWith("temp-") && 
+                       msg.user_id === data.user_id && 
+                       msg.content === data.content &&
+                       Math.abs(new Date(msg.created_at).getTime() - new Date(data.created_at).getTime()) < 5000)
+                  );
+
+                  if (existingMessage) {
+                    // Replace optimistic message with real one
+                    return {
+                      ...oldData,
+                      pages: oldData.pages.map((page: any) => ({
+                        ...page,
+                        messages: page.messages.map((msg: Message) =>
+                          msg.id === existingMessage.id ? { ...data, profile: data.profile } as unknown as Message : msg
+                        ),
+                      })),
+                    };
+                  }
+
+                  // Add to the last page if not exists
                   const newPages = [...oldData.pages];
                   if (newPages.length > 0) {
                     newPages[newPages.length - 1] = {

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useProfile } from "./useProfile";
 import { toast } from "sonner";
 
 export interface Message {
@@ -142,7 +143,9 @@ export function useMessageById(messageId: string | null) {
 }
 
 export function useSendMessage() {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
 
   return useMutation({
     mutationFn: async ({ 
@@ -199,8 +202,100 @@ export function useSendMessage() {
 
       return data;
     },
-    onError: (error: any) => {
+    onMutate: async (variables) => {
+      if (!user) return;
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["infinite-messages", variables.channelId] });
+
+      // Snapshot previous value
+      const previousMessages = queryClient.getQueryData(["infinite-messages", variables.channelId]);
+
+      // Create optimistic message with temp ID
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        channel_id: variables.channelId,
+        user_id: user.id,
+        content: variables.content,
+        reply_to: variables.replyTo || null,
+        is_edited: false,
+        file_url: variables.fileUrl || null,
+        file_type: variables.fileType || null,
+        file_name: variables.fileName || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        profile: {
+          display_name: profile?.display_name || null,
+          avatar_url: profile?.avatar_url || null,
+        },
+      };
+
+      // Optimistically update infinite messages
+      queryClient.setQueryData(
+        ["infinite-messages", variables.channelId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          const newPages = [...oldData.pages];
+          if (newPages.length > 0) {
+            newPages[newPages.length - 1] = {
+              ...newPages[newPages.length - 1],
+              messages: [...newPages[newPages.length - 1].messages, optimisticMessage],
+            };
+          }
+          return { ...oldData, pages: newPages };
+        }
+      );
+
+      // Also update legacy messages query if exists
+      queryClient.setQueryData(
+        ["messages", variables.channelId],
+        (old: Message[] | undefined) => [...(old || []), optimisticMessage]
+      );
+
+      return { previousMessages, optimisticId: optimisticMessage.id };
+    },
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ["infinite-messages", variables.channelId],
+          context.previousMessages
+        );
+      }
       toast.error(error.message || "Erro ao enviar mensagem");
+    },
+    onSuccess: (data, variables, context) => {
+      // Replace optimistic message with real one
+      if (data && context?.optimisticId) {
+        queryClient.setQueryData(
+          ["infinite-messages", variables.channelId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.map((msg: Message) =>
+                  msg.id === context.optimisticId
+                    ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at }
+                    : msg
+                ),
+              })),
+            };
+          }
+        );
+
+        // Also update legacy query
+        queryClient.setQueryData(
+          ["messages", variables.channelId],
+          (old: Message[] | undefined) =>
+            old?.map((msg) =>
+              msg.id === context.optimisticId
+                ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at }
+                : msg
+            )
+        );
+      }
     },
   });
 }
