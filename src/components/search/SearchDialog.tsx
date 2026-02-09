@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSearch, SearchResult } from "@/hooks/useSearch";
+import { useSearch, SearchResult, SearchFilters } from "@/hooks/useSearch";
 import { useChannelContext } from "@/contexts/ChannelContext";
+import { useChannels } from "@/hooks/useChannels";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import {
   Dialog,
   DialogContent,
@@ -9,16 +12,34 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Search,
   Hash,
   MessageSquare,
   User,
   Loader2,
+  SlidersHorizontal,
+  X,
+  CalendarIcon,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface SearchDialogProps {
@@ -28,6 +49,23 @@ interface SearchDialogProps {
   onSelectDM?: (dmId: string) => void;
 }
 
+type SearchType = "message" | "dm_message" | "channel" | "user";
+
+const typeOptions: { value: SearchType; label: string; icon: React.ReactNode }[] = [
+  { value: "message", label: "Mensagens", icon: <Hash className="h-3 w-3" /> },
+  { value: "dm_message", label: "DMs", icon: <MessageSquare className="h-3 w-3" /> },
+  { value: "channel", label: "Canais", icon: <Hash className="h-3 w-3" /> },
+  { value: "user", label: "Usuários", icon: <User className="h-3 w-3" /> },
+];
+
+const periodOptions = [
+  { value: "all", label: "Qualquer período" },
+  { value: "today", label: "Hoje" },
+  { value: "week", label: "Última semana" },
+  { value: "month", label: "Último mês" },
+  { value: "custom", label: "Personalizado" },
+];
+
 export function SearchDialog({ 
   open, 
   onClose, 
@@ -35,12 +73,64 @@ export function SearchDialog({
   onSelectDM,
 }: SearchDialogProps) {
   const [query, setQuery] = useState("");
-  const { data: results = [], isLoading } = useSearch(query, open);
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<SearchType[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  
+  const { currentWorkspace } = useWorkspaceContext();
+  const { data: channels = [] } = useChannels(currentWorkspace?.id || null);
+  const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const { setCurrentChannel } = useChannelContext();
+
+  // Build filters object
+  const filters: SearchFilters | undefined = (selectedTypes.length > 0 || selectedChannelId || selectedUserId || dateFrom || dateTo) ? {
+    types: selectedTypes.length > 0 ? selectedTypes : [],
+    channelId: selectedChannelId || undefined,
+    userId: selectedUserId || undefined,
+    dateFrom: dateFrom,
+    dateTo: dateTo,
+  } : undefined;
+
+  const { data: results = [], isLoading } = useSearch(query, open, filters);
+
+  // Handle period changes
+  useEffect(() => {
+    const now = new Date();
+    switch (selectedPeriod) {
+      case "today":
+        setDateFrom(startOfDay(now));
+        setDateTo(endOfDay(now));
+        break;
+      case "week":
+        setDateFrom(startOfDay(subDays(now, 7)));
+        setDateTo(endOfDay(now));
+        break;
+      case "month":
+        setDateFrom(startOfDay(subDays(now, 30)));
+        setDateTo(endOfDay(now));
+        break;
+      case "all":
+        setDateFrom(undefined);
+        setDateTo(undefined);
+        break;
+      // "custom" keeps current values
+    }
+  }, [selectedPeriod]);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
+      setShowFilters(false);
+      setSelectedTypes([]);
+      setSelectedChannelId("");
+      setSelectedUserId("");
+      setSelectedPeriod("all");
+      setDateFrom(undefined);
+      setDateTo(undefined);
     }
   }, [open]);
 
@@ -56,6 +146,30 @@ export function SearchDialog({
     }
     onClose();
   };
+
+  const toggleType = (type: SearchType) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedTypes([]);
+    setSelectedChannelId("");
+    setSelectedUserId("");
+    setSelectedPeriod("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
+  const activeFiltersCount = [
+    selectedTypes.length > 0,
+    !!selectedChannelId,
+    !!selectedUserId,
+    selectedPeriod !== "all",
+  ].filter(Boolean).length;
 
   const getIcon = (type: SearchResult["type"]) => {
     switch (type) {
@@ -93,23 +207,220 @@ export function SearchDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-lg rounded-2xl">
+      <DialogContent className="sm:max-w-2xl rounded-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Buscar</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar mensagens, canais, usuários..."
-              className="pl-9 rounded-xl"
-              autoFocus
-            />
+          {/* Search Input with Filter Toggle */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar mensagens, canais, usuários..."
+                className="pl-9 rounded-xl"
+                autoFocus
+              />
+            </div>
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className="relative"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
           </div>
+
+          {/* Filters Panel */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 bg-muted/50 rounded-xl space-y-4">
+                  {/* Type Filter */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Tipo</label>
+                    <div className="flex flex-wrap gap-2">
+                      {typeOptions.map((option) => (
+                        <Badge
+                          key={option.value}
+                          variant={selectedTypes.includes(option.value) ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => toggleType(option.value)}
+                        >
+                          {option.icon}
+                          <span className="ml-1">{option.label}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Channel and User Filters */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Canal</label>
+                      <Select value={selectedChannelId} onValueChange={setSelectedChannelId}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Todos os canais" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todos os canais</SelectItem>
+                          {channels.map((channel) => (
+                            <SelectItem key={channel.id} value={channel.id}>
+                              <span className="flex items-center gap-2">
+                                <Hash className="h-3 w-3" />
+                                {channel.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Usuário</label>
+                      <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Todos os usuários" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todos os usuários</SelectItem>
+                          {members.map((member) => (
+                            <SelectItem key={member.user_id} value={member.user_id}>
+                              <span className="flex items-center gap-2">
+                                <Avatar className="h-4 w-4">
+                                  <AvatarImage src={member.profile?.avatar_url || undefined} />
+                                  <AvatarFallback className="text-[8px]">
+                                    {(member.profile?.display_name || "?").charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {member.profile?.display_name || "Usuário"}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Period Filter */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Período</label>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                        <SelectTrigger className="w-[180px] rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {periodOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {selectedPeriod === "custom" && (
+                        <div className="flex gap-2 items-center">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="rounded-xl">
+                                <CalendarIcon className="h-4 w-4 mr-2" />
+                                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={dateFrom}
+                                onSelect={setDateFrom}
+                                locale={ptBR}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <span className="text-muted-foreground">até</span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="rounded-xl">
+                                <CalendarIcon className="h-4 w-4 mr-2" />
+                                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={dateTo}
+                                onSelect={setDateTo}
+                                locale={ptBR}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Clear Filters */}
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-muted-foreground"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Active Filters Preview */}
+          {!showFilters && activeFiltersCount > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedTypes.map((type) => (
+                <Badge key={type} variant="secondary" className="gap-1">
+                  {typeOptions.find(t => t.value === type)?.label}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => toggleType(type)} />
+                </Badge>
+              ))}
+              {selectedChannelId && (
+                <Badge variant="secondary" className="gap-1">
+                  <Hash className="h-3 w-3" />
+                  {channels.find(c => c.id === selectedChannelId)?.name}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedChannelId("")} />
+                </Badge>
+              )}
+              {selectedUserId && (
+                <Badge variant="secondary" className="gap-1">
+                  <User className="h-3 w-3" />
+                  {members.find(m => m.user_id === selectedUserId)?.profile?.display_name}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedUserId("")} />
+                </Badge>
+              )}
+              {selectedPeriod !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  {periodOptions.find(p => p.value === selectedPeriod)?.label}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedPeriod("all")} />
+                </Badge>
+              )}
+            </div>
+          )}
 
           {/* Results */}
           <ScrollArea className="h-[400px]">

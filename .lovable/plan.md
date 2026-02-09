@@ -37,8 +37,11 @@
 
 ### ✅ Fase 3 - Melhorias de Experiência (CONCLUÍDO)
 
-7. **📋 Busca Avançada com Filtros** (A implementar futuramente)
-   - `SearchDialog.tsx` precisa de filtros por tipo, período, canal e usuário
+7. **✅ Busca Avançada com Filtros**
+   - Adicionados filtros por tipo (mensagens, DMs, canais, usuários)
+   - Adicionados filtros por período (hoje, semana, mês, personalizado)
+   - Adicionados filtros por canal específico
+   - Adicionados filtros por usuário específico
 
 8. **✅ Edição de Canal**
    - Já existia edição de descrição e mural em `ChannelDetailsDialog.tsx`
