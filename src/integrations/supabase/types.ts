@@ -504,6 +504,57 @@ export type Database = {
           },
         ]
       }
+      workspace_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          invite_code: string
+          is_active: boolean
+          max_uses: number | null
+          uses_count: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          invite_code: string
+          is_active?: boolean
+          max_uses?: number | null
+          uses_count?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          is_active?: boolean
+          max_uses?: number | null
+          uses_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           id: string
@@ -597,6 +648,18 @@ export type Database = {
     }
     Functions: {
       can_access_channel: { Args: { p_channel_id: string }; Returns: boolean }
+      can_create_channels: {
+        Args: { p_workspace_id: string }
+        Returns: boolean
+      }
+      can_manage_workspace_members: {
+        Args: { p_workspace_id: string }
+        Returns: boolean
+      }
+      get_workspace_role: {
+        Args: { p_workspace_id: string }
+        Returns: Database["public"]["Enums"]["workspace_role"]
+      }
       is_channel_member: { Args: { p_channel_id: string }; Returns: boolean }
       is_dm_participant: { Args: { p_dm_id: string }; Returns: boolean }
       is_workspace_admin: { Args: { p_workspace_id: string }; Returns: boolean }

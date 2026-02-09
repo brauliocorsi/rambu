@@ -49,6 +49,8 @@
     --online: 142 76% 36%;
     --offline: 240 3.8% 46.1%;
     --busy: 25 95% 53%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
 
     /* Message colors */
     --message-own: 262 83% 58%;
@@ -100,6 +102,8 @@
     --online: 142 76% 46%;
     --offline: 240 5% 64.9%;
     --busy: 25 95% 60%;
+    --success: 142 76% 46%;
+    --warning: 38 92% 50%;
 
     --message-own: 262 83% 50%;
     --message-other: 240 5.9% 15%;

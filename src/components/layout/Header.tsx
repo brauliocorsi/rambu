@@ -7,9 +7,16 @@ interface HeaderProps {
   showSearch?: boolean;
   onMenuClick?: () => void;
   onSettingsClick?: () => void;
+  onSearchClick?: () => void;
 }
 
-export function Header({ title, showSearch = true, onMenuClick, onSettingsClick }: HeaderProps) {
+export function Header({ 
+  title, 
+  showSearch = true, 
+  onMenuClick, 
+  onSettingsClick,
+  onSearchClick,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 glass border-b border-border safe-top">
       <div className="flex items-center justify-between px-4 py-3">
@@ -30,7 +37,12 @@ export function Header({ title, showSearch = true, onMenuClick, onSettingsClick 
         
         <div className="flex items-center gap-2">
           {showSearch && (
-            <Button variant="ghost" size="icon" className="rounded-xl">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-xl"
+              onClick={onSearchClick}
+            >
               <Search className="h-5 w-5" />
             </Button>
           )}
