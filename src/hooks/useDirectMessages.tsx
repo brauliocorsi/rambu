@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { useProfile } from "./useProfile";
 import { toast } from "sonner";
 
 export interface DirectMessage {
@@ -207,7 +206,6 @@ export function useCreateOrGetDM() {
 export function useSendDMMessage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { data: profile } = useProfile();
 
   return useMutation({
     mutationFn: async ({ 
@@ -278,6 +276,9 @@ export function useSendDMMessage() {
       // Snapshot previous value
       const previousMessages = queryClient.getQueryData(["infinite-dm-messages", variables.dmId]);
 
+      // Get cached profile from queryClient
+      const cachedProfile = queryClient.getQueryData<{ display_name: string | null; avatar_url: string | null }>(["profile", user.id]);
+
       // Create optimistic message with temp ID
       const optimisticMessage: DMMessage = {
         id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -292,8 +293,8 @@ export function useSendDMMessage() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         profile: {
-          display_name: profile?.display_name || null,
-          avatar_url: profile?.avatar_url || null,
+          display_name: cachedProfile?.display_name || null,
+          avatar_url: cachedProfile?.avatar_url || null,
         },
       };
 
