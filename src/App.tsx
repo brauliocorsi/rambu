@@ -13,6 +13,8 @@ import { MainApp } from "@/components/app/MainApp";
 import { DesktopApp } from "@/components/app/DesktopApp";
 import { LoadingScreen } from "@/components/ui/LoadingSpinner";
 import { BrowserNotificationPrompt } from "@/components/notifications/BrowserNotificationPrompt";
+import { OnboardingTutorial } from "@/components/onboarding/OnboardingTutorial";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
 
@@ -21,8 +23,9 @@ const queryClient = new QueryClient();
 function AppContent() {
   const { user, loading } = useAuth();
   const { isMobile } = useViewMode();
+  const { needsOnboarding, isLoading: onboardingLoading } = useOnboarding();
 
-  if (loading) {
+  if (loading || onboardingLoading) {
     return <LoadingScreen />;
   }
 
@@ -32,6 +35,7 @@ function AppContent() {
 
   return (
     <>
+      {needsOnboarding && <OnboardingTutorial />}
       {isMobile ? <MainApp /> : <DesktopApp />}
       <BrowserNotificationPrompt />
     </>

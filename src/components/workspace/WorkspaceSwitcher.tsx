@@ -1,16 +1,27 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Plus, Check, Settings } from "lucide-react";
+import { ChevronDown, Plus, Check, Settings, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useWorkspaceFavorites } from "@/hooks/useWorkspaceFavorites";
 import { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceSwitcher() {
   const { currentWorkspace, workspaces, setCurrentWorkspace } = useWorkspaceContext();
+  const { favorites, toggleFavorite, isFavorite } = useWorkspaceFavorites();
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // Sort workspaces: favorites first, then alphabetically
+  const sortedWorkspaces = [...workspaces].sort((a, b) => {
+    const aFav = isFavorite(a.id);
+    const bFav = isFavorite(b.id);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   if (!currentWorkspace && workspaces.length === 0) {
     return (
@@ -44,7 +55,12 @@ export function WorkspaceSwitcher() {
               </AvatarFallback>
             </Avatar>
             <div className="text-left">
-              <p className="font-semibold text-sm">{currentWorkspace?.name}</p>
+              <div className="flex items-center gap-1">
+                <p className="font-semibold text-sm">{currentWorkspace?.name}</p>
+                {currentWorkspace && isFavorite(currentWorkspace.id) && (
+                  <Star className="h-3 w-3 text-warning fill-warning" />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}
               </p>
@@ -64,30 +80,54 @@ export function WorkspaceSwitcher() {
               className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-lg border border-border overflow-hidden z-50"
             >
               <div className="max-h-64 overflow-y-auto">
-                {workspaces.map((workspace) => (
-                  <button
-                    key={workspace.id}
-                    onClick={() => {
-                      setCurrentWorkspace(workspace);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 hover:bg-secondary transition-colors",
-                      currentWorkspace?.id === workspace.id && "bg-primary/10"
-                    )}
-                  >
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={workspace.icon_url || undefined} />
-                      <AvatarFallback className="rounded-lg gradient-primary text-white text-sm">
-                        {workspace.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-sm flex-1 text-left">{workspace.name}</span>
-                    {currentWorkspace?.id === workspace.id && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
-                  </button>
-                ))}
+                {sortedWorkspaces.map((workspace) => {
+                  const workspaceIsFavorite = isFavorite(workspace.id);
+                  return (
+                    <div
+                      key={workspace.id}
+                      className={cn(
+                        "flex items-center gap-2 hover:bg-secondary transition-colors",
+                        currentWorkspace?.id === workspace.id && "bg-primary/10"
+                      )}
+                    >
+                      <button
+                        onClick={() => {
+                          setCurrentWorkspace(workspace);
+                          setIsOpen(false);
+                        }}
+                        className="flex-1 flex items-center gap-3 p-3"
+                      >
+                        <Avatar className="h-8 w-8 rounded-lg">
+                          <AvatarImage src={workspace.icon_url || undefined} />
+                          <AvatarFallback className="rounded-lg gradient-primary text-white text-sm">
+                            {workspace.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium text-sm flex-1 text-left">{workspace.name}</span>
+                        {currentWorkspace?.id === workspace.id && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(workspace.id);
+                        }}
+                        className="p-2 mr-2 rounded-lg hover:bg-secondary/80 transition-colors"
+                        title={workspaceIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                      >
+                        <Star 
+                          className={cn(
+                            "h-4 w-4",
+                            workspaceIsFavorite 
+                              ? "text-warning fill-warning" 
+                              : "text-muted-foreground"
+                          )} 
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="border-t border-border p-2">

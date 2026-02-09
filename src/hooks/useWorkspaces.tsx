@@ -11,6 +11,7 @@ export interface Workspace {
   created_by: string;
   created_at: string;
   updated_at: string;
+  allow_member_channels: boolean;
 }
 
 export interface WorkspaceMember {
@@ -147,20 +148,28 @@ export function useUpdateWorkspace() {
       id, 
       name, 
       description, 
-      icon_url 
+      icon_url,
+      allow_member_channels,
     }: { 
       id: string; 
       name: string; 
       description?: string | null; 
-      icon_url?: string | null; 
+      icon_url?: string | null;
+      allow_member_channels?: boolean;
     }) => {
+      const updateData: Record<string, any> = {
+        name,
+        description,
+        icon_url,
+      };
+      
+      if (allow_member_channels !== undefined) {
+        updateData.allow_member_channels = allow_member_channels;
+      }
+
       const { error } = await supabase
         .from("workspaces")
-        .update({
-          name,
-          description,
-          icon_url,
-        })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
