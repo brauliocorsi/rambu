@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Workspace, useWorkspaces } from "@/hooks/useWorkspaces";
+import { useWorkspaceFavorites } from "@/hooks/useWorkspaceFavorites";
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
@@ -16,13 +17,36 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 });
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { data: workspaces = [], isLoading } = useWorkspaces();
+  const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces();
+  const { favorites, isLoading: favoritesLoading } = useWorkspaceFavorites();
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
-  // Auto-select first workspace if none selected
+  const isLoading = workspacesLoading || favoritesLoading;
+
+  // Auto-select favorite workspace or first workspace if none selected
   useEffect(() => {
-    if (!currentWorkspace && workspaces.length > 0) {
+    if (hasAutoSelected || isLoading || workspaces.length === 0) return;
+
+    // Find favorite workspace
+    const favoriteWorkspace = workspaces.find(w => favorites.includes(w.id));
+    
+    if (favoriteWorkspace) {
+      setCurrentWorkspace(favoriteWorkspace);
+    } else if (!currentWorkspace) {
+      // Fallback to first workspace if no favorite
       setCurrentWorkspace(workspaces[0]);
+    }
+    
+    setHasAutoSelected(true);
+  }, [workspaces, favorites, isLoading, hasAutoSelected, currentWorkspace]);
+
+  // Reset auto-selection flag when workspaces change significantly
+  useEffect(() => {
+    if (currentWorkspace && !workspaces.find(w => w.id === currentWorkspace.id)) {
+      // Current workspace was removed, reset selection
+      setHasAutoSelected(false);
+      setCurrentWorkspace(null);
     }
   }, [workspaces, currentWorkspace]);
 
