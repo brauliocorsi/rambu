@@ -50,6 +50,42 @@ export type Database = {
           },
         ]
       }
+      channel_read_status: {
+        Row: {
+          channel_id: string
+          id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_read_status_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_read_status_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           created_at: string
@@ -201,6 +237,42 @@ export type Database = {
           },
         ]
       }
+      dm_read_status: {
+        Row: {
+          dm_id: string
+          id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          dm_id: string
+          id?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          dm_id?: string
+          id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_read_status_dm_id_fkey"
+            columns: ["dm_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_read_status_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -302,6 +374,50 @@ export type Database = {
             foreignKeyName: "messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          channel_notifications: boolean
+          created_at: string
+          dm_notifications: boolean
+          id: string
+          mention_notifications: boolean
+          sound_enabled: boolean
+          sound_volume: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_notifications?: boolean
+          created_at?: string
+          dm_notifications?: boolean
+          id?: string
+          mention_notifications?: boolean
+          sound_enabled?: boolean
+          sound_volume?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_notifications?: boolean
+          created_at?: string
+          dm_notifications?: boolean
+          id?: string
+          mention_notifications?: boolean
+          sound_enabled?: boolean
+          sound_volume?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

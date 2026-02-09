@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { DirectMessage } from "@/hooks/useDirectMessages";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -9,9 +10,10 @@ interface DMListProps {
   dms: DirectMessage[];
   selectedDM: DirectMessage | null;
   onSelectDM: (dm: DirectMessage) => void;
+  unreadCounts?: Record<string, number>;
 }
 
-export function DMList({ dms, selectedDM, onSelectDM }: DMListProps) {
+export function DMList({ dms, selectedDM, onSelectDM, unreadCounts = {} }: DMListProps) {
   return (
     <div className="space-y-1">
       {dms.map((dm, i) => {
@@ -24,6 +26,7 @@ export function DMList({ dms, selectedDM, onSelectDM }: DMListProps) {
               locale: ptBR,
             })
           : "";
+        const unreadCount = unreadCounts[dm.id] || 0;
 
         return (
           <motion.button
@@ -34,7 +37,8 @@ export function DMList({ dms, selectedDM, onSelectDM }: DMListProps) {
             onClick={() => onSelectDM(dm)}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-xl transition-colors",
-              selectedDM?.id === dm.id ? "bg-primary/10" : "hover:bg-secondary"
+              selectedDM?.id === dm.id ? "bg-primary/10" : "hover:bg-secondary",
+              unreadCount > 0 && "font-semibold"
             )}
           >
             <div className="relative shrink-0">
@@ -55,9 +59,12 @@ export function DMList({ dms, selectedDM, onSelectDM }: DMListProps) {
             <div className="flex-1 min-w-0 text-left">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold truncate">{displayName}</span>
-                {timeAgo && (
-                  <span className="text-xs text-muted-foreground shrink-0">{timeAgo}</span>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
+                  {timeAgo && (
+                    <span className="text-xs text-muted-foreground">{timeAgo}</span>
+                  )}
+                </div>
               </div>
               <p className="text-sm text-muted-foreground truncate">{lastMessage}</p>
             </div>
