@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { usePushNotifications } from "./usePushNotifications";
 
 export interface Notification {
   id: string;
   user_id: string;
-  type: "mention" | "dm" | "channel" | "thread_reply";
+  type: "mention" | "dm" | "channel" | "thread_reply" | "reminder";
   title: string;
   body: string | null;
   is_read: boolean;
@@ -15,8 +16,10 @@ export interface Notification {
     message_id?: string;
     dm_message_id?: string;
     thread_message_id?: string;
+    group_message_id?: string;
     channel_id?: string;
     channel_name?: string;
+    reminder_id?: string;
   } | null;
   created_at: string;
 }
@@ -25,6 +28,20 @@ export function useNotificationsList() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const { showNotification } = usePushNotifications();
+
+  // Handler for showing push notification on new notifications
+  const handleNewNotification = useCallback((notification: Notification) => {
+    // Show browser push notification for reminders and other important types
+    if (notification.type === "reminder" || notification.type === "mention") {
+      showNotification({
+        title: notification.title,
+        body: notification.body || "",
+        tag: `notification-${notification.id}`,
+        data: notification.metadata,
+      });
+    }
+  }, [showNotification]);
 
   const query = useQuery({
     queryKey: ["notifications", user?.id],
@@ -59,14 +76,18 @@ export function useNotificationsList() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          const newNotification = payload.new as unknown as Notification;
+          
           // Add new notification to the list
           queryClient.setQueryData(
             ["notifications", user.id],
             (old: Notification[] | undefined) => {
-              const newNotification = payload.new as unknown as Notification;
               return [newNotification, ...(old || [])];
             }
           );
+
+          // Show push notification
+          handleNewNotification(newNotification);
         }
       )
       .subscribe();
@@ -76,7 +97,7 @@ export function useNotificationsList() {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, handleNewNotification]);
 
   return query;
 }
