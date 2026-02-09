@@ -19,6 +19,7 @@ export interface SearchResult {
 export interface SearchFilters {
   types: ("message" | "dm_message" | "channel" | "user")[];
   channelId?: string;
+  dmId?: string;
   userId?: string;
   dateFrom?: Date;
   dateTo?: Date;
@@ -130,6 +131,11 @@ export function useSearch(
           .eq("direct_messages.workspace_id", currentWorkspace.id)
           .order("created_at", { ascending: false })
           .limit(20);
+
+        // Apply DM filter
+        if (filters?.dmId) {
+          dmQuery = dmQuery.eq("dm_id", filters.dmId);
+        }
 
         // Apply user filter
         if (filters?.userId) {
