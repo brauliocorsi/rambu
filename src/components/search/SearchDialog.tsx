@@ -75,8 +75,8 @@ export function SearchDialog({
   const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<SearchType[]>([]);
-  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedChannelId, setSelectedChannelId] = useState<string>("all");
+  const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
@@ -86,11 +86,14 @@ export function SearchDialog({
   const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const { setCurrentChannel } = useChannelContext();
 
-  // Build filters object
-  const filters: SearchFilters | undefined = (selectedTypes.length > 0 || selectedChannelId || selectedUserId || dateFrom || dateTo) ? {
+  // Build filters object - only include non-"all" values
+  const channelFilter = selectedChannelId !== "all" ? selectedChannelId : undefined;
+  const userFilter = selectedUserId !== "all" ? selectedUserId : undefined;
+  
+  const filters: SearchFilters | undefined = (selectedTypes.length > 0 || channelFilter || userFilter || dateFrom || dateTo) ? {
     types: selectedTypes.length > 0 ? selectedTypes : [],
-    channelId: selectedChannelId || undefined,
-    userId: selectedUserId || undefined,
+    channelId: channelFilter,
+    userId: userFilter,
     dateFrom: dateFrom,
     dateTo: dateTo,
   } : undefined;
@@ -126,8 +129,8 @@ export function SearchDialog({
       setQuery("");
       setShowFilters(false);
       setSelectedTypes([]);
-      setSelectedChannelId("");
-      setSelectedUserId("");
+      setSelectedChannelId("all");
+      setSelectedUserId("all");
       setSelectedPeriod("all");
       setDateFrom(undefined);
       setDateTo(undefined);
@@ -157,8 +160,8 @@ export function SearchDialog({
 
   const clearFilters = () => {
     setSelectedTypes([]);
-    setSelectedChannelId("");
-    setSelectedUserId("");
+    setSelectedChannelId("all");
+    setSelectedUserId("all");
     setSelectedPeriod("all");
     setDateFrom(undefined);
     setDateTo(undefined);
@@ -166,8 +169,8 @@ export function SearchDialog({
 
   const activeFiltersCount = [
     selectedTypes.length > 0,
-    !!selectedChannelId,
-    !!selectedUserId,
+    selectedChannelId !== "all",
+    selectedUserId !== "all",
     selectedPeriod !== "all",
   ].filter(Boolean).length;
 
@@ -277,7 +280,7 @@ export function SearchDialog({
                           <SelectValue placeholder="Todos os canais" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos os canais</SelectItem>
+                          <SelectItem value="all">Todos os canais</SelectItem>
                           {channels.map((channel) => (
                             <SelectItem key={channel.id} value={channel.id}>
                               <span className="flex items-center gap-2">
@@ -297,7 +300,7 @@ export function SearchDialog({
                           <SelectValue placeholder="Todos os usuários" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos os usuários</SelectItem>
+                          <SelectItem value="all">Todos os usuários</SelectItem>
                           {members.map((member) => (
                             <SelectItem key={member.user_id} value={member.user_id}>
                               <span className="flex items-center gap-2">
@@ -399,18 +402,18 @@ export function SearchDialog({
                   <X className="h-3 w-3 cursor-pointer" onClick={() => toggleType(type)} />
                 </Badge>
               ))}
-              {selectedChannelId && (
+              {selectedChannelId !== "all" && (
                 <Badge variant="secondary" className="gap-1">
                   <Hash className="h-3 w-3" />
                   {channels.find(c => c.id === selectedChannelId)?.name}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedChannelId("")} />
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedChannelId("all")} />
                 </Badge>
               )}
-              {selectedUserId && (
+              {selectedUserId !== "all" && (
                 <Badge variant="secondary" className="gap-1">
                   <User className="h-3 w-3" />
                   {members.find(m => m.user_id === selectedUserId)?.profile?.display_name}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedUserId("")} />
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedUserId("all")} />
                 </Badge>
               )}
               {selectedPeriod !== "all" && (
