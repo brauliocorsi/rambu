@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Hash } from "lucide-react";
+import { Hash, Loader2 } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
 import { MessageBubble } from "./MessageBubble";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -10,15 +10,31 @@ interface MessageListProps {
   channelId: string;
   channelName: string;
   isLoading: boolean;
+  isFetchingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   onReply?: (messageId: string) => void;
   onOpenThread?: (message: Message) => void;
 }
 
-export function MessageList({ messages, channelId, channelName, isLoading, onReply, onOpenThread }: MessageListProps) {
+export function MessageList({ 
+  messages, 
+  channelId, 
+  channelName, 
+  isLoading, 
+  isFetchingMore,
+  hasMore,
+  onLoadMore,
+  onReply, 
+  onOpenThread 
+}: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const prevMessagesLengthRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
+  const isLoadingMoreRef = useRef(false);
 
   // Check if user is near bottom (within 150px)
   const checkIfNearBottom = useCallback(() => {
@@ -27,10 +43,30 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
     return scrollHeight - scrollTop - clientHeight < 150;
   }, []);
 
-  // Track scroll position
+  // Track scroll position and detect scroll to top for infinite loading
   const handleScroll = useCallback(() => {
     isNearBottomRef.current = checkIfNearBottom();
-  }, [checkIfNearBottom]);
+    
+    // Load more when scrolling near top
+    if (containerRef.current && hasMore && onLoadMore && !isFetchingMore) {
+      const { scrollTop } = containerRef.current;
+      if (scrollTop < 100) {
+        isLoadingMoreRef.current = true;
+        prevScrollHeightRef.current = containerRef.current.scrollHeight;
+        onLoadMore();
+      }
+    }
+  }, [checkIfNearBottom, hasMore, onLoadMore, isFetchingMore]);
+
+  // Maintain scroll position after loading more messages
+  useEffect(() => {
+    if (isLoadingMoreRef.current && containerRef.current && !isFetchingMore) {
+      const newScrollHeight = containerRef.current.scrollHeight;
+      const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
+      containerRef.current.scrollTop = scrollDiff;
+      isLoadingMoreRef.current = false;
+    }
+  }, [messages.length, isFetchingMore]);
 
   // Scroll to bottom smoothly
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -39,7 +75,7 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
 
   // Auto-scroll on new messages only if user is near bottom
   useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current) {
+    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
       // New message arrived
       if (isNearBottomRef.current) {
         scrollToBottom("smooth");
@@ -52,6 +88,7 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
   useEffect(() => {
     isNearBottomRef.current = true;
     prevMessagesLengthRef.current = messages.length;
+    isLoadingMoreRef.current = false;
     // Use instant scroll for channel change
     setTimeout(() => scrollToBottom("instant"), 50);
   }, [channelId, scrollToBottom]);
@@ -88,18 +125,31 @@ export function MessageList({ messages, channelId, channelName, isLoading, onRep
       onScroll={handleScroll}
       className="flex-1 overflow-y-auto py-4 scroll-smooth"
     >
-      {/* Channel start message */}
-      <div className="text-center py-8 px-4">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="h-12 w-12 rounded-full gradient-primary-soft flex items-center justify-center mx-auto mb-3"
-        >
-          <Hash className="h-6 w-6 text-primary" />
-        </motion.div>
-        <h3 className="font-bold">Início de #{channelName}</h3>
-        <p className="text-sm text-muted-foreground">Este é o começo deste canal.</p>
-      </div>
+      {/* Loading more indicator */}
+      {isFetchingMore && (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Carregando mensagens...</span>
+        </div>
+      )}
+
+      {/* Top sentinel for scroll detection */}
+      <div ref={topRef} className="h-1" />
+
+      {/* Channel start message - only show when no more messages to load */}
+      {!hasMore && (
+        <div className="text-center py-8 px-4">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="h-12 w-12 rounded-full gradient-primary-soft flex items-center justify-center mx-auto mb-3"
+          >
+            <Hash className="h-6 w-6 text-primary" />
+          </motion.div>
+          <h3 className="font-bold">Início de #{channelName}</h3>
+          <p className="text-sm text-muted-foreground">Este é o começo deste canal.</p>
+        </div>
+      )}
 
       {/* Messages */}
       {messages.map((message) => (

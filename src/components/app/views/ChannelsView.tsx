@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
 import { useChannels } from "@/hooks/useChannels";
-import { useMessages } from "@/hooks/useMessages";
+import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useUnreadChannelCounts, useMarkChannelAsRead } from "@/hooks/useNotifications";
 import { ChannelList } from "@/components/channel/ChannelList";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
@@ -21,7 +21,7 @@ import {
 // Channel Chat View
 function ChannelChatView() {
   const { currentChannel, setCurrentChannel } = useChannelContext();
-  const { data: messages = [], isLoading } = useMessages(currentChannel?.id || null);
+  const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteMessages(currentChannel?.id || null);
   const [replyTo, setReplyTo] = useState<string | undefined>();
 
   if (!currentChannel) return null;
@@ -55,6 +55,9 @@ function ChannelChatView() {
         channelId={currentChannel.id}
         channelName={currentChannel.name}
         isLoading={isLoading}
+        isFetchingMore={isFetchingMore}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
         onReply={setReplyTo}
       />
 

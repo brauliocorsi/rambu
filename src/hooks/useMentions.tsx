@@ -14,9 +14,9 @@ export function parseMentions(content: string): string[] {
   return userIds;
 }
 
-// Convert @mentions to display format
+// Convert @mentions to display format - removes trailing spaces from names
 export function formatMentionsForDisplay(content: string): string {
-  return content.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, '@$1');
+  return content.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, (_, name) => `@${name.trim()}`);
 }
 
 // Check if a specific user is mentioned

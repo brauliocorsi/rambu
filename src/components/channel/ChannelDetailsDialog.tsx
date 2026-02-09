@@ -74,8 +74,11 @@ import {
   User,
   UserMinus,
   Settings,
+  Lock,
+  Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
 
 interface ChannelDetailsDialogProps {
   open: boolean;
@@ -236,6 +239,39 @@ export function ChannelDetailsDialog({
     },
   });
 
+  // Toggle privacy mutation
+  const togglePrivacyMutation = useMutation({
+    mutationFn: async (isPrivate: boolean) => {
+      // If making private, first add creator as owner
+      if (isPrivate && !channel?.is_private) {
+        // Add current user as owner of the private channel
+        await supabase
+          .from('channel_members')
+          .upsert({
+            channel_id: channelId,
+            user_id: user?.id,
+            role: 'owner',
+          }, { onConflict: 'channel_id,user_id' });
+      }
+
+      const { error } = await supabase
+        .from('channels')
+        .update({ is_private: isPrivate })
+        .eq('id', channelId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, isPrivate) => {
+      queryClient.invalidateQueries({ queryKey: ['channel-details', channelId] });
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-members', channelId] });
+      toast.success(isPrivate ? 'Canal agora é privado' : 'Canal agora é público');
+    },
+    onError: () => {
+      toast.error('Erro ao alterar privacidade do canal');
+    },
+  });
+
   useEffect(() => {
     if (channel) {
       setMuralContent(channel.mural_content || '');
@@ -368,8 +404,7 @@ export function ChannelDetailsDialog({
 
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold">Informações</h4>
-                <div className="text-sm space-y-1 text-muted-foreground">
-                  <p>Tipo: {channel?.is_private ? 'Privado' : 'Público'}</p>
+                <div className="text-sm space-y-2 text-muted-foreground">
                   <p>Criado em: {new Date(channel?.created_at || '').toLocaleDateString('pt-BR')}</p>
                   <p>Membros: {channel?.is_private ? channelMembers.length : members.length}</p>
                   {currentUserRole && (
@@ -383,6 +418,37 @@ export function ChannelDetailsDialog({
                   )}
                 </div>
               </div>
+
+              {/* Privacy Toggle */}
+              {(isCreator || isChannelOwner) && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      {channel?.is_private ? (
+                        <Lock className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <Globe className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {channel?.is_private ? 'Canal Privado' : 'Canal Público'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {channel?.is_private 
+                            ? 'Apenas membros convidados podem ver e participar' 
+                            : 'Todos do workspace podem ver e participar'}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={channel?.is_private || false}
+                      onCheckedChange={(checked) => togglePrivacyMutation.mutate(checked)}
+                      disabled={togglePrivacyMutation.isPending}
+                    />
+                  </div>
+                </>
+              )}
 
               {channel?.is_private && !isChannelOwner && (
                 <>
