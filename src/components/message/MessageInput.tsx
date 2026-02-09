@@ -333,16 +333,40 @@ export function MessageInput({
           </Button>
         </div>
 
-        {/* Mobile action buttons - more compact */}
-        <div className="flex md:hidden items-center">
+        {/* Mobile action buttons - compact row with all actions */}
+        <div className="flex md:hidden items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-xl shrink-0 h-9 w-9"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
           >
-            <Paperclip className="h-5 w-5 text-muted-foreground" />
+            <Paperclip className="h-4 w-4 text-muted-foreground" />
+          </Button>
+
+          <EmojiPicker onSelect={addEmoji} />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-9 w-9"
+            onClick={() => setShowScheduleDialog(true)}
+            disabled={!message.trim() && !attachedFile}
+            title="Agendar mensagem"
+          >
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-9 w-9"
+            onClick={handleStartRecording}
+            disabled={isRecording || isUploading}
+            title="Gravar áudio"
+          >
+            <Mic className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
 
