@@ -103,6 +103,112 @@ export function useReminders() {
   });
 }
 
+export interface ReminderWithMessage extends MessageReminder {
+  message?: {
+    content: string;
+    channel?: { name: string };
+    profile?: { display_name: string; avatar_url: string | null };
+  } | null;
+  dm_message?: {
+    content: string;
+    profile?: { display_name: string; avatar_url: string | null };
+  } | null;
+  group_message?: {
+    content: string;
+    profile?: { display_name: string; avatar_url: string | null };
+    group?: { name: string | null };
+  } | null;
+}
+
+export function useAllReminders() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["all-reminders", user?.id],
+    queryFn: async () => {
+      if (!user) return { pending: [], completed: [] };
+
+      // Fetch all reminders
+      const { data: reminders, error } = await supabase
+        .from("message_reminders")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("remind_at", { ascending: false });
+
+      if (error) throw error;
+
+      const enrichedReminders: ReminderWithMessage[] = [];
+
+      for (const reminder of reminders || []) {
+        const enriched: ReminderWithMessage = { ...reminder };
+
+        // Fetch message details based on type
+        if (reminder.message_id) {
+          const { data: message } = await supabase
+            .from("messages")
+            .select(`
+              content,
+              channel:channels(name),
+              profile:profiles!messages_user_id_fkey(display_name, avatar_url)
+            `)
+            .eq("id", reminder.message_id)
+            .single();
+          
+          if (message) {
+            enriched.message = {
+              content: message.content,
+              channel: message.channel as any,
+              profile: message.profile as any,
+            };
+          }
+        } else if (reminder.dm_message_id) {
+          const { data: dmMessage } = await supabase
+            .from("dm_messages")
+            .select(`
+              content,
+              profile:profiles!dm_messages_user_id_fkey(display_name, avatar_url)
+            `)
+            .eq("id", reminder.dm_message_id)
+            .single();
+          
+          if (dmMessage) {
+            enriched.dm_message = {
+              content: dmMessage.content,
+              profile: dmMessage.profile as any,
+            };
+          }
+        } else if (reminder.group_message_id) {
+          const { data: groupMessage } = await supabase
+            .from("dm_group_messages")
+            .select(`
+              content,
+              profile:profiles!dm_group_messages_user_id_fkey(display_name, avatar_url),
+              group:dm_groups(name)
+            `)
+            .eq("id", reminder.group_message_id)
+            .single();
+          
+          if (groupMessage) {
+            enriched.group_message = {
+              content: groupMessage.content,
+              profile: groupMessage.profile as any,
+              group: groupMessage.group as any,
+            };
+          }
+        }
+
+        enrichedReminders.push(enriched);
+      }
+
+      const pending = enrichedReminders.filter(r => !r.is_completed);
+      const completed = enrichedReminders.filter(r => r.is_completed);
+
+      return { pending, completed };
+    },
+    enabled: !!user,
+  });
+}
+
 export function useCompleteReminder() {
   const queryClient = useQueryClient();
 
