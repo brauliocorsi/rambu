@@ -201,6 +201,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                       dmId={dm.id}
                       onReply={setReplyTo}
                       slackMode
+                      density={preferences.density}
                     />
                   ))}
                 </div>
@@ -213,6 +214,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                   message={msg} 
                   dmId={dm.id}
                   onReply={setReplyTo}
+                  density={preferences.density}
                 />
               ))
             )}

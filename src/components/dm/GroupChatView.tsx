@@ -22,6 +22,29 @@ import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import type { MessageDensity } from "@/hooks/useLayoutPreferences";
+
+// Density-based styles for group messages
+const densityStyles = {
+  compact: {
+    container: "py-0.5",
+    avatar: "h-7 w-7",
+    standardAvatar: "h-6 w-6",
+    spacing: "mb-1",
+  },
+  normal: {
+    container: "py-1.5",
+    avatar: "h-9 w-9",
+    standardAvatar: "h-8 w-8",
+    spacing: "mb-2",
+  },
+  comfortable: {
+    container: "py-3",
+    avatar: "h-10 w-10",
+    standardAvatar: "h-10 w-10",
+    spacing: "mb-3",
+  },
+};
 
 interface GroupChatViewProps {
   group: DMGroup;
@@ -243,15 +266,16 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                   {group.messages.map((msg) => {
                     const displayName = msg.profile?.display_name || "Usuário";
                     const time = format(new Date(msg.created_at), "HH:mm", { locale: ptBR });
+                    const styles = densityStyles[preferences.density];
                     
                     return (
                       <motion.div
                         key={msg.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex gap-3 px-4 py-1.5 hover:bg-secondary/50 transition-colors"
+                        className={cn("flex gap-3 px-4 hover:bg-secondary/50 transition-colors", styles.container)}
                       >
-                        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
                           <AvatarImage src={msg.profile?.avatar_url || undefined} />
                           <AvatarFallback className="text-xs gradient-primary text-white">
                             {displayName.charAt(0).toUpperCase()}
@@ -278,16 +302,17 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
               /* Standard mode */
               messages.map((msg) => {
                 const isOwn = msg.user_id === user?.id;
+                const styles = densityStyles[preferences.density];
                 return (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${isOwn ? "justify-end" : "justify-start"} px-4 mb-2`}
+                    className={cn("flex px-4", styles.spacing, isOwn ? "justify-end" : "justify-start")}
                   >
                     <div className={`flex gap-2 max-w-[85%] ${isOwn ? "flex-row-reverse" : ""}`}>
                       {!isOwn && (
-                        <Avatar className="h-8 w-8 shrink-0">
+                        <Avatar className={cn(styles.standardAvatar, "shrink-0")}>
                           <AvatarImage src={msg.profile?.avatar_url || undefined} />
                           <AvatarFallback className="text-xs gradient-primary text-white">
                             {(msg.profile?.display_name || "U").charAt(0).toUpperCase()}
