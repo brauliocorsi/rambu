@@ -39,11 +39,18 @@ import { AvatarWithStatus } from "@/components/user/OnlineIndicator";
 import { ThreadPanel } from "@/components/message/ThreadPanel";
 import { Message } from "@/hooks/useMessages";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { MentionsFeed } from "@/components/mentions/MentionsFeed";
 import { Notification } from "@/hooks/useInAppNotifications";
+import { useUnreadMentionsCount } from "@/hooks/useMentionsFeed";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +74,7 @@ import {
   ChevronDown,
   Keyboard,
   Info,
+  AtSign,
 } from "lucide-react";
 
 export function DesktopApp() {
@@ -82,6 +90,7 @@ export function DesktopApp() {
   const { data: unreadChannelCounts = {} } = useUnreadChannelCounts(currentWorkspace?.id || null);
   const { data: unreadDMCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
   const { channels: totalUnreadChannels, dms: totalUnreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
+  const { data: mentionsCount = 0 } = useUnreadMentionsCount();
   const markChannelAsRead = useMarkChannelAsRead();
   const markDMAsRead = useMarkDMAsRead();
 
@@ -104,6 +113,7 @@ export function DesktopApp() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const [showChannelDetails, setShowChannelDetails] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [threadMessage, setThreadMessage] = useState<Message | null>(null);
@@ -197,6 +207,51 @@ export function DesktopApp() {
             <Moon className="h-5 w-5" />
           )}
         </Button>
+
+        {/* Mentions Button */}
+        <Popover open={showMentions} onOpenChange={setShowMentions}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl relative"
+            >
+              <AtSign className="h-5 w-5" />
+              {mentionsCount > 0 && (
+                <span className="absolute -top-1 -right-1">
+                  <UnreadBadge count={mentionsCount} size="sm" />
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-80 p-0 rounded-xl">
+            <div className="p-3 border-b border-border">
+              <h3 className="font-semibold flex items-center gap-2">
+                <AtSign className="h-4 w-4 text-primary" />
+                Menções
+              </h3>
+            </div>
+            <MentionsFeed
+              onNavigateToChannel={(channelId) => {
+                const channel = channels.find(c => c.id === channelId);
+                if (channel) {
+                  setCurrentChannel(channel);
+                  setSelectedDM(null);
+                }
+                setShowMentions(false);
+              }}
+              onNavigateToDM={(dmId) => {
+                const dm = dms.find(d => d.id === dmId);
+                if (dm) {
+                  setSelectedDM(dm);
+                  setCurrentChannel(null);
+                }
+                setShowMentions(false);
+              }}
+              onClose={() => setShowMentions(false)}
+            />
+          </PopoverContent>
+        </Popover>
 
         <NotificationCenter
           onNavigate={(notification: Notification) => {

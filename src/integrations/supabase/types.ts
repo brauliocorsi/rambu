@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      channel_favorites: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_favorites_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_members: {
         Row: {
           channel_id: string
@@ -43,6 +79,48 @@ export type Database = {
           },
           {
             foreignKeyName: "channel_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_notification_preferences: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          notification_level: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          notification_level?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          notification_level?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_notification_preferences_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_notification_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -545,7 +623,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          away_auto_reply: string | null
           away_message: string | null
+          away_notification_level: string | null
           bio: string | null
           created_at: string
           display_name: string | null
@@ -553,6 +633,8 @@ export type Database = {
           do_not_disturb: boolean | null
           id: string
           last_seen: string | null
+          scheduled_away_end: string | null
+          scheduled_away_start: string | null
           status: string | null
           status_emoji: string | null
           status_text: string | null
@@ -560,7 +642,9 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          away_auto_reply?: string | null
           away_message?: string | null
+          away_notification_level?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
@@ -568,6 +652,8 @@ export type Database = {
           do_not_disturb?: boolean | null
           id: string
           last_seen?: string | null
+          scheduled_away_end?: string | null
+          scheduled_away_start?: string | null
           status?: string | null
           status_emoji?: string | null
           status_text?: string | null
@@ -575,7 +661,9 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          away_auto_reply?: string | null
           away_message?: string | null
+          away_notification_level?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
@@ -583,6 +671,8 @@ export type Database = {
           do_not_disturb?: boolean | null
           id?: string
           last_seen?: string | null
+          scheduled_away_end?: string | null
+          scheduled_away_start?: string | null
           status?: string | null
           status_emoji?: string | null
           status_text?: string | null
