@@ -6,14 +6,43 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ChannelProvider } from "@/contexts/ChannelContext";
+import { ViewModeProvider, useViewMode } from "@/contexts/ViewModeContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MainApp } from "@/components/app/MainApp";
+import { DesktopApp } from "@/components/app/DesktopApp";
 import { LoadingScreen } from "@/components/ui/LoadingSpinner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
+  const { user, loading } = useAuth();
+  const { isMobile } = useViewMode();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return <AuthForm onSuccess={() => {}} />;
+  }
+
+  return isMobile ? <MainApp /> : <DesktopApp />;
+}
+
+function AuthenticatedApp() {
+  return (
+    <WorkspaceProvider>
+      <ChannelProvider>
+        <ViewModeProvider>
+          <AppContent />
+        </ViewModeProvider>
+      </ChannelProvider>
+    </WorkspaceProvider>
+  );
+}
+
+function RootContent() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -24,13 +53,7 @@ function AppContent() {
     return <AuthForm onSuccess={() => {}} />;
   }
 
-  return (
-    <WorkspaceProvider>
-      <ChannelProvider>
-        <MainApp />
-      </ChannelProvider>
-    </WorkspaceProvider>
-  );
+  return <AuthenticatedApp />;
 }
 
 const App = () => (
@@ -41,7 +64,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<AppContent />} />
+            <Route path="/" element={<RootContent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
