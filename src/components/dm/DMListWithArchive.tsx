@@ -55,7 +55,7 @@ export function DMListWithArchive({
   const renderDMItem = (dm: DirectMessage, isArchived: boolean) => {
     const displayName = dm.other_user?.display_name || "Usuário";
     const status = dm.other_user?.status || null;
-    const lastSeen = (dm.other_user as any)?.last_seen || null;
+    const lastSeen = dm.other_user?.last_seen || null;
     const lastMessage = dm.last_message?.content || "Nenhuma mensagem";
     const timeAgo = dm.last_message
       ? formatDistanceToNow(new Date(dm.last_message.created_at), {
