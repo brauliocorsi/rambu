@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useNotificationPreferences } from "./useProfile";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationOptions {
   title: string;
@@ -15,6 +16,7 @@ interface NotificationOptions {
 export function useBrowserNotifications() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspaceContext();
+  const queryClient = useQueryClient();
   const { data: notifPrefs } = useNotificationPreferences();
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
@@ -98,7 +100,7 @@ export function useBrowserNotifications() {
 
   // Subscribe to real-time messages for notifications
   useEffect(() => {
-    if (!user || !currentWorkspace?.id || permission !== "granted") return;
+    if (!user || !currentWorkspace?.id) return;
 
     // Subscribe to channel messages
     channelMessagesRef.current = supabase
@@ -147,6 +149,11 @@ export function useBrowserNotifications() {
             icon: senderProfile?.avatar_url || undefined,
             tag: `channel-${payload.new.channel_id}`,
           });
+
+          // Invalidate notification queries
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["notifications_count", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["unread-channel-counts"] });
         }
       )
       .subscribe();
@@ -199,6 +206,11 @@ export function useBrowserNotifications() {
             icon: senderProfile?.avatar_url || undefined,
             tag: `dm-${payload.new.dm_id}`,
           });
+
+          // Invalidate notification queries
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["notifications_count", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });
         }
       )
       .subscribe();
@@ -211,7 +223,7 @@ export function useBrowserNotifications() {
         supabase.removeChannel(channelDMsRef.current);
       }
     };
-  }, [user?.id, currentWorkspace?.id, permission, notifPrefs, showNotification]);
+  }, [user?.id, currentWorkspace?.id, notifPrefs, showNotification]);
 
   return {
     isSupported,
