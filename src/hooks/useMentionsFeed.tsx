@@ -168,3 +168,23 @@ export function useUnreadMentionsCount() {
     enabled: !!user,
   });
 }
+
+export function useDeleteMention() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (mentionId: string) => {
+      const { error } = await supabase
+        .from("message_mentions")
+        .delete()
+        .eq("id", mentionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mentions-feed", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["mentions-count", user?.id] });
+    },
+  });
+}
