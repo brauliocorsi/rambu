@@ -86,7 +86,29 @@ export function useMessages(channelId: string | null) {
             if (data) {
               queryClient.setQueryData(
                 ["messages", channelId],
-                (old: Message[] | undefined) => [...(old || []), data as unknown as Message]
+                (old: Message[] | undefined) => {
+                  if (!old) return [data as unknown as Message];
+                  // Deduplicate: check if message already exists (real or optimistic)
+                  const exists = old.some(
+                    (msg) =>
+                      msg.id === data.id ||
+                      (msg.id.startsWith("temp-") &&
+                        msg.user_id === data.user_id &&
+                        msg.content === data.content &&
+                        Math.abs(new Date(msg.created_at).getTime() - new Date(data.created_at).getTime()) < 5000)
+                  );
+                  if (exists) {
+                    // Replace optimistic message with real one
+                    return old.map((msg) =>
+                      (msg.id.startsWith("temp-") &&
+                        msg.user_id === data.user_id &&
+                        msg.content === data.content)
+                        ? (data as unknown as Message)
+                        : msg.id === data.id ? (data as unknown as Message) : msg
+                    );
+                  }
+                  return [...old, data as unknown as Message];
+                }
               );
             }
           } else if (payload.eventType === "UPDATE") {
@@ -325,14 +347,14 @@ export function useToggleReaction() {
     mutationFn: async ({ messageId, emoji, channelId }: { messageId: string; emoji: string; channelId: string }) => {
       if (!user) throw new Error("Not authenticated");
 
-      // Check if reaction exists
+      // Check if reaction exists for this user
       const { data: existing } = await supabase
         .from("message_reactions")
         .select("id")
         .eq("message_id", messageId)
         .eq("user_id", user.id)
         .eq("emoji", emoji)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Remove reaction
@@ -353,9 +375,11 @@ export function useToggleReaction() {
 
       return { messageId, channelId };
     },
-    onSuccess: (_, { messageId, channelId }) => {
+    onSuccess: (_, { messageId }) => {
       queryClient.invalidateQueries({ queryKey: ["reactions", messageId] });
-      queryClient.invalidateQueries({ queryKey: ["messages", channelId] });
+    },
+    onError: () => {
+      toast.error("Erro ao reagir à mensagem");
     },
   });
 }
