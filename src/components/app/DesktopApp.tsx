@@ -566,7 +566,7 @@ export function DesktopApp() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-0">
                 <MessageList
                   messages={messages}
                   channelId={currentChannel.id}

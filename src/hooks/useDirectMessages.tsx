@@ -16,6 +16,7 @@ export interface DirectMessage {
     display_name: string | null;
     avatar_url: string | null;
     status: string | null;
+    last_seen?: string | null;
   };
   last_message?: {
     content: string;
@@ -64,7 +65,7 @@ export function useDirectMessages(workspaceId: string | null) {
           
           const { data: profile } = await supabase
             .from("profiles")
-            .select("id, display_name, avatar_url, status")
+            .select("id, display_name, avatar_url, status, last_seen")
             .eq("id", otherId)
             .single();
 

@@ -113,7 +113,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   }, [messages, preferences.slackMode]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-border">
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={onBack}>
