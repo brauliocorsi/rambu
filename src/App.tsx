@@ -18,6 +18,7 @@ import { OnboardingTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<RootContent />} />
               <Route path="/join/:code" element={<JoinWorkspace />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

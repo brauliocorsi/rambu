@@ -20,7 +20,7 @@ import { SettingsView } from "@/components/settings/SettingsView";
 import { SearchDialog } from "@/components/search/SearchDialog";
 
 export function MainApp() {
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("channels");
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
