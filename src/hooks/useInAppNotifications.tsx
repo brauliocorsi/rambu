@@ -143,6 +143,26 @@ export function useMarkNotificationAsRead() {
   });
 }
 
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("id", notificationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_count", user?.id] });
+    },
+  });
+}
+
 export function useMarkAllNotificationsAsRead() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
