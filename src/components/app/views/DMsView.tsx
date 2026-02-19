@@ -108,6 +108,20 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
         </DropdownMenu>
       </div>
 
+      {/* Always show workspace users list */}
+      <WorkspaceUsersList
+        members={members}
+        currentUserId={user?.id}
+        onSelectUser={(userId) => {
+          const existingDM = dms.find(dm => dm.other_user?.id === userId);
+          if (existingDM) {
+            onSelectDM(existingDM);
+          } else {
+            setShowNewDM(true);
+          }
+        }}
+      />
+
       {isLoadingAll ? (
         <Card className="p-8 rounded-2xl flex items-center justify-center">
           <motion.div
@@ -145,23 +159,6 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {/* Workspace Users */}
-          <WorkspaceUsersList
-            members={members}
-            currentUserId={user?.id}
-            onSelectUser={(userId) => {
-              // Find existing DM with this user or open new DM dialog
-              const existingDM = dms.find(
-                dm => dm.other_user?.id === userId
-              );
-              if (existingDM) {
-                onSelectDM(existingDM);
-              } else {
-                setShowNewDM(true);
-              }
-            }}
-          />
-
           {/* Groups Section */}
           {groups.length > 0 && (
             <Card className="p-2 rounded-2xl">
