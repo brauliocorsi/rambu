@@ -37,7 +37,19 @@ export function DMListWithArchive({
   const archiveDM = useArchiveDM();
   const unarchiveDM = useUnarchiveDM();
 
-  const activeDMs = dms.filter((dm) => !archivedIds.includes(dm.id));
+  const activeDMs = dms
+    .filter((dm) => !archivedIds.includes(dm.id))
+    .sort((a, b) => {
+      // Prioritize DMs with unread messages
+      const unreadA = unreadCounts[a.id] || 0;
+      const unreadB = unreadCounts[b.id] || 0;
+      if (unreadA > 0 && unreadB === 0) return -1;
+      if (unreadB > 0 && unreadA === 0) return 1;
+      // Then sort by most recent message
+      const timeA = a.last_message?.created_at || a.created_at || "";
+      const timeB = b.last_message?.created_at || b.created_at || "";
+      return timeB.localeCompare(timeA);
+    });
   const archivedDMs = dms.filter((dm) => archivedIds.includes(dm.id));
 
   const renderDMItem = (dm: DirectMessage, isArchived: boolean) => {
