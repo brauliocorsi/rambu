@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, Image, Clock, Mic } from "lucide-react";
+import { Send, Paperclip, Image, Clock, Mic, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
@@ -37,6 +37,7 @@ export function MessageInput({
   const [message, setMessage] = useState("");
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
   const inputRef = useRef<MentionInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -363,41 +364,52 @@ export function MessageInput({
           </Button>
         </div>
 
-        {/* Mobile action buttons - compact row with all actions */}
-        <div className="flex md:hidden items-center gap-1">
+        {/* Mobile action button - dropdown */}
+        <div className="relative flex md:hidden shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-9 w-9"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+            className="rounded-xl h-9 w-9"
+            onClick={() => setShowMobileActions(!showMobileActions)}
           >
-            <Paperclip className="h-4 w-4 text-muted-foreground" />
+            <Plus className={`h-5 w-5 text-muted-foreground transition-transform ${showMobileActions ? "rotate-45" : ""}`} />
           </Button>
 
-          <EmojiPicker onSelect={addEmoji} />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl shrink-0 h-9 w-9"
-            onClick={() => setShowScheduleDialog(true)}
-            disabled={!message.trim() && attachedFiles.length === 0}
-            title="Agendar mensagem"
-          >
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl shrink-0 h-9 w-9"
-            onClick={handleStartRecording}
-            disabled={isRecording || isUploading}
-            title="Gravar áudio"
-          >
-            <Mic className="h-4 w-4 text-muted-foreground" />
-          </Button>
+          <AnimatePresence>
+            {showMobileActions && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 bg-popover border border-border rounded-xl shadow-lg p-1.5 z-50"
+              >
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setShowMobileActions(false); }}
+                  disabled={isUploading}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                  <span>Anexar arquivo</span>
+                </button>
+                <button
+                  onClick={() => { setShowScheduleDialog(true); setShowMobileActions(false); }}
+                  disabled={!message.trim() && attachedFiles.length === 0}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Agendar</span>
+                </button>
+                <button
+                  onClick={() => { handleStartRecording(); setShowMobileActions(false); }}
+                  disabled={isRecording || isUploading}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <Mic className="h-4 w-4 text-muted-foreground" />
+                  <span>Gravar áudio</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Input field - flexible height for mobile */}

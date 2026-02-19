@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, X, Clock, Smile, Mic, Image } from "lucide-react";
+import { Send, Paperclip, X, Clock, Smile, Mic, Image, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/message/MentionInput";
 import { FilePreview } from "@/components/message/FilePreview";
@@ -58,6 +58,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState("09:00");
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const inputRef = useRef<{ focus: () => void }>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -405,47 +406,66 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           </Button>
         </div>
 
-        {/* Mobile action buttons - compact row with all actions */}
-        <div className="flex md:hidden items-center gap-1 shrink-0">
+        {/* Mobile action button - dropdown */}
+        <div className="relative flex md:hidden shrink-0">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx,.txt"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden md:hidden"
+          />
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl"
-            onClick={() => setShowEmojis(!showEmojis)}
+            className="rounded-xl h-9 w-9"
+            onClick={() => setShowMobileActions(!showMobileActions)}
           >
-            <Smile className="h-4 w-4 text-muted-foreground" />
+            <Plus className={`h-5 w-5 text-muted-foreground transition-transform ${showMobileActions ? "rotate-45" : ""}`} />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-xl"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            <Paperclip className="h-4 w-4 text-muted-foreground" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-xl"
-            onClick={() => setShowSchedule(true)}
-            title="Agendar mensagem"
-          >
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-xl"
-            onClick={handleStartRecording}
-            disabled={isRecording || isUploading}
-            title="Gravar áudio"
-          >
-            <Mic className="h-4 w-4 text-muted-foreground" />
-          </Button>
+          <AnimatePresence>
+            {showMobileActions && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 bg-popover border border-border rounded-xl shadow-lg p-1.5 z-50"
+              >
+                <button
+                  onClick={() => { setShowEmojis(!showEmojis); setShowMobileActions(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <Smile className="h-4 w-4 text-muted-foreground" />
+                  <span>Emoji</span>
+                </button>
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setShowMobileActions(false); }}
+                  disabled={isUploading}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                  <span>Anexar arquivo</span>
+                </button>
+                <button
+                  onClick={() => { setShowSchedule(true); setShowMobileActions(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Agendar</span>
+                </button>
+                <button
+                  onClick={() => { handleStartRecording(); setShowMobileActions(false); }}
+                  disabled={isRecording || isUploading}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <Mic className="h-4 w-4 text-muted-foreground" />
+                  <span>Gravar áudio</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Message Input */}
