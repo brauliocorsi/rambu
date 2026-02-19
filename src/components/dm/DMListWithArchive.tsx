@@ -80,7 +80,8 @@ export function DMListWithArchive({
             unreadCount > 0 && "font-semibold"
           )}
         >
-          <div className="shrink-0">
+          <div className="shrink-0 relative">
+            {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="absolute -top-1 -right-1 z-10" />}
             <AvatarWithStatus
               status={status}
               lastSeen={lastSeen}
@@ -99,7 +100,6 @@ export function DMListWithArchive({
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold truncate">{displayName}</span>
               <div className="flex items-center gap-2 shrink-0">
-                {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
                 {timeAgo && (
                   <span className="text-xs text-muted-foreground">{timeAgo}</span>
                 )}
