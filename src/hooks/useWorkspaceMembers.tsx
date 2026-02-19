@@ -13,6 +13,8 @@ export interface WorkspaceMember {
   profile?: {
     display_name: string | null;
     avatar_url: string | null;
+    status: string | null;
+    last_seen: string | null;
   };
 }
 
@@ -28,7 +30,9 @@ export function useWorkspaceMembers(workspaceId: string | null) {
           *,
           profiles!workspace_members_user_id_fkey (
             display_name,
-            avatar_url
+            avatar_url,
+            status,
+            last_seen
           )
         `)
         .eq("workspace_id", workspaceId)
@@ -38,7 +42,7 @@ export function useWorkspaceMembers(workspaceId: string | null) {
       
       return (data || []).map((member) => ({
         ...member,
-        profile: member.profiles as { display_name: string | null; avatar_url: string | null } | undefined,
+        profile: member.profiles as { display_name: string | null; avatar_url: string | null; status: string | null; last_seen: string | null } | undefined,
       }));
     },
     enabled: !!workspaceId,

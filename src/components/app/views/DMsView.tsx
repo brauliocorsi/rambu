@@ -4,9 +4,12 @@ import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { useDMGroups, DMGroup } from "@/hooks/useDMGroups";
 import { useUnreadDMCounts, useMarkDMAsRead } from "@/hooks/useNotifications";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useAuth } from "@/hooks/useAuth";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { GroupChatView } from "@/components/dm/GroupChatView";
 import { DMListWithArchive } from "@/components/dm/DMListWithArchive";
+import { WorkspaceUsersList } from "@/components/dm/WorkspaceUsersList";
 import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { NewGroupDialog } from "@/components/dm/NewGroupDialog";
 import { Card } from "@/components/ui/card";
@@ -36,9 +39,11 @@ interface DMsViewProps {
 
 export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   const { currentWorkspace } = useWorkspaceContext();
+  const { user } = useAuth();
   const { data: dms = [], isLoading } = useDirectMessages(currentWorkspace?.id || null);
   const { data: groups = [], isLoading: loadingGroups } = useDMGroups(currentWorkspace?.id || null);
   const { data: unreadCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
+  const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const markAsRead = useMarkDMAsRead();
   const [showNewDM, setShowNewDM] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -140,6 +145,23 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
         </Card>
       ) : (
         <div className="space-y-4">
+          {/* Workspace Users */}
+          <WorkspaceUsersList
+            members={members}
+            currentUserId={user?.id}
+            onSelectUser={(userId) => {
+              // Find existing DM with this user or open new DM dialog
+              const existingDM = dms.find(
+                dm => dm.other_user?.id === userId
+              );
+              if (existingDM) {
+                onSelectDM(existingDM);
+              } else {
+                setShowNewDM(true);
+              }
+            }}
+          />
+
           {/* Groups Section */}
           {groups.length > 0 && (
             <Card className="p-2 rounded-2xl">
