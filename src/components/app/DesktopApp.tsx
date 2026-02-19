@@ -364,6 +364,16 @@ export function DesktopApp() {
                 setCurrentChannel(channel);
                 setSelectedDM(null);
               }
+            } else if (notification.metadata?.dm_message_id || notification.type === "dm") {
+              // Try to find the DM from metadata
+              const dmId = notification.metadata?.sender_id;
+              if (dmId) {
+                const dm = dms.find(d => d.user1_id === dmId || d.user2_id === dmId);
+                if (dm) {
+                  setSelectedDM(dm);
+                  setCurrentChannel(null);
+                }
+              }
             }
           }}
         />

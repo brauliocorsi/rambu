@@ -17,6 +17,7 @@ import {
   useMarkNotificationAsRead,
   useMarkAllNotificationsAsRead,
   useClearNotifications,
+  useDeleteNotification,
   Notification,
 } from "@/hooks/useInAppNotifications";
 import { cn } from "@/lib/utils";
@@ -32,11 +33,11 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
   const clearAll = useClearNotifications();
+  const deleteNotification = useDeleteNotification();
 
   const handleNotificationClick = (notification: Notification) => {
-    if (!notification.is_read) {
-      markAsRead.mutate(notification.id);
-    }
+    // Delete the notification automatically when clicked
+    deleteNotification.mutate(notification.id);
     onNavigate?.(notification);
     setOpen(false);
   };
