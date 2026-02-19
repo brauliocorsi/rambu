@@ -137,7 +137,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
       <div 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto py-4 scroll-smooth"
+        className="flex-1 overflow-y-auto py-4 scroll-smooth min-h-0"
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">

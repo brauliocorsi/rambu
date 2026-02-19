@@ -525,8 +525,8 @@ export function DesktopApp() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex">
-        <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
           {currentChannel ? (
             <>
               <div className="h-14 border-b border-border flex items-center justify-between px-4">
