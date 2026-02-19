@@ -3,7 +3,7 @@ import { AtSign, Hash, MessageSquare, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { useMentionsFeed, MentionFeedItem } from "@/hooks/useMentionsFeed";
+import { useMentionsFeed, useDeleteMention, MentionFeedItem } from "@/hooks/useMentionsFeed";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +17,7 @@ interface MentionsFeedProps {
 
 export function MentionsFeed({ onNavigateToChannel, onNavigateToDM, onClose }: MentionsFeedProps) {
   const { data: mentions = [], isLoading } = useMentionsFeed();
+  const deleteMention = useDeleteMention();
 
   if (isLoading) {
     return (
@@ -45,6 +46,8 @@ export function MentionsFeed({ onNavigateToChannel, onNavigateToDM, onClose }: M
   }
 
   const handleClick = (mention: MentionFeedItem) => {
+    // Delete the mention automatically
+    deleteMention.mutate(mention.id);
     if (mention.message?.channel_id) {
       onNavigateToChannel?.(mention.message.channel_id);
     } else if (mention.dm_message?.dm_id) {
