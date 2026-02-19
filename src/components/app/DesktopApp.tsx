@@ -26,6 +26,7 @@ import { WorkspaceSettingsDialog } from "@/components/workspace/WorkspaceSetting
 import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
 import { MemberManagementDialog } from "@/components/workspace/MemberManagementDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
+import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { EmojiPicker } from "@/components/message/EmojiPicker";
@@ -548,6 +549,7 @@ export function DesktopApp() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <ChannelMembersPopover channelId={currentChannel.id} />
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -556,14 +558,6 @@ export function DesktopApp() {
                     title="Detalhes do canal"
                   >
                     <Info className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="rounded-lg"
-                    onClick={() => setShowMembers(true)}
-                  >
-                    <Users className="h-4 w-4" />
                   </Button>
                   <Button 
                     variant="ghost" 

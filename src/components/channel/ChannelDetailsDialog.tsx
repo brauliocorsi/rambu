@@ -134,44 +134,7 @@ export function ChannelDetailsDialog({
     enabled: !!channelId && open,
   });
 
-  // Fetch channel members for public channels (all workspace members)
-  const { data: members = [], isLoading: loadingMembers } = useQuery({
-    queryKey: ['channel-members', channelId],
-    queryFn: async () => {
-      // For public channels, get all workspace members
-      // For private channels, get channel_members with roles
-      if (!channel?.is_private) {
-        const { data, error } = await supabase
-          .from('workspace_members')
-          .select(`
-            user_id,
-            role,
-            profiles:user_id (
-              id,
-              display_name,
-              avatar_url,
-              status,
-              last_seen
-            )
-          `)
-          .eq('workspace_id', currentWorkspace?.id);
-
-        if (error) throw error;
-        return (data || []).map((m: any) => ({
-          id: m.profiles?.id,
-          display_name: m.profiles?.display_name,
-          avatar_url: m.profiles?.avatar_url,
-          status: m.profiles?.status,
-          last_seen: m.profiles?.last_seen,
-          role: m.role,
-        }));
-      } else {
-        // Return empty - we'll use channelMembers for private channels
-        return [];
-      }
-    },
-    enabled: !!channelId && !!channel && open,
-  });
+  // No longer needed - we always use channelMembers from channel_members table
 
   // Update mural mutation
   const updateMuralMutation = useMutation({
@@ -406,7 +369,7 @@ export function ChannelDetailsDialog({
                 <h4 className="text-sm font-semibold">Informações</h4>
                 <div className="text-sm space-y-2 text-muted-foreground">
                   <p>Criado em: {new Date(channel?.created_at || '').toLocaleDateString('pt-BR')}</p>
-                  <p>Membros: {channel?.is_private ? channelMembers.length : members.length}</p>
+                  <p>Membros: {channelMembers.length}</p>
                   {currentUserRole && (
                     <p className="flex items-center gap-2">
                       Sua função: 
@@ -593,8 +556,8 @@ export function ChannelDetailsDialog({
 
             {/* Members Tab */}
             <TabsContent value="members" className="mt-4">
-              {/* Add Member Button for Private Channels */}
-              {channel?.is_private && canManageMembers && membersNotInChannel.length > 0 && (
+              {/* Add Member Button */}
+              {canManageMembers && membersNotInChannel.length > 0 && (
                 <div className="mb-4">
                   {showAddMember ? (
                     <div className="space-y-2 p-3 bg-secondary/50 rounded-xl">
@@ -651,16 +614,15 @@ export function ChannelDetailsDialog({
 
               <ScrollArea className="h-[300px]">
                 <div className="space-y-2">
-                  {(channel?.is_private ? loadingChannelMembers : loadingMembers) ? (
+                  {loadingChannelMembers ? (
                     <div className="flex justify-center py-4">
                       <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
-                  ) : (channel?.is_private ? channelMembers : members).length === 0 ? (
+                  ) : channelMembers.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       Nenhum membro encontrado
                     </p>
-                  ) : channel?.is_private ? (
-                    // Private channel members with roles
+                  ) : (
                     channelMembers.map((member) => (
                       <div
                         key={member.id}
@@ -730,35 +692,6 @@ export function ChannelDetailsDialog({
                             </Button>
                           </div>
                         )}
-                      </div>
-                    ))
-                  ) : (
-                    // Public channel members (workspace members)
-                    members.map((member: any) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50"
-                      >
-                        <AvatarWithStatus
-                          status={member.status}
-                          lastSeen={member.last_seen}
-                          indicatorSize="sm"
-                        >
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={member.avatar_url || undefined} />
-                            <AvatarFallback className="gradient-primary text-white">
-                              {(member.display_name || 'U').charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </AvatarWithStatus>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
-                            {member.display_name || 'Usuário'}
-                          </p>
-                          {member.role === 'admin' && (
-                            <span className="text-xs text-primary">Admin do Workspace</span>
-                          )}
-                        </div>
                       </div>
                     ))
                   )}
