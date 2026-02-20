@@ -52,7 +52,7 @@ export function useCreateChannel() {
       if (!user) throw new Error("Not authenticated");
 
       // Create channel
-      const { data: channel, error: channelError } = await supabase
+      const { error: channelError } = await supabase
         .from("channels")
         .insert({
           workspace_id: workspaceId,
@@ -60,16 +60,15 @@ export function useCreateChannel() {
           description: description || null,
           is_private: isPrivate || false,
           created_by: user.id,
-        })
-        .select()
-        .single();
+        });
 
       if (channelError) throw channelError;
 
-      // Note: the database trigger auto_add_channel_creator automatically adds
-      // the creator as 'owner' for all channels, so no manual insert needed.
+      // Small delay to allow the trigger to add the creator as member
+      // before we refetch the channels list
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      return channel as Channel;
+      return null;
     },
     onSuccess: (_, { workspaceId }) => {
       queryClient.invalidateQueries({ queryKey: ["channels", workspaceId] });
