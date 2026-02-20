@@ -108,3 +108,26 @@ export function useJoinChannel() {
     },
   });
 }
+
+export function useDeleteChannel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ channelId, workspaceId }: { channelId: string; workspaceId: string }) => {
+      const { error } = await supabase
+        .from("channels")
+        .delete()
+        .eq("id", channelId);
+
+      if (error) throw error;
+      return { channelId, workspaceId };
+    },
+    onSuccess: (_, { workspaceId }) => {
+      queryClient.invalidateQueries({ queryKey: ["channels", workspaceId] });
+      toast.success("Canal removido com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao remover canal");
+    },
+  });
+}
