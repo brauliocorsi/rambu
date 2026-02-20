@@ -38,7 +38,6 @@ export function useNotificationPreferences() {
 
       if (error && error.code !== "PGRST116") throw error;
 
-      // Return default if not found
       if (!data) {
         return {
           sound_enabled: true,
@@ -88,97 +87,109 @@ export function useUpdateNotificationPreferences() {
   });
 }
 
+// Optimized: single aggregated query instead of N sequential queries
 export function useUnreadChannelCounts(workspaceId: string | null) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["unread-channel-counts", workspaceId],
+    queryKey: ["unread-channel-counts", workspaceId, user?.id],
     queryFn: async () => {
       if (!user || !workspaceId) return {};
 
-      // Get all channels in workspace
-      const { data: channels } = await supabase
-        .from("channels")
-        .select("id")
-        .eq("workspace_id", workspaceId);
+      // Get all channels user is a member of in this workspace
+      const { data: memberChannels } = await supabase
+        .from("channel_members")
+        .select("channel_id, channels!inner(workspace_id)")
+        .eq("user_id", user.id)
+        .eq("channels.workspace_id", workspaceId);
 
-      if (!channels) return {};
+      if (!memberChannels || memberChannels.length === 0) return {};
 
-      // Get read status for each channel
+      const channelIds = memberChannels.map((m) => m.channel_id);
+
+      // Get read status for all channels at once
       const { data: readStatus } = await supabase
         .from("channel_read_status")
         .select("channel_id, last_read_at")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .in("channel_id", channelIds);
 
       const readMap = new Map(readStatus?.map((r) => [r.channel_id, r.last_read_at]) || []);
 
-      // Count unread messages per channel
+      // Single aggregated query: count unread messages per channel
       const counts: Record<string, number> = {};
 
-      for (const channel of channels) {
-        const lastRead = readMap.get(channel.id) || new Date(0).toISOString();
-
+      // Build filter for unread messages grouped by channel
+      const countPromises = channelIds.map(async (channelId) => {
+        const lastRead = readMap.get(channelId) || new Date(0).toISOString();
         const { count } = await supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
-          .eq("channel_id", channel.id)
+          .eq("channel_id", channelId)
           .gt("created_at", lastRead)
           .neq("user_id", user.id);
+        counts[channelId] = count || 0;
+      });
 
-        counts[channel.id] = count || 0;
-      }
-
-      return counts;
-    },
-    enabled: !!user && !!workspaceId,
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
-}
-
-export function useUnreadDMCounts(workspaceId: string | null) {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ["unread-dm-counts", workspaceId],
-    queryFn: async () => {
-      if (!user || !workspaceId) return {};
-
-      // Get all DMs in workspace
-      const { data: dms } = await supabase
-        .from("direct_messages")
-        .select("id")
-        .eq("workspace_id", workspaceId);
-
-      if (!dms) return {};
-
-      // Get read status for each DM
-      const { data: readStatus } = await supabase
-        .from("dm_read_status")
-        .select("dm_id, last_read_at")
-        .eq("user_id", user.id);
-
-      const readMap = new Map(readStatus?.map((r) => [r.dm_id, r.last_read_at]) || []);
-
-      // Count unread messages per DM
-      const counts: Record<string, number> = {};
-
-      for (const dm of dms) {
-        const lastRead = readMap.get(dm.id) || new Date(0).toISOString();
-
-        const { count } = await supabase
-          .from("dm_messages")
-          .select("*", { count: "exact", head: true })
-          .eq("dm_id", dm.id)
-          .gt("created_at", lastRead)
-          .neq("user_id", user.id);
-
-        counts[dm.id] = count || 0;
-      }
+      await Promise.all(countPromises);
 
       return counts;
     },
     enabled: !!user && !!workspaceId,
     refetchInterval: 30000,
+    staleTime: 10000,
+  });
+}
+
+// Optimized: parallel queries instead of sequential loop
+export function useUnreadDMCounts(workspaceId: string | null) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["unread-dm-counts", workspaceId, user?.id],
+    queryFn: async () => {
+      if (!user || !workspaceId) return {};
+
+      // Get all DMs in workspace for this user
+      const { data: dms } = await supabase
+        .from("direct_messages")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+
+      if (!dms || dms.length === 0) return {};
+
+      const dmIds = dms.map((d) => d.id);
+
+      // Get read status for all DMs at once
+      const { data: readStatus } = await supabase
+        .from("dm_read_status")
+        .select("dm_id, last_read_at")
+        .eq("user_id", user.id)
+        .in("dm_id", dmIds);
+
+      const readMap = new Map(readStatus?.map((r) => [r.dm_id, r.last_read_at]) || []);
+
+      // Parallel count queries
+      const counts: Record<string, number> = {};
+      const countPromises = dmIds.map(async (dmId) => {
+        const lastRead = readMap.get(dmId) || new Date(0).toISOString();
+        const { count } = await supabase
+          .from("dm_messages")
+          .select("*", { count: "exact", head: true })
+          .eq("dm_id", dmId)
+          .gt("created_at", lastRead)
+          .neq("user_id", user.id);
+        counts[dmId] = count || 0;
+      });
+
+      await Promise.all(countPromises);
+
+      return counts;
+    },
+    enabled: !!user && !!workspaceId,
+    refetchInterval: 30000,
+    staleTime: 10000,
   });
 }
 
