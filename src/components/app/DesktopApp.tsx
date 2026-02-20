@@ -63,6 +63,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDeleteChannel } from "@/hooks/useChannels";
+import { useCurrentChannelRole } from "@/hooks/useChannelMembers";
 import { 
   MessageSquare, 
   Hash, 
@@ -83,6 +85,8 @@ import {
   Clock,
   Inbox,
   Bell,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 import { ScheduledMessagesList } from "@/components/message/ScheduledMessagesList";
 import { useScheduledMessages } from "@/hooks/useScheduledMessages";
@@ -106,6 +110,8 @@ export function DesktopApp() {
   const { data: pendingReminders = [] } = useReminders();
   const markChannelAsRead = useMarkChannelAsRead();
   const markDMAsRead = useMarkDMAsRead();
+  const deleteChannel = useDeleteChannel();
+  const { data: currentChannelRole } = useCurrentChannelRole(currentChannel?.id || null);
 
   // Initialize presence tracking
   usePresence(currentWorkspace?.id);
@@ -567,6 +573,31 @@ export function DesktopApp() {
                   >
                     <Search className="h-4 w-4" />
                   </Button>
+                  {(currentChannelRole === 'owner' || currentChannelRole === 'admin') && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-lg">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl w-44">
+                        <DropdownMenuItem
+                          className="rounded-lg text-destructive focus:text-destructive"
+                          onClick={() => {
+                            if (confirm(`Remover o canal #${currentChannel.name}? Esta ação não pode ser desfeita.`)) {
+                              deleteChannel.mutate(
+                                { channelId: currentChannel.id, workspaceId: currentWorkspace!.id },
+                                { onSuccess: () => setCurrentChannel(null) }
+                              );
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remover Canal
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
 

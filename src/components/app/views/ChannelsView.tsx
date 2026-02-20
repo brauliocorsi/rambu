@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
-import { useChannels } from "@/hooks/useChannels";
+import { useChannels, useDeleteChannel } from "@/hooks/useChannels";
 import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useUnreadChannelCounts, useMarkChannelAsRead } from "@/hooks/useNotifications";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useProfile } from "@/hooks/useProfile";
+import { useCurrentChannelRole } from "@/hooks/useChannelMembers";
 import { CategoryManager } from "@/components/channel/CategoryManager";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
@@ -14,19 +15,30 @@ import { MessageInput } from "@/components/message/MessageInput";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Hash, 
   Plus, 
   Briefcase,
   ArrowLeft,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 
 // Channel Chat View
 function ChannelChatView() {
   const { currentChannel, setCurrentChannel } = useChannelContext();
+  const { currentWorkspace } = useWorkspaceContext();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteMessages(currentChannel?.id || null);
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const { data: profile } = useProfile();
+  const { data: channelRole } = useCurrentChannelRole(currentChannel?.id || null);
+  const deleteChannel = useDeleteChannel();
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(currentChannel?.id || null, false);
 
   if (!currentChannel) return null;
@@ -59,6 +71,31 @@ function ChannelChatView() {
           )}
         </div>
         <ChannelMembersPopover channelId={currentChannel.id} />
+        {(channelRole === 'owner' || channelRole === 'admin') && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-xl">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-44">
+              <DropdownMenuItem
+                className="rounded-lg text-destructive focus:text-destructive"
+                onClick={() => {
+                  if (confirm(`Remover o canal #${currentChannel.name}? Esta ação não pode ser desfeita.`)) {
+                    deleteChannel.mutate(
+                      { channelId: currentChannel.id, workspaceId: currentWorkspace!.id },
+                      { onSuccess: () => setCurrentChannel(null) }
+                    );
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Remover Canal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Messages Area */}
