@@ -66,17 +66,8 @@ export function useCreateChannel() {
 
       if (channelError) throw channelError;
 
-      // If private, add creator as member
-      if (isPrivate) {
-        const { error: memberError } = await supabase
-          .from("channel_members")
-          .insert({
-            channel_id: channel.id,
-            user_id: user.id,
-          });
-
-        if (memberError) throw memberError;
-      }
+      // Note: the database trigger auto_add_channel_creator automatically adds
+      // the creator as 'owner' for all channels, so no manual insert needed.
 
       return channel as Channel;
     },
