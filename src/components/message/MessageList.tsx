@@ -95,6 +95,8 @@ export function MessageList({
     }
   }, [checkIfNearBottom, hasMore, onLoadMore, isFetchingMore]);
 
+  const wasLoadingRef = useRef(true);
+
   // Maintain scroll position after loading more messages
   useEffect(() => {
     if (isLoadingMoreRef.current && containerRef.current && !isFetchingMore) {
@@ -110,25 +112,37 @@ export function MessageList({
     bottomRef.current?.scrollIntoView({ behavior });
   }, []);
 
+  // Scroll to bottom when loading finishes
+  useEffect(() => {
+    if (isLoading) {
+      wasLoadingRef.current = true;
+    } else if (wasLoadingRef.current) {
+      wasLoadingRef.current = false;
+      requestAnimationFrame(() => {
+        scrollToBottom("instant");
+      });
+    }
+  }, [isLoading, scrollToBottom]);
+
+  // Reset refs when channel changes
+  useEffect(() => {
+    isNearBottomRef.current = true;
+    prevMessagesLengthRef.current = 0;
+    isLoadingMoreRef.current = false;
+    wasLoadingRef.current = true;
+  }, [channelId]);
+
   // Auto-scroll on new messages only if user is near bottom
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
-      // New message arrived
       if (isNearBottomRef.current) {
-        scrollToBottom("smooth");
+        requestAnimationFrame(() => {
+          scrollToBottom("smooth");
+        });
       }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length, scrollToBottom]);
-
-  // Scroll to bottom instantly when channel changes
-  useEffect(() => {
-    isNearBottomRef.current = true;
-    prevMessagesLengthRef.current = messages.length;
-    isLoadingMoreRef.current = false;
-    // Use instant scroll for channel change
-    setTimeout(() => scrollToBottom("instant"), 50);
-  }, [channelId, scrollToBottom]);
 
   // Group messages by day when in Slack mode (must be before any returns)
   const messageGroups = useMemo(() => {

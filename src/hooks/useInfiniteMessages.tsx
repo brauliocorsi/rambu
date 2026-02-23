@@ -77,7 +77,6 @@ export function useInfiniteMessages(channelId: string | null) {
                 (oldData: any) => {
                   if (!oldData) return oldData;
 
-                  // Check if message already exists (could be optimistic or duplicate)
                   const allExistingMessages = oldData.pages.flatMap((p: any) => p.messages);
                   const existingMessage = allExistingMessages.find(
                     (msg: Message) => 
@@ -89,7 +88,6 @@ export function useInfiniteMessages(channelId: string | null) {
                   );
 
                   if (existingMessage) {
-                    // Replace optimistic message with real one
                     return {
                       ...oldData,
                       pages: oldData.pages.map((page: any) => ({
@@ -101,7 +99,6 @@ export function useInfiniteMessages(channelId: string | null) {
                     };
                   }
 
-                  // Add to the last page if not exists
                   const newPages = [...oldData.pages];
                   if (newPages.length > 0) {
                     newPages[newPages.length - 1] = {
@@ -112,6 +109,11 @@ export function useInfiniteMessages(channelId: string | null) {
                   return { ...oldData, pages: newPages };
                 }
               );
+
+              // Fallback: invalidate to ensure data appears even if cache update failed
+              setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ["infinite-messages", channelId] });
+              }, 500);
             }
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
