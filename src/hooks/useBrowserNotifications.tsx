@@ -28,14 +28,8 @@ export function useBrowserNotifications() {
   // without needing to recreate subscriptions
   const notifPrefsRef = useRef(notifPrefs);
   const permissionRef = useRef(permission);
-
-  useEffect(() => {
-    notifPrefsRef.current = notifPrefs;
-  }, [notifPrefs]);
-
-  useEffect(() => {
-    permissionRef.current = permission;
-  }, [permission]);
+  notifPrefsRef.current = notifPrefs;
+  permissionRef.current = permission;
 
   useEffect(() => {
     if ("Notification" in window) {
