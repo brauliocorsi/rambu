@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Paperclip, X, Clock, Smile, Mic, Image, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { AudioRecordingIndicator } from "@/components/message/AudioRecordingIndi
 import { useSendDMMessage, useDMMessageById } from "@/hooks/useDirectMessages";
 import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
+import { useFilePasteDrop } from "@/hooks/useFilePasteDrop";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
@@ -64,7 +65,16 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   
   const sendMessage = useSendDMMessage();
   const scheduleMessage = useCreateScheduledMessage();
-  const { uploadFiles, isUploading, progress, maxFiles } = useFileUpload();
+  const { uploadFiles } = useFileUpload();
+
+  const handleFilesAdded = useCallback((files: UploadedFile[]) => {
+    setAttachedFiles((prev) => [...prev, ...files]);
+  }, []);
+
+  const { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles } = useFilePasteDrop({
+    attachedFiles,
+    onFilesAdded: handleFilesAdded,
+  });
   const { quickReplies } = useQuickReplies();
   const { data: replyMessage } = useDMMessageById(replyTo || null);
   const { 
@@ -246,7 +256,12 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   };
 
   return (
-    <div className="p-3 md:p-4 border-t border-border bg-background">
+    <div
+      className="p-3 md:p-4 border-t border-border bg-background"
+      onPaste={handlePaste}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {/* Reply Preview */}
       {replyMessage && (
         <motion.div
