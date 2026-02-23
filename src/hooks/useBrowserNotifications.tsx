@@ -142,34 +142,41 @@ export function useBrowserNotifications() {
       // Check permission at call time
       if (permissionRef.current !== "granted") return;
 
+      const notifIcon = icon || "/icons/icon-192x192.png";
+      const notifOptions = {
+        body,
+        icon: notifIcon,
+        tag,
+        badge: "/icons/icon-72x72.png",
+        silent: true, // We play our own sound
+      };
+
+      // Try Service Worker first (more reliable on macOS Safari & PWAs)
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready
+          .then((reg) => reg.showNotification(title, notifOptions))
+          .catch(() => {
+            // SW notification failed, fall back to Notification API
+            showNativeNotification(title, notifOptions, onClick);
+          });
+      } else {
+        showNativeNotification(title, notifOptions, onClick);
+      }
+    },
+    []
+  );
+
+  const showNativeNotification = useCallback(
+    (title: string, options: Record<string, any>, onClick?: () => void) => {
       try {
-        const notification = new Notification(title, {
-          body,
-          icon: icon || "/icons/icon-192x192.png",
-          tag,
-          badge: "/icons/icon-72x72.png",
-          silent: true,
-        });
+        const notification = new Notification(title, options);
         notification.onclick = () => {
           window.focus();
           notification.close();
           onClick?.();
         };
-        setTimeout(() => notification.close(), 5000);
-      } catch (error) {
-        // Fallback for environments where Notification constructor fails (e.g. some mobile browsers)
-        // Try using Service Worker registration
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification(title, {
-              body,
-              icon: icon || "/icons/icon-192x192.png",
-              tag,
-              badge: "/icons/icon-72x72.png",
-              silent: true,
-            }).catch(() => {});
-          }).catch(() => {});
-        }
+      } catch {
+        // Notification constructor not available
       }
     },
     []
