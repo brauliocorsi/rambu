@@ -16,6 +16,7 @@ import { LoadingScreen } from "@/components/ui/LoadingSpinner";
 import { BrowserNotificationPrompt } from "@/components/notifications/BrowserNotificationPrompt";
 import { OnboardingTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
 import ResetPassword from "./pages/ResetPassword";
@@ -79,6 +80,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <UpdatePrompt />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<RootContent />} />
