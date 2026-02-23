@@ -24,6 +24,19 @@ export function useBrowserNotifications() {
   const channelDMsRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Use refs for prefs so realtime callbacks always see latest values
+  // without needing to recreate subscriptions
+  const notifPrefsRef = useRef(notifPrefs);
+  const permissionRef = useRef(permission);
+
+  useEffect(() => {
+    notifPrefsRef.current = notifPrefs;
+  }, [notifPrefs]);
+
+  useEffect(() => {
+    permissionRef.current = permission;
+  }, [permission]);
+
   useEffect(() => {
     if ("Notification" in window) {
       setIsSupported(true);
@@ -51,12 +64,17 @@ export function useBrowserNotifications() {
   }, [isSupported]);
 
   const playSound = useCallback(() => {
-    if (notifPrefs?.sound_enabled && audioRef.current) {
-      audioRef.current.volume = (notifPrefs.sound_volume || 0.5) * 0.3;
+    // Default to true if prefs haven't loaded yet — ensures sound always plays
+    const prefs = notifPrefsRef.current;
+    const soundEnabled = prefs?.sound_enabled ?? true;
+    const soundVolume = prefs?.sound_volume ?? 0.5;
+
+    if (soundEnabled && audioRef.current) {
+      audioRef.current.volume = soundVolume * 0.3;
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {});
     }
-  }, [notifPrefs?.sound_enabled, notifPrefs?.sound_volume]);
+  }, []);
 
   const showNotification = useCallback(
     ({ title, body, icon, tag, onClick }: NotificationOptions) => {
@@ -91,7 +109,10 @@ export function useBrowserNotifications() {
         { event: "INSERT", schema: "public", table: "messages" },
         async (payload) => {
           if (payload.new.user_id === user.id) return;
-          if (!notifPrefs?.channel_notifications) return;
+
+          // Default to true if prefs haven't loaded — never block notifications silently
+          const prefs = notifPrefsRef.current;
+          if (prefs && prefs.channel_notifications === false) return;
 
           const [{ data: senderProfile }, { data: channel }] = await Promise.all([
             supabase.from("profiles").select("display_name, avatar_url").eq("id", payload.new.user_id).single(),
@@ -100,9 +121,11 @@ export function useBrowserNotifications() {
 
           if (channel?.workspace_id !== currentWorkspace.id) return;
 
+          // Always play sound regardless of tab visibility
           playSound();
 
-          if (document.visibilityState !== "visible" && permission === "granted") {
+          // Show browser notification only when tab is not visible
+          if (document.visibilityState !== "visible" && permissionRef.current === "granted") {
             showNotification({
               title: `${senderProfile?.display_name || "Alguém"} em #${channel?.name || "canal"}`,
               body: payload.new.content?.substring(0, 100) || "",
@@ -125,7 +148,10 @@ export function useBrowserNotifications() {
         { event: "INSERT", schema: "public", table: "dm_messages" },
         async (payload) => {
           if (payload.new.user_id === user.id) return;
-          if (!notifPrefs?.dm_notifications) return;
+
+          // Default to true if prefs haven't loaded
+          const prefs = notifPrefsRef.current;
+          if (prefs && prefs.dm_notifications === false) return;
 
           const [{ data: senderProfile }, { data: dm }] = await Promise.all([
             supabase.from("profiles").select("display_name, avatar_url").eq("id", payload.new.user_id).single(),
@@ -136,9 +162,11 @@ export function useBrowserNotifications() {
           if (dm.user1_id !== user.id && dm.user2_id !== user.id) return;
           if (dm.workspace_id !== currentWorkspace.id) return;
 
+          // Always play sound regardless of tab visibility
           playSound();
 
-          if (document.visibilityState !== "visible" && permission === "granted") {
+          // Show browser notification only when tab is not visible
+          if (document.visibilityState !== "visible" && permissionRef.current === "granted") {
             showNotification({
               title: `Nova mensagem de ${senderProfile?.display_name || "Alguém"}`,
               body: payload.new.content?.substring(0, 100) || "",
@@ -158,7 +186,8 @@ export function useBrowserNotifications() {
       if (channelMessagesRef.current) supabase.removeChannel(channelMessagesRef.current);
       if (channelDMsRef.current) supabase.removeChannel(channelDMsRef.current);
     };
-  }, [user?.id, currentWorkspace?.id, notifPrefs, showNotification, playSound, permission]);
+    // Only re-subscribe when user or workspace changes — NOT when prefs change
+  }, [user?.id, currentWorkspace?.id, showNotification, playSound, queryClient]);
 
   return {
     isSupported,
