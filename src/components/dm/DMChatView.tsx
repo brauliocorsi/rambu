@@ -70,22 +70,39 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     }
   }, [messages.length, isFetchingMore]);
 
+  const wasLoadingRef = useRef(true);
+
+  // Scroll to bottom when loading finishes (initial load or DM switch)
+  useEffect(() => {
+    if (isLoading) {
+      wasLoadingRef.current = true;
+    } else if (wasLoadingRef.current) {
+      wasLoadingRef.current = false;
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      });
+    }
+  }, [isLoading]);
+
+  // Reset refs when DM changes
+  useEffect(() => {
+    isNearBottomRef.current = true;
+    prevMessagesLengthRef.current = 0;
+    isLoadingMoreRef.current = false;
+    wasLoadingRef.current = true;
+  }, [dm.id]);
+
   // Auto-scroll on new messages
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
       if (isNearBottomRef.current) {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        requestAnimationFrame(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        });
       }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
-
-  // Scroll to bottom on mount
-  useEffect(() => {
-    isNearBottomRef.current = true;
-    prevMessagesLengthRef.current = messages.length;
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
-  }, [dm.id]);
 
   // Helper to format day separator
   const formatDaySeparator = (date: Date): string => {
