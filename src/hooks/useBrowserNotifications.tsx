@@ -13,6 +13,73 @@ interface NotificationOptions {
   onClick?: () => void;
 }
 
+// Shared audio unlock state — persists across hook instances
+let audioUnlocked = false;
+let sharedAudioElement: HTMLAudioElement | null = null;
+
+function getOrCreateAudio(): HTMLAudioElement {
+  if (!sharedAudioElement) {
+    sharedAudioElement = new Audio();
+    sharedAudioElement.preload = "auto";
+    sharedAudioElement.src = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+  }
+  return sharedAudioElement;
+}
+
+// Fallback: play a beep using Web Audio API (works even when Audio element fails)
+function playWebAudioBeep(volume: number) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    osc.type = "sine";
+    gain.gain.value = volume * 0.3;
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+// Unlock audio on first user interaction (required by iOS Safari and some browsers)
+function setupAudioUnlock() {
+  if (audioUnlocked) return;
+
+  const unlock = () => {
+    if (audioUnlocked) return;
+    const audio = getOrCreateAudio();
+    // Play + immediately pause to unlock the element
+    const p = audio.play();
+    if (p) {
+      p.then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audioUnlocked = true;
+      }).catch(() => {
+        // Still locked, will retry on next interaction
+      });
+    }
+    // Also unlock Web Audio API
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      ctx.resume().then(() => ctx.close()).catch(() => {});
+    } catch {}
+  };
+
+  const events = ["click", "touchstart", "keydown"];
+  const handler = () => {
+    unlock();
+    if (audioUnlocked) {
+      events.forEach((e) => document.removeEventListener(e, handler, true));
+    }
+  };
+  events.forEach((e) => document.addEventListener(e, handler, true));
+}
+
 export function useBrowserNotifications() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspaceContext();
@@ -22,10 +89,8 @@ export function useBrowserNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const channelMessagesRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelDMsRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Use refs for prefs so realtime callbacks always see latest values
-  // without needing to recreate subscriptions
   const notifPrefsRef = useRef(notifPrefs);
   const permissionRef = useRef(permission);
   notifPrefsRef.current = notifPrefs;
@@ -37,12 +102,11 @@ export function useBrowserNotifications() {
       setPermission(Notification.permission);
     }
 
-    audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-    audioRef.current.preload = "auto";
+    // Setup audio unlock on first user interaction
+    setupAudioUnlock();
 
-    return () => {
-      audioRef.current = null;
-    };
+    // Preload audio
+    getOrCreateAudio();
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -58,20 +122,26 @@ export function useBrowserNotifications() {
   }, [isSupported]);
 
   const playSound = useCallback(() => {
-    // Default to true if prefs haven't loaded yet — ensures sound always plays
     const prefs = notifPrefsRef.current;
     const soundEnabled = prefs?.sound_enabled ?? true;
     const soundVolume = prefs?.sound_volume ?? 0.5;
 
-    if (soundEnabled && audioRef.current) {
-      audioRef.current.volume = soundVolume * 0.3;
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
+    if (!soundEnabled) return;
+
+    const audio = getOrCreateAudio();
+    audio.volume = soundVolume * 0.3;
+    audio.currentTime = 0;
+    audio.play().catch(() => {
+      // HTMLAudioElement failed (CORS, autoplay policy, etc.) — use Web Audio API fallback
+      playWebAudioBeep(soundVolume);
+    });
   }, []);
 
   const showNotification = useCallback(
     ({ title, body, icon, tag, onClick }: NotificationOptions) => {
+      // Check permission at call time
+      if (permissionRef.current !== "granted") return;
+
       try {
         const notification = new Notification(title, {
           body,
@@ -87,7 +157,19 @@ export function useBrowserNotifications() {
         };
         setTimeout(() => notification.close(), 5000);
       } catch (error) {
-        console.error("Error showing notification:", error);
+        // Fallback for environments where Notification constructor fails (e.g. some mobile browsers)
+        // Try using Service Worker registration
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(title, {
+              body,
+              icon: icon || "/icons/icon-192x192.png",
+              tag,
+              badge: "/icons/icon-72x72.png",
+              silent: true,
+            }).catch(() => {});
+          }).catch(() => {});
+        }
       }
     },
     []
@@ -104,7 +186,6 @@ export function useBrowserNotifications() {
         async (payload) => {
           if (payload.new.user_id === user.id) return;
 
-          // Default to true if prefs haven't loaded — never block notifications silently
           const prefs = notifPrefsRef.current;
           if (prefs && prefs.channel_notifications === false) return;
 
@@ -119,7 +200,7 @@ export function useBrowserNotifications() {
           playSound();
 
           // Show browser notification only when tab is not visible
-          if (document.visibilityState !== "visible" && permissionRef.current === "granted") {
+          if (document.visibilityState !== "visible") {
             showNotification({
               title: `${senderProfile?.display_name || "Alguém"} em #${channel?.name || "canal"}`,
               body: payload.new.content?.substring(0, 100) || "",
@@ -143,7 +224,6 @@ export function useBrowserNotifications() {
         async (payload) => {
           if (payload.new.user_id === user.id) return;
 
-          // Default to true if prefs haven't loaded
           const prefs = notifPrefsRef.current;
           if (prefs && prefs.dm_notifications === false) return;
 
@@ -160,7 +240,7 @@ export function useBrowserNotifications() {
           playSound();
 
           // Show browser notification only when tab is not visible
-          if (document.visibilityState !== "visible" && permissionRef.current === "granted") {
+          if (document.visibilityState !== "visible") {
             showNotification({
               title: `Nova mensagem de ${senderProfile?.display_name || "Alguém"}`,
               body: payload.new.content?.substring(0, 100) || "",
@@ -180,7 +260,6 @@ export function useBrowserNotifications() {
       if (channelMessagesRef.current) supabase.removeChannel(channelMessagesRef.current);
       if (channelDMsRef.current) supabase.removeChannel(channelDMsRef.current);
     };
-    // Only re-subscribe when user or workspace changes — NOT when prefs change
   }, [user?.id, currentWorkspace?.id, showNotification, playSound, queryClient]);
 
   return {
