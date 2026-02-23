@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Paperclip, Image, Clock, Mic, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
+import { useFilePasteDrop } from "@/hooks/useFilePasteDrop";
 import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { FilePreview } from "./FilePreview";
@@ -41,9 +42,20 @@ export function MessageInput({
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
   const inputRef = useRef<MentionInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const sendMessage = useSendMessage();
   const createScheduledMessage = useCreateScheduledMessage();
-  const { uploadFiles, isUploading, progress, maxFiles } = useFileUpload();
+
+  const handleFilesAdded = useCallback((files: UploadedFile[]) => {
+    setAttachedFiles((prev) => [...prev, ...files]);
+  }, []);
+
+  const { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles } = useFilePasteDrop({
+    attachedFiles,
+    onFilesAdded: handleFilesAdded,
+  });
+
+  const { uploadFiles } = useFileUpload();
   const { data: profile } = useProfile();
   const { getSuggestions, findByShortcut } = useQuickReplies();
   const { 
@@ -220,7 +232,13 @@ export function MessageInput({
   };
 
   return (
-    <div className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0">
+    <div
+      ref={containerRef}
+      className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0"
+      onPaste={handlePaste}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {/* Reply Preview */}
       <AnimatePresence>
         {replyTo && replyMessage && (
