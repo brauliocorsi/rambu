@@ -1,88 +1,50 @@
 
-## Visão Geral das Melhorias
 
-Respondo primeiro sua pergunta sobre Windows: como a aplicação é uma **PWA (Progressive Web App)**, qualquer atualização feita aqui é aplicada automaticamente quando o usuário recarregar o app instalado, seja no Windows, Android ou iOS. Não é necessário reinstalar.
+## Corrigir Realtime de DMs e Barra de Rolagem
 
----
+### Problemas Identificados
 
-## Problemas Identificados
+1. **Mensagens recebidas em DM nao aparecem na conversa aberta**: O realtime subscription em `useInfiniteDMMessages` usa cache update manual (`setQueryData`), mas a mensagem pode nao aparecer se o cache ainda nao foi inicializado (ex: `oldData` e `null` quando a query esta em estado `loading`). Alem disso, o `useSendDMMessage` faz optimistic update + o realtime tambem tenta inserir a mesma mensagem, mas a deduplicacao depende de timing.
 
-### 1. Notificações Confusas e Duplicadas
-O sistema atual tem **três camadas de notificação sobrepostas** sem organização clara:
-- `useInAppNotifications` — notificações do banco com sino (Bell)
-- `useBrowserNotifications` — notificações browser em tempo real (Realtime)
-- `useMentionsFeed` — menções separadas
-- `useUnreadFeed` — feed de não lidas
+2. **Scroll nao vai para o fundo ao abrir conversa**: O `useEffect` com `dm.id` faz `setTimeout(() => bottomRef.current?.scrollIntoView(...), 50)` — mas nesse momento os dados podem ainda estar carregando (`isLoading = true`), entao `bottomRef` nao esta renderizado no DOM. O scroll precisa acontecer **apos** as mensagens serem renderizadas.
 
-O resultado: o sino (Bell) mostra notificações de canais, menções, e DMs misturados — e o `notify_on_channel_message` ainda notifica **todos os membros do workspace** em vez de apenas os membros do canal!
+3. **Scroll nao acompanha mensagens novas recebidas**: O auto-scroll depende de `messages.length` mudar, mas o `prevMessagesLengthRef` pode ficar dessincronizado quando o `dm.id` muda (o ref e atualizado com `messages.length` do DM anterior que pode ser igual ao novo).
 
-### 2. Badge de Contagem nos Canais
-A `ChannelList` (desktop) já passa `unreadCounts` via props, mas a `CategoryManager` que renderiza os canais precisa exibir os badges corretamente dentro dos grupos de categoria.
+### Solucao
 
-### 3. Fluidez
-- A `useUnreadChannelCounts` faz N chamadas sequenciais (uma por canal) em vez de uma query agregada — causa lentidão perceptível.
+#### 1. Corrigir scroll inicial ao abrir conversa (`DMChatView.tsx`)
+- Adicionar um efeito que observa `isLoading` passando de `true` para `false` — e nesse momento faz o scroll instantaneo para o fundo.
+- Remover o `setTimeout` fragil de 50ms que nem sempre funciona.
 
----
+#### 2. Garantir scroll ao receber mensagem nova (`DMChatView.tsx`)  
+- Resetar `prevMessagesLengthRef` para 0 quando `dm.id` muda, garantindo que qualquer mensagem carregada sera tratada como "nova".
+- Usar `requestAnimationFrame` apos a atualizacao de estado para garantir que o DOM ja renderizou antes de scrollar.
 
-## Plano de Implementação
+#### 3. Tornar realtime mais robusto (`useInfiniteDMMessages.tsx`)
+- Alem do cache update manual, tambem fazer `invalidateQueries` como fallback — se o `setQueryData` falhar por qualquer motivo (cache nulo, timing), a invalidacao forca um refetch completo.
+- Isso garante que mesmo em cenarios edge (cache nao inicializado, app em background), as mensagens aparecem.
 
-### Parte 1 — Corrigir Fluxo de Notificações (Organizado por Tipo)
+#### 4. Tambem aplicar as mesmas correcoes no canal (`useInfiniteMessages.tsx` e `MessageList.tsx`)
+- As mesmas melhorias de robustez serao aplicadas no fluxo de canais para consistencia.
 
-**Estrutura clara que será implementada:**
+### Arquivos a Modificar
 
-```text
-SINO (Bell) = Notificações In-App
-├── @menção → tipo "mention"
-├── DM recebido → tipo "dm"  
-├── Resposta em thread → tipo "thread_reply"
-└── Lembrete disparado → tipo "reminder"
-(Canais NÃO geram notificação no sino — apenas no badge de não lida)
+- `src/components/dm/DMChatView.tsx` — corrigir logica de scroll (inicial + novas mensagens)
+- `src/hooks/useInfiniteDMMessages.tsx` — adicionar `invalidateQueries` como fallback no realtime
+- `src/hooks/useInfiniteMessages.tsx` — mesma melhoria de robustez  
+- `src/components/message/MessageList.tsx` — mesma correcao de scroll
 
-INBOX (Inbox) = Feed de Não Lidas
-├── Canais com mensagens não lidas
-├── DMs não lidos
-└── Grupos não lidos
+### Detalhes Tecnicos
 
-@MENÇÕES (AtSign) = Apenas menções diretas ao usuário
-```
+**DMChatView.tsx — scroll corrigido:**
+- Novo `useEffect` que detecta `isLoading` transitando para `false` e executa scroll instantaneo
+- `prevMessagesLengthRef.current = 0` ao mudar de DM
+- Usar `requestAnimationFrame` para scroll apos render
 
-**Mudança no banco (migration):**
-- Corrigir `notify_on_channel_message` para notificar **apenas membros do canal** (não todos do workspace)
-- Remover tipo `"channel"` do sino — canais não geram notificação in-app, só atualizam badge de não lida
+**useInfiniteDMMessages.tsx — realtime robusto:**
+- Apos `setQueryData` no INSERT, adicionar `queryClient.invalidateQueries(...)` com um delay curto como safety net
+- Isso garante que se o cache manual falhou, os dados sao refrescados
 
-### Parte 2 — Performance: Unread Counts Otimizado
+**useInfiniteMessages.tsx — mesma melhoria:**
+- Aplicar o mesmo padrao de invalidacao como fallback
 
-Substituir N queries sequenciais por **uma única query agregada** com GROUP BY no `useUnreadChannelCounts` e `useUnreadDMCounts`. Isso reduzirá o tempo de carregamento consideravelmente.
-
-**Antes:** Loop com N chamadas individuais (1 por canal)
-**Depois:** 1 chamada SQL com `count(*)` agrupado por canal_id
-
-### Parte 3 — Badges de Contagem nos Canais
-
-- **Desktop:** Garantir que o badge aparece na `ChannelList` lateral para cada canal com mensagens não lidas (já existe infraestrutura, ajustar o repasse para `CategoryManager`)
-- **Mobile:** Adicionar badge de contagem na aba "Canais" no `MobileNav`, mostrando o total de não lidas dos canais
-
-### Parte 4 — Centro de Notificações Reorganizado
-
-Reorganizar o `NotificationCenter` com **abas por tipo**:
-- **Tudo** — todas as notificações ordenadas por data
-- **Menções (@)** — apenas menções
-- **DMs** — apenas mensagens diretas  
-- **Lembretes** — apenas lembretes disparados
-
-Cada aba terá seu próprio badge de contagem e ação de "marcar todas como lidas".
-
----
-
-## Arquivos a Modificar
-
-**Backend (migrations):**
-- Corrigir `notify_on_channel_message` — notificar apenas membros do canal
-- Remover notificações in-app de tipo `"channel"` genérico (barulho desnecessário)
-
-**Frontend:**
-- `src/hooks/useNotifications.tsx` — otimizar queries de unread counts (N→1 query)
-- `src/components/notifications/NotificationCenter.tsx` — adicionar abas por tipo
-- `src/components/channel/ChannelList.tsx` — verificar badges de unread (desktop)
-- `src/components/app/views/ChannelsView.tsx` — garantir repasse dos unread counts
-- `src/components/app/DesktopApp.tsx` — badge no botão de canais da sidebar
