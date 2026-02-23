@@ -152,9 +152,16 @@ export function useBrowserNotifications() {
       };
 
       // Try Service Worker first (more reliable on macOS Safari & PWAs)
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      // Safari may not have .controller on first load, so check .ready instead
+      if ("serviceWorker" in navigator) {
         navigator.serviceWorker.ready
-          .then((reg) => reg.showNotification(title, notifOptions))
+          .then((reg) => {
+            // Check if showNotification is available (Safari PWA)
+            if (reg.showNotification) {
+              return reg.showNotification(title, notifOptions);
+            }
+            throw new Error("showNotification not available");
+          })
           .catch(() => {
             // SW notification failed, fall back to Notification API
             showNativeNotification(title, notifOptions, onClick);
