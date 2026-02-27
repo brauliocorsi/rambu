@@ -223,6 +223,7 @@ export function useMarkChannelAsRead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["unread-channel-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["unread-feed"] });
     },
   });
 }
@@ -257,6 +258,7 @@ export function useMarkDMAsRead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["unread-feed"] });
     },
   });
 }

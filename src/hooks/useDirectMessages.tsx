@@ -58,35 +58,49 @@ export function useDirectMessages(workspaceId: string | null) {
 
       if (error) throw error;
 
-      // Get other user's profile for each DM
-      const dmsWithProfiles = await Promise.all(
-        (data || []).map(async (dm) => {
-          const otherId = dm.user1_id === user.id ? dm.user2_id : dm.user1_id;
-          
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, display_name, avatar_url, status, last_seen")
-            .eq("id", otherId)
-            .single();
+      if (!data || data.length === 0) return [];
 
-          // Get last message
-          const { data: lastMsg } = await supabase
-            .from("dm_messages")
-            .select("content, created_at")
-            .eq("dm_id", dm.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
+      // Batch fetch all other user profiles in one query
+      const otherUserIds = data.map((dm) => dm.user1_id === user.id ? dm.user2_id : dm.user1_id);
+      const uniqueUserIds = [...new Set(otherUserIds)];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, status, last_seen")
+        .in("id", uniqueUserIds);
 
-          return {
-            ...dm,
-            other_user: profile || undefined,
-            last_message: lastMsg || undefined,
-          } as DirectMessage;
-        })
+      const profileMap = new Map(
+        (profiles || []).map((p) => [p.id, p])
       );
 
-      return dmsWithProfiles;
+      // Batch fetch last messages for all DMs using a single query per DM
+      // We use Promise.all but with a single lightweight query each
+      const dmIds = data.map((dm) => dm.id);
+      const lastMessagesPromises = dmIds.map((dmId) =>
+        supabase
+          .from("dm_messages")
+          .select("content, created_at, dm_id")
+          .eq("dm_id", dmId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      );
+      const lastMessagesResults = await Promise.all(lastMessagesPromises);
+      const lastMessageMap = new Map(
+        lastMessagesResults
+          .map((r) => r.data)
+          .filter(Boolean)
+          .map((msg) => [msg!.dm_id, { content: msg!.content, created_at: msg!.created_at }])
+      );
+
+      return data.map((dm) => {
+        const otherId = dm.user1_id === user.id ? dm.user2_id : dm.user1_id;
+        return {
+          ...dm,
+          other_user: profileMap.get(otherId) || undefined,
+          last_message: lastMessageMap.get(dm.id) || undefined,
+        } as DirectMessage;
+      });
     },
     enabled: !!workspaceId && !!user,
   });
@@ -145,7 +159,18 @@ export function useDMMessages(dmId: string | null) {
             if (data) {
               queryClient.setQueryData(
                 ["dm-messages", dmId],
-                (old: DMMessage[] | undefined) => [...(old || []), data as unknown as DMMessage]
+                (old: DMMessage[] | undefined) => {
+                  // Deduplicate: check if message already exists (from optimistic update)
+                  if (old?.some((msg) => msg.id === data.id || 
+                    (msg.id.startsWith("temp-") && msg.user_id === data.user_id && msg.content === data.content))) {
+                    return old.map((msg) =>
+                      (msg.id.startsWith("temp-") && msg.user_id === data.user_id && msg.content === data.content)
+                        ? data as unknown as DMMessage
+                        : msg
+                    );
+                  }
+                  return [...(old || []), data as unknown as DMMessage];
+                }
               );
             }
           }
