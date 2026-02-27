@@ -89,6 +89,7 @@ export function useBrowserNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const channelMessagesRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelDMsRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelGroupDMsRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Use refs for prefs so realtime callbacks always see latest values
   const notifPrefsRef = useRef(notifPrefs);
@@ -226,6 +227,7 @@ export function useBrowserNotifications() {
           queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
           queryClient.invalidateQueries({ queryKey: ["notifications_count", user.id] });
           queryClient.invalidateQueries({ queryKey: ["unread-channel-counts"] });
+          queryClient.invalidateQueries({ queryKey: ["unread-feed"] });
         }
       )
       .subscribe();
@@ -266,6 +268,62 @@ export function useBrowserNotifications() {
           queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
           queryClient.invalidateQueries({ queryKey: ["notifications_count", user.id] });
           queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });
+          queryClient.invalidateQueries({ queryKey: ["unread-feed"] });
+          queryClient.invalidateQueries({ queryKey: ["direct-messages"] });
+        }
+      )
+      .subscribe();
+
+    // Subscribe to group DM messages
+    channelGroupDMsRef.current = supabase
+      .channel("global-group-dm-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "dm_group_messages" },
+        async (payload) => {
+          if (payload.new.user_id === user.id) return;
+
+          const prefs = notifPrefsRef.current;
+          if (prefs && prefs.dm_notifications === false) return;
+
+          // Verify user is a member of this group
+          const { data: membership } = await supabase
+            .from("dm_group_members")
+            .select("id")
+            .eq("group_id", payload.new.group_id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (!membership) return;
+
+          // Check group belongs to current workspace
+          const { data: group } = await supabase
+            .from("dm_groups")
+            .select("name, workspace_id")
+            .eq("id", payload.new.group_id)
+            .single();
+
+          if (group?.workspace_id !== currentWorkspace.id) return;
+
+          const { data: senderProfile } = await supabase
+            .from("profiles")
+            .select("display_name, avatar_url")
+            .eq("id", payload.new.user_id)
+            .single();
+
+          playSound();
+
+          if (document.visibilityState !== "visible") {
+            showNotification({
+              title: `${senderProfile?.display_name || "Alguém"} em ${group?.name || "Grupo"}`,
+              body: payload.new.content?.substring(0, 100) || "",
+              icon: senderProfile?.avatar_url || undefined,
+              tag: `group-${payload.new.group_id}`,
+            });
+          }
+
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["unread-feed"] });
         }
       )
       .subscribe();
@@ -273,6 +331,7 @@ export function useBrowserNotifications() {
     return () => {
       if (channelMessagesRef.current) supabase.removeChannel(channelMessagesRef.current);
       if (channelDMsRef.current) supabase.removeChannel(channelDMsRef.current);
+      if (channelGroupDMsRef.current) supabase.removeChannel(channelGroupDMsRef.current);
     };
   }, [user?.id, currentWorkspace?.id, showNotification, playSound, queryClient]);
 

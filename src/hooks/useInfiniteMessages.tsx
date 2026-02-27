@@ -110,10 +110,6 @@ export function useInfiniteMessages(channelId: string | null) {
                 }
               );
 
-              // Fallback: invalidate to ensure data appears even if cache update failed
-              setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ["infinite-messages", channelId] });
-              }, 500);
             }
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
