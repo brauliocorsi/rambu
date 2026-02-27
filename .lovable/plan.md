@@ -1,50 +1,63 @@
 
 
-## Corrigir Realtime de DMs e Barra de Rolagem
+# Plano: Melhorar Fluidez do Sistema e Fluxo de Notificações
 
-### Problemas Identificados
+## Problemas Identificados
 
-1. **Mensagens recebidas em DM nao aparecem na conversa aberta**: O realtime subscription em `useInfiniteDMMessages` usa cache update manual (`setQueryData`), mas a mensagem pode nao aparecer se o cache ainda nao foi inicializado (ex: `oldData` e `null` quando a query esta em estado `loading`). Alem disso, o `useSendDMMessage` faz optimistic update + o realtime tambem tenta inserir a mesma mensagem, mas a deduplicacao depende de timing.
+### 1. Erros no Console
+- **ForwardMessageDialog** precisa de `React.forwardRef()` -- o React avisa que refs estao sendo passadas para um componente funcional sem suporte
 
-2. **Scroll nao vai para o fundo ao abrir conversa**: O `useEffect` com `dm.id` faz `setTimeout(() => bottomRef.current?.scrollIntoView(...), 50)` — mas nesse momento os dados podem ainda estar carregando (`isLoading = true`), entao `bottomRef` nao esta renderizado no DOM. O scroll precisa acontecer **apos** as mensagens serem renderizadas.
+### 2. Performance das Notificações e Unread Counts
+- **useUnreadFeed**: faz queries sequenciais em loop (N+1 queries) para cada canal, DM e grupo -- causa lentidao significativa
+- **useUnreadChannelCounts** e **useUnreadDMCounts**: tambem fazem N queries paralelas individuais (uma por canal/DM)
+- **useDirectMessages**: faz N+1 queries sequenciais (uma query por DM para buscar perfil + ultima mensagem)
 
-3. **Scroll nao acompanha mensagens novas recebidas**: O auto-scroll depende de `messages.length` mudar, mas o `prevMessagesLengthRef` pode ficar dessincronizado quando o `dm.id` muda (o ref e atualizado com `messages.length` do DM anterior que pode ser igual ao novo).
+### 3. Fluxo de Notificações -- Gaps
+- **Notificações de grupo DM**: o hook `useBrowserNotifications` nao monitora `dm_group_messages`, entao mensagens em grupos nao geram som nem notificação externa
+- **Invalidação de cache incompleta**: ao receber nova DM, o `direct-messages` query nao e invalidado (a lista de DMs nao atualiza a ultima mensagem)
+- **Notificação duplicada em DMs**: o trigger `notify_on_dm_message` cria notificação in-app E o realtime hook tambem dispara notificação push -- pode resultar em duplicação
 
-### Solucao
+### 4. Fluidez da Interface
+- **Realtime no useInfiniteMessages**: o `setTimeout` de 500ms para invalidar queries apos INSERT e uma solução fragil que causa re-renders desnecessarios
+- **Scroll para baixo**: ao receber nova mensagem pode nao rolar automaticamente se o usuario estiver lendo mensagens antigas
 
-#### 1. Corrigir scroll inicial ao abrir conversa (`DMChatView.tsx`)
-- Adicionar um efeito que observa `isLoading` passando de `true` para `false` — e nesse momento faz o scroll instantaneo para o fundo.
-- Remover o `setTimeout` fragil de 50ms que nem sempre funciona.
+---
 
-#### 2. Garantir scroll ao receber mensagem nova (`DMChatView.tsx`)  
-- Resetar `prevMessagesLengthRef` para 0 quando `dm.id` muda, garantindo que qualquer mensagem carregada sera tratada como "nova".
-- Usar `requestAnimationFrame` apos a atualizacao de estado para garantir que o DOM ja renderizou antes de scrollar.
+## Mudanças Planejadas
 
-#### 3. Tornar realtime mais robusto (`useInfiniteDMMessages.tsx`)
-- Alem do cache update manual, tambem fazer `invalidateQueries` como fallback — se o `setQueryData` falhar por qualquer motivo (cache nulo, timing), a invalidacao forca um refetch completo.
-- Isso garante que mesmo em cenarios edge (cache nao inicializado, app em background), as mensagens aparecem.
+### A. Corrigir warning de ref no ForwardMessageDialog
+- Adicionar `React.forwardRef` ao componente `ForwardMessageDialog`
 
-#### 4. Tambem aplicar as mesmas correcoes no canal (`useInfiniteMessages.tsx` e `MessageList.tsx`)
-- As mesmas melhorias de robustez serao aplicadas no fluxo de canais para consistencia.
+### B. Otimizar queries de contagem de nao-lidas
+- **useNotifications.tsx**: Consolidar as queries de `useUnreadChannelCounts` para usar batch counting (buscar todas as contagens em menos roundtrips)
+- **useDirectMessages.tsx**: Buscar perfis e ultimas mensagens com JOINs em vez de N queries individuais
 
-### Arquivos a Modificar
+### C. Completar o fluxo de notificações
+- **useBrowserNotifications.tsx**: Adicionar subscription para `dm_group_messages` para que grupos tambem gerem som e notificação
+- Invalidar query `direct-messages` ao receber nova DM para atualizar a lista na sidebar
+- Invalidar `unread-feed` ao receber novas mensagens para o feed de nao-lidas atualizar automaticamente
 
-- `src/components/dm/DMChatView.tsx` — corrigir logica de scroll (inicial + novas mensagens)
-- `src/hooks/useInfiniteDMMessages.tsx` — adicionar `invalidateQueries` como fallback no realtime
-- `src/hooks/useInfiniteMessages.tsx` — mesma melhoria de robustez  
-- `src/components/message/MessageList.tsx` — mesma correcao de scroll
+### D. Remover invalidação fragil
+- **useInfiniteMessages.tsx**: Remover o `setTimeout` de 500ms que faz invalidação redundante -- a atualização otimista do cache ja e suficiente
 
-### Detalhes Tecnicos
+### E. Melhorar fluidez do DM realtime
+- **useDirectMessages.tsx (useDMMessages)**: Adicionar deduplicação na subscription realtime (evitar mensagens duplicadas por otimistic update + realtime)
 
-**DMChatView.tsx — scroll corrigido:**
-- Novo `useEffect` que detecta `isLoading` transitando para `false` e executa scroll instantaneo
-- `prevMessagesLengthRef.current = 0` ao mudar de DM
-- Usar `requestAnimationFrame` para scroll apos render
+---
 
-**useInfiniteDMMessages.tsx — realtime robusto:**
-- Apos `setQueryData` no INSERT, adicionar `queryClient.invalidateQueries(...)` com um delay curto como safety net
-- Isso garante que se o cache manual falhou, os dados sao refrescados
+## Detalhes Tecnicos
 
-**useInfiniteMessages.tsx — mesma melhoria:**
-- Aplicar o mesmo padrao de invalidacao como fallback
+### Arquivos a modificar:
+1. `src/components/message/ForwardMessageDialog.tsx` -- forwardRef
+2. `src/hooks/useBrowserNotifications.tsx` -- adicionar channel para dm_group_messages + invalidar direct-messages e unread-feed
+3. `src/hooks/useInfiniteMessages.tsx` -- remover setTimeout fallback
+4. `src/hooks/useDirectMessages.tsx` -- deduplicação no realtime de DM messages, otimizar fetch com JOINs
+5. `src/hooks/useNotifications.tsx` -- invalidar mais queries no realtime
+
+### Impacto esperado:
+- Menos queries ao banco (redução de N+1)
+- Notificações funcionando para todos os tipos de chat (canal, DM, grupo)
+- Sem warnings no console
+- Transições mais suaves sem re-fetches desnecessarios
+- Feed de nao-lidas atualizado em tempo real
 
