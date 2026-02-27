@@ -255,13 +255,17 @@ export function MessageInput({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-3"
+            className="mb-3 bg-secondary/50 rounded-xl p-3"
           >
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Image className="h-4 w-4" />
-              <span>Enviando arquivo...</span>
+            <div className="flex items-center gap-2 text-sm text-foreground mb-2">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
+              />
+              <span className="font-medium">Enviando arquivo... {progress}%</span>
             </div>
-            <Progress value={progress} className="h-1" />
+            <Progress value={progress} className="h-2" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -273,18 +277,25 @@ export function MessageInput({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="mb-3 flex flex-wrap gap-2"
+            className="mb-3"
           >
-            {attachedFiles.map((file, index) => (
-              <FilePreview
-                key={`${file.url}-${index}`}
-                url={file.url}
-                name={file.name}
-                type={file.type}
-                onRemove={() => handleRemoveFile(index)}
-                compact
-              />
-            ))}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-primary">
+                ✓ {attachedFiles.length} arquivo{attachedFiles.length > 1 ? "s" : ""} anexado{attachedFiles.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {attachedFiles.map((file, index) => (
+                <FilePreview
+                  key={`${file.url}-${index}`}
+                  url={file.url}
+                  name={file.name}
+                  type={file.type}
+                  onRemove={() => handleRemoveFile(index)}
+                  compact
+                />
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

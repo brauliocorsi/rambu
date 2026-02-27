@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { compressFiles } from "./useImageCompression";
 
 export interface UploadedFile {
   url: string;
@@ -76,16 +77,19 @@ export function useFileUpload() {
     }
   };
 
-  const uploadFiles = async (files: File[]): Promise<UploadedFile[]> => {
+  const uploadFiles = async (rawFiles: File[]): Promise<UploadedFile[]> => {
     if (!user) {
       toast.error("Você precisa estar logado para enviar arquivos");
       return [];
     }
 
-    if (files.length > MAX_FILES) {
+    if (rawFiles.length > MAX_FILES) {
       toast.error(`Máximo de ${MAX_FILES} arquivos por vez`);
       return [];
     }
+
+    // Compress images before uploading
+    const files = await compressFiles(rawFiles);
 
     setIsUploading(true);
     setProgress(0);
