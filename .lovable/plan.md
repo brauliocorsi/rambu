@@ -1,63 +1,56 @@
 
+# Pagina /install - Instrucoes de Instalacao PWA
 
-# Plano: Melhorar Fluidez do Sistema e Fluxo de Notificações
+## Objetivo
+Criar uma pagina publica `/install` com instrucoes visuais passo a passo para instalar o Rambu como PWA no iPhone e Android. A pagina nao exige autenticacao.
 
-## Problemas Identificados
+## Design da Pagina
 
-### 1. Erros no Console
-- **ForwardMessageDialog** precisa de `React.forwardRef()` -- o React avisa que refs estao sendo passadas para um componente funcional sem suporte
+A pagina tera:
+- Header com logo/nome "Rambu" e botao "Voltar ao Rambu"
+- Deteccao automatica do dispositivo (iOS/Android/Desktop) para mostrar as instrucoes relevantes primeiro
+- Tabs para alternar entre "iPhone/iPad" e "Android"
+- Passos numerados com icones ilustrativos (usando Lucide icons)
+- Secao de beneficios da instalacao (notificacoes, acesso rapido, offline)
 
-### 2. Performance das Notificações e Unread Counts
-- **useUnreadFeed**: faz queries sequenciais em loop (N+1 queries) para cada canal, DM e grupo -- causa lentidao significativa
-- **useUnreadChannelCounts** e **useUnreadDMCounts**: tambem fazem N queries paralelas individuais (uma por canal/DM)
-- **useDirectMessages**: faz N+1 queries sequenciais (uma query por DM para buscar perfil + ultima mensagem)
+### Instrucoes iOS (Safari)
+1. Abra o Rambu no **Safari** (nao funciona no Chrome/Firefox)
+2. Toque no botao **Compartilhar** (icone de quadrado com seta para cima)
+3. Role para baixo e toque em **"Adicionar a Tela de Inicio"**
+4. Toque em **"Adicionar"** no canto superior direito
+5. O Rambu aparecera como app na sua tela inicial
 
-### 3. Fluxo de Notificações -- Gaps
-- **Notificações de grupo DM**: o hook `useBrowserNotifications` nao monitora `dm_group_messages`, entao mensagens em grupos nao geram som nem notificação externa
-- **Invalidação de cache incompleta**: ao receber nova DM, o `direct-messages` query nao e invalidado (a lista de DMs nao atualiza a ultima mensagem)
-- **Notificação duplicada em DMs**: o trigger `notify_on_dm_message` cria notificação in-app E o realtime hook tambem dispara notificação push -- pode resultar em duplicação
+### Instrucoes Android (Chrome)
+1. Abra o Rambu no **Chrome**
+2. Toque no menu **tres pontos** no canto superior direito
+3. Toque em **"Adicionar a tela inicial"** ou **"Instalar app"**
+4. Confirme tocando em **"Adicionar"**
+5. O Rambu aparecera como app na sua tela inicial
 
-### 4. Fluidez da Interface
-- **Realtime no useInfiniteMessages**: o `setTimeout` de 500ms para invalidar queries apos INSERT e uma solução fragil que causa re-renders desnecessarios
-- **Scroll para baixo**: ao receber nova mensagem pode nao rolar automaticamente se o usuario estiver lendo mensagens antigas
+### Secao de Beneficios
+- Notificacoes push (mesmo com o app fechado)
+- Acesso rapido pela tela inicial
+- Experiencia em tela cheia
+- Funciona offline
 
----
-
-## Mudanças Planejadas
-
-### A. Corrigir warning de ref no ForwardMessageDialog
-- Adicionar `React.forwardRef` ao componente `ForwardMessageDialog`
-
-### B. Otimizar queries de contagem de nao-lidas
-- **useNotifications.tsx**: Consolidar as queries de `useUnreadChannelCounts` para usar batch counting (buscar todas as contagens em menos roundtrips)
-- **useDirectMessages.tsx**: Buscar perfis e ultimas mensagens com JOINs em vez de N queries individuais
-
-### C. Completar o fluxo de notificações
-- **useBrowserNotifications.tsx**: Adicionar subscription para `dm_group_messages` para que grupos tambem gerem som e notificação
-- Invalidar query `direct-messages` ao receber nova DM para atualizar a lista na sidebar
-- Invalidar `unread-feed` ao receber novas mensagens para o feed de nao-lidas atualizar automaticamente
-
-### D. Remover invalidação fragil
-- **useInfiniteMessages.tsx**: Remover o `setTimeout` de 500ms que faz invalidação redundante -- a atualização otimista do cache ja e suficiente
-
-### E. Melhorar fluidez do DM realtime
-- **useDirectMessages.tsx (useDMMessages)**: Adicionar deduplicação na subscription realtime (evitar mensagens duplicadas por otimistic update + realtime)
-
----
+### Para Desktop
+Mensagem informando que no desktop basta usar o navegador, com nota sobre o botao de instalar na barra de endereco do Chrome.
 
 ## Detalhes Tecnicos
 
+### Arquivos a criar:
+1. **`src/pages/InstallPWA.tsx`** - Pagina principal com deteccao de dispositivo, tabs iOS/Android, passos numerados com icones Lucide, animacoes com framer-motion, e design consistente com o tema do Rambu
+
 ### Arquivos a modificar:
-1. `src/components/message/ForwardMessageDialog.tsx` -- forwardRef
-2. `src/hooks/useBrowserNotifications.tsx` -- adicionar channel para dm_group_messages + invalidar direct-messages e unread-feed
-3. `src/hooks/useInfiniteMessages.tsx` -- remover setTimeout fallback
-4. `src/hooks/useDirectMessages.tsx` -- deduplicação no realtime de DM messages, otimizar fetch com JOINs
-5. `src/hooks/useNotifications.tsx` -- invalidar mais queries no realtime
+1. **`src/App.tsx`** - Adicionar rota `/install` (publica, sem autenticacao, fora do `RootContent`)
 
-### Impacto esperado:
-- Menos queries ao banco (redução de N+1)
-- Notificações funcionando para todos os tipos de chat (canal, DM, grupo)
-- Sem warnings no console
-- Transições mais suaves sem re-fetches desnecessarios
-- Feed de nao-lidas atualizado em tempo real
+### Componentes utilizados:
+- `Tabs` do Radix UI para alternar iOS/Android
+- `Card` para agrupar passos
+- `Button` para "Voltar ao Rambu"
+- `motion.div` do framer-motion para animacoes de entrada
+- Icones Lucide: `Share`, `Plus`, `MoreVertical`, `Download`, `Bell`, `Zap`, `Wifi`, `Smartphone`, `Monitor`, `ArrowLeft`, `ExternalLink`
 
+### Deteccao de dispositivo:
+- `navigator.userAgent` para detectar iOS, Android ou Desktop
+- Tab padrao sera a do dispositivo detectado
