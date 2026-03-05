@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarWithStatus } from "@/components/user/OnlineIndicator";
+import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { isUserOnline } from "@/hooks/usePresence";
 import { Card } from "@/components/ui/card";
 import { Users, Circle } from "lucide-react";
@@ -22,9 +23,11 @@ interface WorkspaceUsersListProps {
   members: WorkspaceUser[];
   currentUserId?: string;
   onSelectUser?: (userId: string) => void;
+  /** Map of user_id -> unread count */
+  userUnreadCounts?: Record<string, number>;
 }
 
-export function WorkspaceUsersList({ members, currentUserId, onSelectUser }: WorkspaceUsersListProps) {
+export function WorkspaceUsersList({ members, currentUserId, onSelectUser, userUnreadCounts = {} }: WorkspaceUsersListProps) {
   // Separate online and offline, excluding current user
   const otherMembers = members.filter(m => m.user_id !== currentUserId);
   
@@ -58,7 +61,7 @@ export function WorkspaceUsersList({ members, currentUserId, onSelectUser }: Wor
               Online — {onlineMembers.length}
             </p>
             {onlineMembers.map((member, i) => (
-              <UserItem key={member.id} member={member} index={i} onSelect={onSelectUser} />
+              <UserItem key={member.id} member={member} index={i} onSelect={onSelectUser} unreadCount={userUnreadCounts[member.user_id] || 0} />
             ))}
           </div>
         )}
@@ -71,7 +74,7 @@ export function WorkspaceUsersList({ members, currentUserId, onSelectUser }: Wor
               Offline — {offlineMembers.length}
             </p>
             {offlineMembers.map((member, i) => (
-              <UserItem key={member.id} member={member} index={i} onSelect={onSelectUser} />
+              <UserItem key={member.id} member={member} index={i} onSelect={onSelectUser} unreadCount={userUnreadCounts[member.user_id] || 0} />
             ))}
           </div>
         )}
@@ -80,7 +83,7 @@ export function WorkspaceUsersList({ members, currentUserId, onSelectUser }: Wor
   );
 }
 
-function UserItem({ member, index, onSelect }: { member: WorkspaceUser; index: number; onSelect?: (userId: string) => void }) {
+function UserItem({ member, index, onSelect, unreadCount = 0 }: { member: WorkspaceUser; index: number; onSelect?: (userId: string) => void; unreadCount?: number }) {
   const displayName = member.profile?.display_name || "Usuário";
   const status = member.profile?.status || null;
   const lastSeen = member.profile?.last_seen || null;
@@ -93,17 +96,20 @@ function UserItem({ member, index, onSelect }: { member: WorkspaceUser; index: n
       onClick={() => onSelect?.(member.user_id)}
       className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-secondary"
     >
-      <AvatarWithStatus status={status} lastSeen={lastSeen} indicatorSize="sm">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={member.profile?.avatar_url || undefined} />
-          <AvatarFallback className="text-xs gradient-primary text-white">
-            {displayName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      </AvatarWithStatus>
+      <div className="relative shrink-0">
+        {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="absolute -top-1 -right-1 z-10" />}
+        <AvatarWithStatus status={status} lastSeen={lastSeen} indicatorSize="sm">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={member.profile?.avatar_url || undefined} />
+            <AvatarFallback className="text-xs gradient-primary text-white">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </AvatarWithStatus>
+      </div>
       <span className={cn(
-        "text-sm truncate",
-        status === 'online' && isUserOnline(lastSeen) ? "font-medium" : "text-muted-foreground"
+        "text-sm truncate flex-1 min-w-0",
+        unreadCount > 0 ? "font-bold" : (status === 'online' && isUserOnline(lastSeen) ? "font-medium" : "text-muted-foreground")
       )}>
         {displayName}
       </span>
