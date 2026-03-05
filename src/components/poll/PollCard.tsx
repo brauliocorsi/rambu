@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { BarChart3, Check, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,16 +13,19 @@ interface Props {
 export function PollCard({ messageId }: Props) {
   const { data: poll, isLoading } = usePollByMessageId(messageId);
   const votePoll = useVotePoll();
+  const [justVoted, setJustVoted] = useState<string | null>(null);
 
   if (isLoading || !poll) return null;
 
   const handleVote = (optionId: string) => {
+    setJustVoted(optionId);
     votePoll.mutate({
       pollOptionId: optionId,
       pollId: poll.id,
       messageId,
       isMultipleChoice: poll.is_multiple_choice,
     });
+    setTimeout(() => setJustVoted(null), 600);
   };
 
   return (
@@ -55,10 +60,12 @@ export function PollCard({ messageId }: Props) {
             : 0;
 
           return (
-            <button
+            <motion.button
               key={option.id}
               onClick={() => handleVote(option.id)}
               disabled={votePoll.isPending}
+              layout
+              whileTap={{ scale: 0.97 }}
               className={cn(
                 "w-full relative rounded-lg border p-2.5 text-left transition-all overflow-hidden",
                 option.voted_by_me
@@ -67,19 +74,43 @@ export function PollCard({ messageId }: Props) {
               )}
             >
               {/* Progress bar background */}
-              <div
+              <motion.div
                 className={cn(
-                  "absolute inset-0 rounded-lg transition-all",
+                  "absolute inset-0 rounded-lg",
                   option.voted_by_me ? "bg-primary/10" : "bg-muted/30"
                 )}
-                style={{ width: `${percentage}%` }}
+                initial={false}
+                animate={{ width: `${percentage}%` }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
+
+              {/* Vote flash effect */}
+              <AnimatePresence>
+                {justVoted === option.id && (
+                  <motion.div
+                    className="absolute inset-0 rounded-lg bg-primary/20"
+                    initial={{ opacity: 0.8 }}
+                    animate={{ opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
 
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
-                  {option.voted_by_me && (
-                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                  )}
+                  <AnimatePresence mode="wait">
+                    {option.voted_by_me && (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -90 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 90 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                      >
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <span className={cn("text-xs", option.voted_by_me && "font-medium")}>
                     {option.option_text}
                   </span>
@@ -103,12 +134,18 @@ export function PollCard({ messageId }: Props) {
                       )}
                     </div>
                   )}
-                  <span className="text-[10px] font-medium text-muted-foreground">
+                  <motion.span
+                    key={percentage}
+                    initial={{ scale: 1.3, color: "hsl(var(--primary))" }}
+                    animate={{ scale: 1, color: "hsl(var(--muted-foreground))" }}
+                    transition={{ duration: 0.4 }}
+                    className="text-[10px] font-medium"
+                  >
                     {percentage}%
-                  </span>
+                  </motion.span>
                 </div>
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
