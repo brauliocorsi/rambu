@@ -44,7 +44,7 @@ export interface TaskInstance {
 }
 
 export function useTaskInstanceByMessageId(messageId: string | null) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["task-instance-by-message", messageId],
     queryFn: async () => {
       if (!messageId) return null;
@@ -99,7 +99,12 @@ export function useTaskInstanceByMessageId(messageId: string | null) {
       } as TaskInstance;
     },
     enabled: !!messageId,
+    refetchInterval: (query) => {
+      return query.state.data === null ? 2000 : false;
+    },
   });
+
+  return query;
 }
 
 export function useCreateTaskInstance() {
