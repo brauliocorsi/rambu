@@ -42,8 +42,11 @@ export function useInfiniteDMMessages(dmId: string | null) {
     enabled: !!dmId,
   });
 
-  // Flatten all pages into a single array
-  const allMessages = query.data?.pages.flatMap((page) => page.messages) || [];
+  // Flatten all pages into a single array (oldest -> newest)
+  const allMessages = (query.data?.pages ?? [])
+    .slice()
+    .reverse()
+    .flatMap((page) => page.messages);
 
   // Real-time subscription
   useEffect(() => {
@@ -99,14 +102,21 @@ export function useInfiniteDMMessages(dmId: string | null) {
                     };
                   }
 
-                  // Add to the last page if not exists
+                  // Add to the newest page (page 0), keeping chronological order consistent
                   const newPages = [...oldData.pages];
-                  if (newPages.length > 0) {
-                    newPages[newPages.length - 1] = {
-                      ...newPages[newPages.length - 1],
-                      messages: [...newPages[newPages.length - 1].messages, data as unknown as DMMessage],
+
+                  if (newPages.length === 0) {
+                    return {
+                      ...oldData,
+                      pages: [{ messages: [data as unknown as DMMessage], nextCursor: null }],
                     };
                   }
+
+                  newPages[0] = {
+                    ...newPages[0],
+                    messages: [...newPages[0].messages, data as unknown as DMMessage],
+                  };
+
                   return { ...oldData, pages: newPages };
                 }
               );

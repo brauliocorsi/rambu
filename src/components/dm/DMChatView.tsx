@@ -224,8 +224,8 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
 
             {/* Messages - Slack mode with day separators */}
             {preferences.slackMode && messageGroups ? (
-              messageGroups.map((group) => (
-                <div key={group.date.toISOString()}>
+              messageGroups.map((group, groupIndex) => (
+                <div key={`${group.date.toISOString()}-${group.messages[0]?.id ?? groupIndex}-${groupIndex}`}>
                   {/* Day separator */}
                   <div className="flex items-center gap-3 px-4 py-3">
                     <div className="flex-1 h-px bg-border" />
