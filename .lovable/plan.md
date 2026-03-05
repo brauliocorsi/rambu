@@ -1,49 +1,83 @@
 
 
-## Problema
+## Plano: Auto-atribuição em Templates + Tarefas com Checklist Recorrentes
 
-O scroll não vai consistentemente para a última mensagem ao abrir canais, DMs e grupos. O mecanismo atual usa `requestAnimationFrame` duplo + timeout de 150ms, mas isso pode falhar quando o conteúdo demora mais a renderizar (imagens, avatares, etc.). Além disso, o `GroupChatView` ainda usa o método antigo (`scrollIntoView` com timeout de 50ms).
+### Contexto Atual
+O sistema de tarefas permite criar templates com campos dinâmicos e atribuir manualmente a membros ao enviar. Não existe conceito de auto-atribuição no template nem checklists ou recorrência.
 
-## Plano
+---
 
-### 1. Melhorar scroll inicial em `MessageList.tsx` e `DMChatView.tsx`
+### 1. Auto-atribuição em Templates de Tarefa
 
-- Adicionar múltiplos timeouts escalonados (50ms, 200ms, 500ms) como fallback para garantir que o scroll chegue ao fundo mesmo com conteúdo de carregamento tardio
-- Usar `MutationObserver` no container para detectar quando novos elementos DOM são adicionados e re-executar o scroll durante o período inicial de carregamento
+**Objetivo:** Ao criar um template, o criador pode pré-configurar pessoas que serão automaticamente atribuídas sempre que o fluxo for usado.
 
-### 2. Atualizar `GroupChatView.tsx` com a mesma lógica robusta
+**Database:**
+- Nova tabela `task_template_assignees` com colunas: `id`, `template_id` (ref task_templates), `user_id`, `created_at`
+- RLS: template creator pode inserir/deletar; workspace members podem ler
 
-- O `GroupChatView` ainda usa `scrollIntoView` com timeout de 50ms — substituir pela mesma lógica de `scrollTop = scrollHeight` com rAF duplo + timeouts escalonados
-- Adicionar `ScrollToBottomButton` e `showScrollButton` state (que faltam neste componente)
-- Adicionar `wasLoadingRef` pattern igual aos outros componentes
+**UI - CreateTaskTemplateDialog:**
+- Adicionar seção "Auto-atribuição" com lista de membros do workspace (checkboxes), similar ao que já existe no TaskFormDialog
+- Guardar os user_ids selecionados na nova tabela ao criar o template
 
-### 3. Abordagem técnica do scroll robusto
+**UI - TaskFormDialog:**
+- Ao abrir um template que tem auto-assignees, pré-preencher `selectedAssignees` com esses users
+- O utilizador ainda pode adicionar/remover antes de enviar
 
-Em todos os três componentes, o efeito de scroll inicial será:
+**Hooks:**
+- `useTaskTemplateAssignees(templateId)` — busca assignees pré-configurados
+- Atualizar `useCreateTaskTemplate` para aceitar `defaultAssignees: string[]`
 
-```typescript
-useEffect(() => {
-  if (isLoading) {
-    wasLoadingRef.current = true;
-  } else if (wasLoadingRef.current) {
-    wasLoadingRef.current = false;
-    const doScroll = () => {
-      if (containerRef.current) {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      }
-    };
-    // Multiple attempts to catch late-rendering content
-    requestAnimationFrame(() => requestAnimationFrame(doScroll));
-    const t1 = setTimeout(doScroll, 100);
-    const t2 = setTimeout(doScroll, 300);
-    const t3 = setTimeout(doScroll, 600);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }
-}, [isLoading]);
-```
+---
 
-### Arquivos a editar
-- `src/components/message/MessageList.tsx` — reforçar scroll inicial
-- `src/components/dm/DMChatView.tsx` — reforçar scroll inicial  
-- `src/components/dm/GroupChatView.tsx` — substituir lógica antiga + adicionar ScrollToBottomButton
+### 2. Tarefas com Checklist Programadas e Recorrentes
+
+**Objetivo:** Criar tarefas que contêm uma lista de itens (checklist) e que podem ser agendadas e repetidas automaticamente.
+
+**Database:**
+- Nova tabela `task_checklist_items`: `id`, `task_instance_id`, `label` (text), `is_checked` (bool default false), `checked_by` (uuid nullable), `checked_at` (timestamptz nullable), `position` (int), `created_at`
+- RLS: channel members podem ler; assignees e creator podem update (check/uncheck)
+
+- Nova tabela `task_recurrence_rules`: `id`, `template_id`, `channel_id`, `created_by`, `cron_expression` (text — ex: "0 9 * * 1" para segunda às 9h), `auto_assignees` (jsonb array de user_ids), `is_active` (bool default true), `next_run_at` (timestamptz), `last_run_at` (timestamptz nullable), `created_at`
+- RLS: creator pode CRUD; workspace members podem ler
+
+- Adicionar campo `checklist_items` (jsonb) na tabela `task_templates` para guardar items default do checklist no template
+
+**UI - CreateTaskTemplateDialog:**
+- Nova seção "Checklist" onde o utilizador pode adicionar itens de checklist ao template (similar aos campos dinâmicos)
+- Toggle "Tarefa recorrente" com opções: diária, semanal (selecionar dia), mensal (selecionar dia do mês), ou cron personalizado
+- Selector de canal e hora de envio
+
+**UI - TaskCard:**
+- Renderizar checklist com checkboxes interativos
+- Barra de progresso mostrando X/Y itens concluídos
+- Cada item mostra quem marcou e quando
+
+**UI - TaskFormDialog:**
+- Mostrar checklist items pré-configurados do template (editáveis antes de enviar)
+- Permitir adicionar/remover items antes de submeter
+
+**Edge Function - process-recurring-tasks:**
+- Nova edge function que roda via cron (a cada minuto)
+- Busca regras de recorrência ativas onde `next_run_at <= now()`
+- Para cada regra: cria uma nova task_instance com os checklist items, envia mensagem no canal, atribui aos auto-assignees
+- Atualiza `next_run_at` baseado na expressão cron
+
+---
+
+### Ficheiros a criar/editar
+
+**Novos:**
+- Migration SQL (tabelas + RLS)
+- `src/hooks/useTaskTemplateAssignees.tsx`
+- `src/hooks/useTaskChecklist.tsx`
+- `src/hooks/useTaskRecurrence.tsx`
+- `supabase/functions/process-recurring-tasks/index.ts`
+
+**Editar:**
+- `src/components/tasks/CreateTaskTemplateDialog.tsx` — auto-assignees + checklist items + recorrência
+- `src/components/tasks/TaskFormDialog.tsx` — pré-preencher assignees + mostrar checklist editável
+- `src/components/tasks/TaskCard.tsx` — renderizar checklist interativo
+- `src/hooks/useTaskTemplates.tsx` — incluir checklist_items no template
+- `src/hooks/useTaskInstances.tsx` — criar checklist items ao criar instância
+- `supabase/config.toml` — registrar nova edge function
 
