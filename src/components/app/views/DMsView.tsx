@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
@@ -49,6 +49,20 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DMGroup | null>(null);
 
+  // Map unread DM counts to user IDs for the workspace users list
+  const userUnreadCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    dms.forEach(dm => {
+      if (dm.other_user?.id && unreadCounts[dm.id]) {
+        map[dm.other_user.id] = unreadCounts[dm.id];
+      }
+    });
+    return map;
+  }, [dms, unreadCounts]);
+
+  const isLoadingAll = isLoading || loadingGroups;
+  const hasNoConversations = dms.length === 0 && groups.length === 0;
+
   // Mark DM as read when selected
   useEffect(() => {
     if (selectedDM) {
@@ -82,9 +96,6 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
     );
   }
 
-  const isLoadingAll = isLoading || loadingGroups;
-  const hasNoConversations = dms.length === 0 && groups.length === 0;
-
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -112,6 +123,7 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
       <WorkspaceUsersList
         members={members}
         currentUserId={user?.id}
+        userUnreadCounts={userUnreadCounts}
         onSelectUser={(userId) => {
           const existingDM = dms.find(dm => dm.other_user?.id === userId);
           if (existingDM) {
