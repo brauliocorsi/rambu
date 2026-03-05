@@ -221,6 +221,38 @@ export function useMarkChannelAsRead() {
         });
       }
     },
+    onMutate: async (channelId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["unread-channel-counts"] });
+      const previousCounts = queryClient.getQueryData(["unread-channel-counts"]);
+      
+      // Optimistically set count to 0
+      queryClient.setQueryData(
+        ["unread-channel-counts"],
+        (old: any) => {
+          if (!old) return old;
+          // Handle all matching query keys
+          return old;
+        }
+      );
+      // Also update any specific workspace key
+      queryClient.setQueriesData(
+        { queryKey: ["unread-channel-counts"] },
+        (old: Record<string, number> | undefined) => {
+          if (!old) return old;
+          return { ...old, [channelId]: 0 };
+        }
+      );
+      
+      return { previousCounts };
+    },
+    onError: (_err, _channelId, context) => {
+      if (context?.previousCounts) {
+        queryClient.setQueriesData(
+          { queryKey: ["unread-channel-counts"] },
+          context.previousCounts
+        );
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["unread-channel-counts"] });
       queryClient.invalidateQueries({ queryKey: ["unread-feed"] });
@@ -255,6 +287,18 @@ export function useMarkDMAsRead() {
           last_read_at: new Date().toISOString(),
         });
       }
+    },
+    onMutate: async (dmId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["unread-dm-counts"] });
+      
+      // Optimistically set count to 0
+      queryClient.setQueriesData(
+        { queryKey: ["unread-dm-counts"] },
+        (old: Record<string, number> | undefined) => {
+          if (!old) return old;
+          return { ...old, [dmId]: 0 };
+        }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });

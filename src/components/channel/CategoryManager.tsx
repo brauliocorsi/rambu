@@ -120,14 +120,14 @@ function SortableChannel({
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </button>
 
-      <button onClick={onSelect} className="flex-1 flex items-center gap-2 text-left">
+      <button onClick={onSelect} className="flex-1 flex items-center gap-2 text-left min-w-0">
         {channel.is_private ? (
-          <Lock className="h-4 w-4 text-muted-foreground" />
+          <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
         ) : (
-          <Hash className="h-4 w-4 text-muted-foreground" />
+          <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
-        <span className="font-medium truncate">{channel.name}</span>
-        {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
+        <span className="font-medium truncate flex-1 min-w-0">{channel.name}</span>
+        {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="shrink-0" />}
       </button>
 
       <Button

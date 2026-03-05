@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { X, Check, CornerDownRight, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -133,9 +132,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className={cn(
           "group flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
           styles.container,
@@ -309,7 +306,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
             threadCount={threadCount}
           />
         )}
-      </motion.div>
+      </div>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

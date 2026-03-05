@@ -110,11 +110,6 @@ export function useInfiniteDMMessages(dmId: string | null) {
                   return { ...oldData, pages: newPages };
                 }
               );
-
-              // Fallback: invalidate to ensure data appears even if cache update failed
-              setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ["infinite-dm-messages", dmId] });
-              }, 500);
             }
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(

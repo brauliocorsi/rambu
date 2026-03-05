@@ -390,6 +390,8 @@ export function useSendDMMessage() {
             )
         );
       }
+      // Invalidate unread counts for other users
+      queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });
     },
   });
 }
