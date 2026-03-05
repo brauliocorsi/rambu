@@ -27,8 +27,10 @@ export function TaskCard({ messageId }: Props) {
 
   const status = statusConfig[task.status];
   const StatusIcon = status.icon;
+  const isAssigned = task.assigned_to && user?.id === task.assigned_to;
   const canAct = task.requires_approval && task.status === "pending" && user?.id !== task.created_by;
-  const canComplete = task.status === "pending" && task.assigned_to && user?.id === task.assigned_to;
+  const canComplete = task.status === "pending" && isAssigned;
+  const canReject = task.status === "pending" && isAssigned;
 
   return (
     <div className="mt-2 rounded-xl border border-border bg-card p-3 max-w-sm">
@@ -84,7 +86,7 @@ export function TaskCard({ messageId }: Props) {
       )}
 
       {/* Action buttons */}
-      {(canAct || canComplete) && (
+      {(canAct || canComplete || canReject) && (
         <div className="flex items-center gap-1.5 pt-1 border-t border-border mt-1">
           {canAct && (
             <>
@@ -120,6 +122,18 @@ export function TaskCard({ messageId }: Props) {
             >
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Concluir
+            </Button>
+          )}
+          {canReject && !canAct && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-destructive hover:bg-destructive/10"
+              onClick={() => updateStatus.mutate({ taskId: task.id, status: "rejected" })}
+              disabled={updateStatus.isPending}
+            >
+              <X className="h-3 w-3 mr-1" />
+              Rejeitar
             </Button>
           )}
         </div>
