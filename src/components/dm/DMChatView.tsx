@@ -269,7 +269,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
         {/* Scroll to bottom button */}
         <ScrollToBottomButton
           visible={showScrollButton}
-          onClick={() => scrollToBottom("smooth")}
+          onClick={() => scrollToBottom("instant")}
         />
       </div>
       {/* Input */}
