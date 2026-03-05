@@ -319,6 +319,8 @@ export function useSendMessage() {
             )
         );
       }
+      // Invalidate unread counts for other users
+      queryClient.invalidateQueries({ queryKey: ["unread-channel-counts"] });
     },
   });
 }

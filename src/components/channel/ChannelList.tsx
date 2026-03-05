@@ -51,13 +51,13 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
           )}
         >
           {isPrivate ? (
-            <Lock className="h-4 w-4 text-muted-foreground" />
+            <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
           ) : (
-            <Hash className="h-5 w-5 text-muted-foreground" />
+            <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           )}
-          <span className="font-medium flex-1 text-left truncate">{channel.name}</span>
-          {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
-          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <span className="font-medium flex-1 text-left truncate min-w-0">{channel.name}</span>
+          {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="shrink-0" />}
+          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
         </button>
 
         {/* Favorite button - shown on hover */}
