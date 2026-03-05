@@ -43,13 +43,18 @@ export function DMList({ dms, selectedDM, onSelectDM, unreadCounts = {} }: DMLis
               unreadCount > 0 && "font-semibold"
             )}
           >
-            <div className="shrink-0">
+            <div className="relative shrink-0">
+              {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 z-10">
+                  <UnreadBadge count={unreadCount} size="sm" />
+                </div>
+              )}
               <AvatarWithStatus
                 status={status}
                 lastSeen={lastSeen}
                 indicatorSize="sm"
               >
-                <Avatar className="h-12 w-12">
+                <Avatar className="h-11 w-11">
                   <AvatarImage src={dm.other_user?.avatar_url || undefined} />
                   <AvatarFallback className="gradient-primary text-white">
                     {displayName.charAt(0).toUpperCase()}
@@ -62,7 +67,6 @@ export function DMList({ dms, selectedDM, onSelectDM, unreadCounts = {} }: DMLis
               <div className="flex items-center justify-between gap-2">
                 <span className={cn("font-semibold truncate", unreadCount > 0 && "text-primary font-bold")}>{displayName}</span>
                 <div className="flex items-center gap-2 shrink-0">
-                  {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
                   {timeAgo && (
                     <span className="text-xs text-muted-foreground">{timeAgo}</span>
                   )}

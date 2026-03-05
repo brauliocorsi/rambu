@@ -99,7 +99,7 @@ function UserItem({ member, index, onSelect, unreadCount = 0 }: { member: Worksp
       <div className="relative shrink-0">
         {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="absolute -top-1 -right-1 z-10" />}
         <AvatarWithStatus status={status} lastSeen={lastSeen} indicatorSize="sm">
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-9 w-9">
             <AvatarImage src={member.profile?.avatar_url || undefined} />
             <AvatarFallback className="text-xs gradient-primary text-white">
               {displayName.charAt(0).toUpperCase()}
