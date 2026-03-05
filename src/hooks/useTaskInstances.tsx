@@ -204,8 +204,8 @@ export function useUpdateTaskStatus() {
 
       if (updateError) throw updateError;
 
-      // Create approval record
-      if (status === "approved" || status === "rejected") {
+      // Create approval/observation record
+      if (status === "approved" || status === "rejected" || (status === "completed" && comment)) {
         const { error: approvalError } = await supabase
           .from("task_approvals")
           .insert({
