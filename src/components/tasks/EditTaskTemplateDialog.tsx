@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, Plus, X, GripVertical, Type, Hash, AlignLeft, Paperclip, Users, CheckSquare } from "lucide-react";
+import { ClipboardList, Plus, X, GripVertical, Type, Hash, AlignLeft, Paperclip, CheckSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { useTaskTemplateWithFields, useUpdateTaskTemplate, type TaskTemplateField } from "@/hooks/useTaskTemplates";
 import { useTaskTemplateAssignees } from "@/hooks/useTaskTemplateAssignees";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { MemberSelector } from "@/components/tasks/MemberSelector";
 
 type FieldDraft = Omit<TaskTemplateField, "id" | "template_id">;
 
@@ -156,45 +153,11 @@ export function EditTaskTemplateDialog({ open, onClose, templateId, workspaceId 
           </div>
 
           {/* Auto-assign */}
-          <div>
-            <Label className="flex items-center gap-1.5 mb-2">
-              <Users className="h-3.5 w-3.5" />
-              Auto-atribuição (opcional)
-            </Label>
-            {selectedAssignees.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {selectedAssignees.map((userId) => {
-                  const member = members.find((m) => m.user_id === userId);
-                  return (
-                    <Badge key={userId} variant="secondary" className="flex items-center gap-1 pr-1">
-                      <Avatar className="h-4 w-4">
-                        <AvatarImage src={member?.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-[8px]">{(member?.profile?.display_name || "U").charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs">{member?.profile?.display_name || "Usuário"}</span>
-                      <button onClick={() => toggleAssignee(userId)} className="ml-0.5 rounded-full hover:bg-muted p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-            <ScrollArea className="max-h-48 border rounded-lg">
-              <div className="p-1">
-                {members.map((m) => (
-                  <label key={m.user_id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer">
-                    <Checkbox checked={selectedAssignees.includes(m.user_id)} onCheckedChange={() => toggleAssignee(m.user_id)} />
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={m.profile?.avatar_url || undefined} />
-                      <AvatarFallback className="text-[8px]">{(m.profile?.display_name || "U").charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{m.profile?.display_name || "Usuário"}</span>
-                  </label>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
+          <MemberSelector
+            members={members}
+            selectedAssignees={selectedAssignees}
+            toggleAssignee={toggleAssignee}
+          />
 
           {/* Checklist */}
           <div>
