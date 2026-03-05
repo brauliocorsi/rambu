@@ -134,12 +134,12 @@ export function MainApp() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
       <Header 
         title={getTitle()} 
         onSearchClick={() => setShowSearch(true)}
       />
-      <main className="pb-24">
+      <main className="flex-1 min-h-0 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab + (currentChannel?.id || "") + (selectedDM?.id || "") + (showSettings ? "settings" : "")}
@@ -147,6 +147,7 @@ export function MainApp() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
+            className="h-full"
           >
             {renderContent()}
           </motion.div>

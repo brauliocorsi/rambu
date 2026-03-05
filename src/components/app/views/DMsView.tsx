@@ -73,12 +73,12 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
 
   // Show group chat view
   if (selectedGroup) {
-    return <GroupChatView group={selectedGroup} onBack={() => setSelectedGroup(null)} />;
+    return <div className="h-full"><GroupChatView group={selectedGroup} onBack={() => setSelectedGroup(null)} /></div>;
   }
 
   // Show DM chat view
   if (selectedDM) {
-    return <DMChatView dm={selectedDM} onBack={() => onSelectDM(null)} />;
+    return <div className="h-full"><DMChatView dm={selectedDM} onBack={() => onSelectDM(null)} /></div>;
   }
 
   if (!currentWorkspace) {
@@ -98,7 +98,7 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 overflow-y-auto h-full pb-20">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Mensagens</h2>
         <DropdownMenu>

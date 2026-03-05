@@ -53,7 +53,7 @@ function ChannelChatView() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full min-h-0">
       {/* Channel Header */}
       <div className="flex items-center gap-3 p-4 border-b border-border">
         <Button
@@ -144,7 +144,7 @@ export function ChannelsView() {
   }, [currentChannel?.id]);
 
   if (currentChannel) {
-    return <ChannelChatView />;
+    return <div className="h-full"><ChannelChatView /></div>;
   }
 
   if (!currentWorkspace) {
@@ -164,7 +164,7 @@ export function ChannelsView() {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 overflow-y-auto h-full pb-20">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Canais</h2>
         <div className="flex items-center gap-1">

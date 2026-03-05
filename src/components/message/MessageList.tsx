@@ -198,11 +198,11 @@ export function MessageList({
   }
 
   return (
-    <div className="h-full relative">
+    <div className="flex-1 min-h-0 relative overflow-hidden">
       <div 
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto py-4 scroll-smooth"
+        className="absolute inset-0 overflow-y-auto py-4 scroll-smooth"
       >
         {/* Loading more indicator */}
         {isFetchingMore && (
