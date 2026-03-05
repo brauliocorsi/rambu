@@ -111,6 +111,11 @@ export function useInfiniteDMMessages(dmId: string | null) {
                 }
               );
             }
+
+            // Safety net: invalidate after a delay to catch any missed updates
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ["infinite-dm-messages", dmId] });
+            }, 1500);
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
               ["infinite-dm-messages", dmId],
