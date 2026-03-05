@@ -1311,6 +1311,54 @@ export type Database = {
           },
         ]
       }
+      task_checklist_items: {
+        Row: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          is_checked: boolean
+          label: string
+          position: number
+          task_instance_id: string
+        }
+        Insert: {
+          checked_at?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          label: string
+          position?: number
+          task_instance_id: string
+        }
+        Update: {
+          checked_at?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          label?: string
+          position?: number
+          task_instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_checklist_items_task_instance_id_fkey"
+            columns: ["task_instance_id"]
+            isOneToOne: false
+            referencedRelation: "task_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_field_values: {
         Row: {
           file_name: string | null
@@ -1431,6 +1479,103 @@ export type Database = {
           },
         ]
       }
+      task_recurrence_rules: {
+        Row: {
+          auto_assignees: Json
+          channel_id: string
+          created_at: string
+          created_by: string
+          cron_expression: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string
+          template_id: string
+        }
+        Insert: {
+          auto_assignees?: Json
+          channel_id: string
+          created_at?: string
+          created_by: string
+          cron_expression: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at: string
+          template_id: string
+        }
+        Update: {
+          auto_assignees?: Json
+          channel_id?: string
+          created_at?: string
+          created_by?: string
+          cron_expression?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_recurrence_rules_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_recurrence_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_recurrence_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_template_assignees: {
+        Row: {
+          created_at: string
+          id: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_template_assignees_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_template_assignees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_template_fields: {
         Row: {
           field_type: Database["public"]["Enums"]["task_field_type"]
@@ -1468,6 +1613,7 @@ export type Database = {
       }
       task_templates: {
         Row: {
+          checklist_items: Json | null
           created_at: string
           created_by: string
           description: string | null
@@ -1476,6 +1622,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          checklist_items?: Json | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -1484,6 +1631,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          checklist_items?: Json | null
           created_at?: string
           created_by?: string
           description?: string | null

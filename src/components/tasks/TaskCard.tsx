@@ -1,12 +1,16 @@
-import { ClipboardList, User, Check, X, CheckCircle2, Clock, XCircle, ShieldCheck, Users } from "lucide-react";
+import { ClipboardList, User, Check, X, CheckCircle2, Clock, XCircle, ShieldCheck, Users, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { useTaskInstanceByMessageId, useUpdateTaskStatus } from "@/hooks/useTaskInstances";
 import { useTaskAssignees, useUpdateAssigneeStatus, type TaskAssignee } from "@/hooks/useTaskAssignees";
+import { useTaskChecklist, useToggleChecklistItem } from "@/hooks/useTaskChecklist";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { FilePreview } from "@/components/message/FilePreview";
+import { format } from "date-fns";
 
 const statusConfig = {
   pending: { label: "Pendente", icon: Clock, className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
@@ -28,6 +32,10 @@ export function TaskCard({ messageId }: Props) {
   const { data: assignees = [] } = useTaskAssignees(task?.id || null);
   const updateAssigneeStatus = useUpdateAssigneeStatus();
 
+  // Fetch checklist
+  const { data: checklistItems = [] } = useTaskChecklist(task?.id || null);
+  const toggleChecklist = useToggleChecklistItem();
+
   if (isLoading || !task) return null;
 
   const status = statusConfig[task.status];
@@ -39,18 +47,18 @@ export function TaskCard({ messageId }: Props) {
   const allCompleted = assignees.length > 0 && assignees.every((a) => a.status === "completed");
   const completedCount = assignees.filter((a) => a.status === "completed").length;
 
-  // Fallback: single assignee (backward compat)
   const isLegacyAssigned = !hasMultiAssignees && assignees.length <= 1 && task.assigned_to && user?.id === task.assigned_to;
   const canAct = task.requires_approval && task.status === "pending" && user?.id !== task.created_by;
-  
-  // For multi-assign: user can complete their own assignment
   const canCompleteMyPart = task.status === "pending" && isAssignee && myAssignment?.status === "pending";
-  // Legacy single-assign
   const canComplete = task.status === "pending" && isLegacyAssigned && assignees.length === 0;
   const canReject = task.status === "pending" && (isLegacyAssigned || isAssignee);
-
-  // Auto-complete task when all assignees complete
   const shouldAutoComplete = allCompleted && task.status === "pending" && assignees.length > 0;
+
+  // Checklist stats
+  const checkedCount = checklistItems.filter(i => i.is_checked).length;
+  const checklistTotal = checklistItems.length;
+  const checklistProgress = checklistTotal > 0 ? (checkedCount / checklistTotal) * 100 : 0;
+  const canToggleChecklist = task.status === "pending" && (isAssignee || user?.id === task.created_by);
 
   return (
     <div className="mt-2 rounded-xl border border-border bg-card p-3 max-w-sm">
@@ -81,6 +89,53 @@ export function TaskCard({ messageId }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Interactive Checklist */}
+      {checklistTotal > 0 && (
+        <div className="mb-2 space-y-1.5 p-2 rounded-lg bg-secondary/20 border border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-xs font-medium">
+              <CheckSquare className="h-3 w-3 text-primary" />
+              Checklist
+            </div>
+            <span className="text-[10px] text-muted-foreground">
+              {checkedCount}/{checklistTotal}
+            </span>
+          </div>
+          <Progress value={checklistProgress} className="h-1.5" />
+          <div className="space-y-0.5">
+            {checklistItems.map((item) => (
+              <label
+                key={item.id}
+                className={cn(
+                  "flex items-center gap-2 px-1.5 py-1 rounded text-xs cursor-pointer hover:bg-secondary/50",
+                  item.is_checked && "line-through text-muted-foreground"
+                )}
+              >
+                <Checkbox
+                  checked={item.is_checked}
+                  disabled={!canToggleChecklist || toggleChecklist.isPending}
+                  onCheckedChange={(checked) => {
+                    toggleChecklist.mutate({
+                      itemId: item.id,
+                      isChecked: !!checked,
+                      taskInstanceId: task.id,
+                    });
+                  }}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="flex-1">{item.label}</span>
+                {item.is_checked && item.checker_profile && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {item.checker_profile.display_name}
+                    {item.checked_at && ` · ${format(new Date(item.checked_at), "HH:mm")}`}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Multi-assignees display */}
       {assignees.length > 0 && (
@@ -120,7 +175,7 @@ export function TaskCard({ messageId }: Props) {
         </div>
       )}
 
-      {/* Legacy single assigned to (no multi-assignees) */}
+      {/* Legacy single assigned to */}
       {assignees.length === 0 && task.assigned_profile && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
           <User className="h-3 w-3" />

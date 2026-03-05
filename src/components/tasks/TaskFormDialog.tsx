@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, User, ShieldCheck, X } from "lucide-react";
+import { ClipboardList, User, ShieldCheck, X, CheckSquare, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTaskTemplateWithFields, type TaskTemplate } from "@/hooks/useTaskTemplates";
+import { useTaskTemplateAssignees } from "@/hooks/useTaskTemplateAssignees";
 import { useCreateTaskInstance } from "@/hooks/useTaskInstances";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
@@ -28,6 +29,7 @@ interface Props {
 
 export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
   const { data: templateWithFields } = useTaskTemplateWithFields(template?.id || null);
+  const { data: templateAssignees = [] } = useTaskTemplateAssignees(template?.id || null);
   const { currentWorkspace } = useWorkspaceContext();
   const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const createTaskInstance = useCreateTaskInstance();
@@ -37,15 +39,24 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
   const [fieldValues, setFieldValues] = useState<Record<string, { text?: string; number?: number; fileUrl?: string; fileName?: string }>>({});
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [checklistItems, setChecklistItems] = useState<string[]>([]);
 
-  // Reset form when template changes
+  // Reset form and pre-fill from template defaults
   useEffect(() => {
     if (template) {
       setFieldValues({});
-      setSelectedAssignees([]);
       setRequiresApproval(false);
+      // Pre-fill assignees from template defaults
+      setSelectedAssignees(templateAssignees.map(a => a.user_id));
+      // Pre-fill checklist from template
+      const templateChecklist = (templateWithFields as any)?.checklist_items;
+      if (Array.isArray(templateChecklist)) {
+        setChecklistItems(templateChecklist.filter((i: any) => typeof i === "string" && i.trim()));
+      } else {
+        setChecklistItems([]);
+      }
     }
-  }, [template?.id]);
+  }, [template?.id, templateAssignees, templateWithFields]);
 
   const fields = templateWithFields?.fields || [];
 
@@ -109,7 +120,11 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
       ? `\n👥 **Atribuído a:** ${assigneeNames}`
       : "";
 
-    const messageContent = `📋 **${template.name}**\n${summary}${assigneeInfo}`;
+    const checklistInfo = checklistItems.length > 0
+      ? `\n✅ **Checklist:** ${checklistItems.length} item(ns)`
+      : "";
+
+    const messageContent = `📋 **${template.name}**\n${summary}${assigneeInfo}${checklistInfo}`;
 
     // Send the message first
     const message = await sendMessage.mutateAsync({
@@ -139,6 +154,18 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
         selectedAssignees.map((userId) => ({
           task_instance_id: instance.id,
           user_id: userId,
+        }))
+      );
+    }
+
+    // Create checklist items
+    const validChecklist = checklistItems.filter(c => c.trim());
+    if (validChecklist.length > 0) {
+      await supabase.from("task_checklist_items").insert(
+        validChecklist.map((label, i) => ({
+          task_instance_id: instance.id,
+          label: label.trim(),
+          position: i,
         }))
       );
     }
@@ -280,6 +307,44 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
               </div>
             </ScrollArea>
           </div>
+
+          {/* Checklist items */}
+          {checklistItems.length > 0 && (
+            <div>
+              <Label className="flex items-center gap-1.5 mb-2">
+                <CheckSquare className="h-3.5 w-3.5" />
+                Checklist
+              </Label>
+              <div className="space-y-1.5">
+                {checklistItems.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={item}
+                      onChange={(e) => {
+                        setChecklistItems(prev => prev.map((it, i) => i === index ? e.target.value : it));
+                      }}
+                      placeholder={`Item ${index + 1}`}
+                      className="flex-1 h-8 text-sm"
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
+                      setChecklistItems(prev => prev.filter((_, i) => i !== index));
+                    }}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full rounded-lg"
+                onClick={() => setChecklistItems(prev => [...prev, ""])}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar item
+              </Button>
+            </div>
+          )}
 
           {/* Requires approval */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">

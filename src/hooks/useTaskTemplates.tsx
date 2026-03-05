@@ -69,11 +69,15 @@ export function useCreateTaskTemplate() {
       name,
       description,
       fields,
+      defaultAssignees,
+      checklistItems,
     }: {
       workspaceId: string;
       name: string;
       description?: string;
       fields: Omit<TaskTemplateField, "id" | "template_id">[];
+      defaultAssignees?: string[];
+      checklistItems?: string[];
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -84,6 +88,7 @@ export function useCreateTaskTemplate() {
           created_by: user.id,
           name,
           description: description || null,
+          checklist_items: checklistItems && checklistItems.length > 0 ? checklistItems : [],
         })
         .select()
         .single();
@@ -103,6 +108,16 @@ export function useCreateTaskTemplate() {
             }))
           );
         if (fieldsError) throw fieldsError;
+      }
+
+      // Save default assignees
+      if (defaultAssignees && defaultAssignees.length > 0) {
+        await supabase.from("task_template_assignees").insert(
+          defaultAssignees.map(userId => ({
+            template_id: template.id,
+            user_id: userId,
+          }))
+        );
       }
 
       return template;
