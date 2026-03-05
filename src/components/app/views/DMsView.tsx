@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
-import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
+import { useDirectMessages, DirectMessage, useCreateOrGetDM } from "@/hooks/useDirectMessages";
 import { useDMGroups, DMGroup } from "@/hooks/useDMGroups";
 import { useUnreadDMCounts, useMarkDMAsRead } from "@/hooks/useNotifications";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
@@ -45,6 +45,7 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   const { data: unreadCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
   const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const markAsRead = useMarkDMAsRead();
+  const createOrGetDM = useCreateOrGetDM();
   const [showNewDM, setShowNewDM] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DMGroup | null>(null);
@@ -124,12 +125,32 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
         members={members}
         currentUserId={user?.id}
         userUnreadCounts={userUnreadCounts}
-        onSelectUser={(userId) => {
+        onSelectUser={async (userId) => {
           const existingDM = dms.find(dm => dm.other_user?.id === userId);
           if (existingDM) {
             onSelectDM(existingDM);
-          } else {
-            setShowNewDM(true);
+          } else if (currentWorkspace) {
+            // Directly create or get DM for this user
+            try {
+              const dm = await createOrGetDM.mutateAsync({
+                workspaceId: currentWorkspace.id,
+                otherUserId: userId,
+              });
+              const member = members.find(m => m.user_id === userId);
+              const dmWithProfile: DirectMessage = {
+                ...dm,
+                other_user: member?.profile ? {
+                  id: userId,
+                  display_name: member.profile.display_name,
+                  avatar_url: member.profile.avatar_url,
+                  status: member.profile.status,
+                  last_seen: member.profile.last_seen,
+                } : undefined,
+              };
+              onSelectDM(dmWithProfile);
+            } catch {
+              setShowNewDM(true);
+            }
           }
         }}
       />
