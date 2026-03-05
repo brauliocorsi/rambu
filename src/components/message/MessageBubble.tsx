@@ -8,6 +8,7 @@ import { useMarkChannelAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
+import { TaskCard } from "@/components/tasks/TaskCard";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,6 +74,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
   const time = format(new Date(message.created_at), "HH:mm", { locale: ptBR });
   const hasFile = message.file_url && message.file_type && message.file_name;
   const threadCount = (message as any).thread_count || 0;
+  const isTaskMessage = message.content.startsWith("📋 ");
 
   // Group reactions by emoji
   const groupedReactions = reactions.reduce((acc, r) => {
@@ -249,6 +251,9 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
               )
             )
           )}
+
+          {/* Task Card */}
+          {isTaskMessage && <TaskCard messageId={message.id} />}
 
           {/* Thread indicator */}
           {threadCount > 0 && !isEditing && (

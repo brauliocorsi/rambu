@@ -1107,6 +1107,245 @@ export type Database = {
           },
         ]
       }
+      task_approvals: {
+        Row: {
+          action: string
+          comment: string | null
+          created_at: string
+          id: string
+          task_instance_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          task_instance_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          task_instance_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_approvals_task_instance_id_fkey"
+            columns: ["task_instance_id"]
+            isOneToOne: false
+            referencedRelation: "task_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_approvals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_field_values: {
+        Row: {
+          file_name: string | null
+          file_url: string | null
+          id: string
+          task_instance_id: string
+          template_field_id: string
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          task_instance_id: string
+          template_field_id: string
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          task_instance_id?: string
+          template_field_id?: string
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_field_values_task_instance_id_fkey"
+            columns: ["task_instance_id"]
+            isOneToOne: false
+            referencedRelation: "task_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_field_values_template_field_id_fkey"
+            columns: ["template_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_template_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_instances: {
+        Row: {
+          assigned_to: string | null
+          channel_id: string
+          created_at: string
+          created_by: string
+          id: string
+          message_id: string | null
+          reminder_at: string | null
+          requires_approval: boolean
+          status: Database["public"]["Enums"]["task_status"]
+          template_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          channel_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          message_id?: string | null
+          reminder_at?: string | null
+          requires_approval?: boolean
+          status?: Database["public"]["Enums"]["task_status"]
+          template_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          channel_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          message_id?: string | null
+          reminder_at?: string | null
+          requires_approval?: boolean
+          status?: Database["public"]["Enums"]["task_status"]
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_instances_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_instances_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_instances_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_instances_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_template_fields: {
+        Row: {
+          field_type: Database["public"]["Enums"]["task_field_type"]
+          id: string
+          is_required: boolean
+          label: string
+          position: number
+          template_id: string
+        }
+        Insert: {
+          field_type?: Database["public"]["Enums"]["task_field_type"]
+          id?: string
+          is_required?: boolean
+          label: string
+          position?: number
+          template_id: string
+        }
+        Update: {
+          field_type?: Database["public"]["Enums"]["task_field_type"]
+          id?: string
+          is_required?: boolean
+          label?: string
+          position?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_template_fields_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thread_messages: {
         Row: {
           content: string
@@ -1381,6 +1620,8 @@ export type Database = {
     }
     Enums: {
       channel_role: "owner" | "admin" | "member"
+      task_field_type: "text" | "number" | "textarea" | "attachment"
+      task_status: "pending" | "approved" | "rejected" | "completed"
       workspace_role: "admin" | "member"
     }
     CompositeTypes: {
@@ -1510,6 +1751,8 @@ export const Constants = {
   public: {
     Enums: {
       channel_role: ["owner", "admin", "member"],
+      task_field_type: ["text", "number", "textarea", "attachment"],
+      task_status: ["pending", "approved", "rejected", "completed"],
       workspace_role: ["admin", "member"],
     },
   },
