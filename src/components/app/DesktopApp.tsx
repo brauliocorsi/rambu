@@ -87,9 +87,12 @@ import {
   Bell,
   MoreVertical,
   Trash2,
+  ClipboardList,
 } from "lucide-react";
 import { ScheduledMessagesList } from "@/components/message/ScheduledMessagesList";
 import { useScheduledMessages } from "@/hooks/useScheduledMessages";
+import { PendingTasksPanel } from "@/components/tasks/PendingTasksPanel";
+import { usePendingTasks } from "@/hooks/usePendingTasks";
 
 export function DesktopApp() {
   const { user, signOut } = useAuth();
@@ -135,9 +138,12 @@ export function DesktopApp() {
   const [showMentions, setShowMentions] = useState(false);
   const [showUnreadFeed, setShowUnreadFeed] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
+  const [showPendingTasks, setShowPendingTasks] = useState(false);
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [threadMessage, setThreadMessage] = useState<Message | null>(null);
+
+  const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
 
@@ -359,6 +365,42 @@ export function DesktopApp() {
           </PopoverTrigger>
           <PopoverContent side="right" align="start" className="w-96 p-0 rounded-xl">
             <RemindersFeed />
+          </PopoverContent>
+        </Popover>
+
+        {/* Pending Tasks Button */}
+        <Popover open={showPendingTasks} onOpenChange={setShowPendingTasks}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl relative"
+            >
+              <ClipboardList className="h-5 w-5" />
+              {pendingTasksList.length > 0 && (
+                <span className="absolute -top-1 -right-1">
+                  <UnreadBadge count={pendingTasksList.length} size="sm" />
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-80 p-0 rounded-xl">
+            <div className="p-3 border-b border-border">
+              <h3 className="font-semibold flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-primary" />
+                Tarefas Pendentes
+              </h3>
+            </div>
+            <PendingTasksPanel
+              onNavigateToChannel={(channelId) => {
+                const channel = channels.find(c => c.id === channelId);
+                if (channel) {
+                  setCurrentChannel(channel);
+                  setSelectedDM(null);
+                }
+                setShowPendingTasks(false);
+              }}
+            />
           </PopoverContent>
         </Popover>
 

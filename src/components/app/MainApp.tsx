@@ -7,6 +7,7 @@ import { useChannelContext } from "@/contexts/ChannelContext";
 import { useTotalUnreadCount } from "@/hooks/useNotifications";
 import { useTotalUnreadCount as useFeedUnreadCount } from "@/hooks/useUnreadFeed";
 import { useReminders } from "@/hooks/useMessageReminders";
+import { usePendingTasks } from "@/hooks/usePendingTasks";
 import { DirectMessage } from "@/hooks/useDirectMessages";
 
 // Views
@@ -16,6 +17,7 @@ import { ChannelsView } from "@/components/app/views/ChannelsView";
 import { ProfileView } from "@/components/app/views/ProfileView";
 import { UnreadView } from "@/components/app/views/UnreadView";
 import { RemindersView } from "@/components/app/views/RemindersView";
+import { TasksView } from "@/components/app/views/TasksView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { SearchDialog } from "@/components/search/SearchDialog";
 
@@ -30,6 +32,7 @@ export function MainApp() {
   const { channels: unreadChannels, dms: unreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
   const totalUnread = useFeedUnreadCount();
   const { data: pendingReminders = [] } = useReminders();
+  const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
 
   const getTitle = () => {
     if (showSettings) return "Configurações";
@@ -44,6 +47,7 @@ export function MainApp() {
       case "unread": return "Não Lidas";
       case "dms": return "Mensagens";
       case "channels": return currentWorkspace ? currentWorkspace.name : "Canais";
+      case "tasks": return "Tarefas";
       case "reminders": return "Lembretes";
       case "profile": return "Perfil";
       default: return "Rambu";
@@ -101,6 +105,8 @@ export function MainApp() {
         );
       case "channels": 
         return <ChannelsView />;
+      case "tasks":
+        return <TasksView onSelectChannel={handleSelectChannel} />;
       case "reminders":
         return <RemindersView />;
       case "profile": 
@@ -153,6 +159,7 @@ export function MainApp() {
         unreadChannels={unreadChannels}
         totalUnread={totalUnread}
         pendingReminders={pendingReminders.length}
+        pendingTasks={pendingTasksList.length}
       />
       <SearchDialog 
         open={showSearch} 
