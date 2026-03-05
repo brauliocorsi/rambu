@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Users, MoreHorizontal, UserPlus, LogOut } from "lucide-react";
+import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -67,6 +68,8 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const prevMessagesLengthRef = useRef(0);
   const prevScrollHeightRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const wasLoadingRef = useRef(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Get group display name
   const getGroupName = () => {
@@ -88,7 +91,9 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
 
   // Track scroll position
   const handleScroll = useCallback(() => {
-    isNearBottomRef.current = checkIfNearBottom();
+    const nearBottom = checkIfNearBottom();
+    isNearBottomRef.current = nearBottom;
+    setShowScrollButton(!nearBottom);
     
     if (containerRef.current && hasMore && !isFetchingMore) {
       const { scrollTop } = containerRef.current;
@@ -110,21 +115,55 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
     }
   }, [messages.length, isFetchingMore]);
 
+  // Scroll to bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    if (containerRef.current) {
+      if (behavior === "instant") {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior });
+      }
+    }
+  }, []);
+
+  // Scroll to bottom when loading finishes
+  useEffect(() => {
+    if (isLoading) {
+      wasLoadingRef.current = true;
+    } else if (wasLoadingRef.current) {
+      wasLoadingRef.current = false;
+      const doScroll = () => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      };
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+      const t1 = setTimeout(doScroll, 100);
+      const t2 = setTimeout(doScroll, 300);
+      const t3 = setTimeout(doScroll, 600);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }
+  }, [isLoading]);
+
   // Auto-scroll on new messages
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
       if (isNearBottomRef.current) {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        requestAnimationFrame(() => {
+          scrollToBottom("smooth");
+        });
       }
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
+  }, [messages.length, scrollToBottom]);
 
-  // Scroll to bottom on mount
+  // Reset refs when group changes
   useEffect(() => {
     isNearBottomRef.current = true;
-    prevMessagesLengthRef.current = messages.length;
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
+    prevMessagesLengthRef.current = 0;
+    isLoadingMoreRef.current = false;
+    wasLoadingRef.current = true;
+    setShowScrollButton(false);
   }, [group.id]);
 
   // Helper to format day separator
@@ -168,7 +207,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-border">
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={onBack}>
@@ -209,11 +248,12 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
       </div>
 
       {/* Messages */}
-      <div 
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto py-4 scroll-smooth"
-      >
+      <div className="flex-1 min-h-0 relative">
+        <div 
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto py-4 scroll-smooth"
+        >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <LoadingSpinner size="lg" />
@@ -355,6 +395,13 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
           </>
         )}
         <div ref={bottomRef} />
+        </div>
+
+        {/* Scroll to bottom button */}
+        <ScrollToBottomButton
+          visible={showScrollButton}
+          onClick={() => scrollToBottom("instant")}
+        />
       </div>
 
       {/* Custom Input for Group */}

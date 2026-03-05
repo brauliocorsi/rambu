@@ -128,17 +128,19 @@ export function MessageList({
       wasLoadingRef.current = true;
     } else if (wasLoadingRef.current) {
       wasLoadingRef.current = false;
-      // Use multiple rAFs + timeout fallback to ensure DOM is fully painted
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom("instant");
-        });
-      });
-      // Fallback for late-rendering content
-      const timer = setTimeout(() => scrollToBottom("instant"), 150);
-      return () => clearTimeout(timer);
+      const doScroll = () => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      };
+      // Multiple attempts to catch late-rendering content
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+      const t1 = setTimeout(doScroll, 100);
+      const t2 = setTimeout(doScroll, 300);
+      const t3 = setTimeout(doScroll, 600);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     }
-  }, [isLoading, scrollToBottom]);
+  }, [isLoading]);
 
   // Reset refs when channel changes
   useEffect(() => {
