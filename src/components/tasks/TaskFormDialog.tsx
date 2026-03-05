@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, User, Bell, ShieldCheck } from "lucide-react";
+import { ClipboardList, User, ShieldCheck, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTaskTemplateWithFields, type TaskTemplate } from "@/hooks/useTaskTemplates";
 import { useCreateTaskInstance } from "@/hooks/useTaskInstances";
 import { useSendMessage } from "@/hooks/useMessages";
@@ -14,6 +17,7 @@ import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { FilePreview } from "@/components/message/FilePreview";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -31,14 +35,14 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
   const { uploadFiles } = useFileUpload();
 
   const [fieldValues, setFieldValues] = useState<Record<string, { text?: string; number?: number; fileUrl?: string; fileName?: string }>>({});
-  const [assignedTo, setAssignedTo] = useState<string>("");
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [requiresApproval, setRequiresApproval] = useState(false);
 
   // Reset form when template changes
   useEffect(() => {
     if (template) {
       setFieldValues({});
-      setAssignedTo("");
+      setSelectedAssignees([]);
       setRequiresApproval(false);
     }
   }, [template?.id]);
@@ -64,6 +68,12 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
     }
   };
 
+  const toggleAssignee = (userId: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
   const handleSubmit = async () => {
     if (!template || !templateWithFields) return;
 
@@ -72,17 +82,11 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
       if (field.is_required) {
         const val = fieldValues[field.id];
         if (field.field_type === "attachment") {
-          if (!val?.fileUrl) {
-            return;
-          }
+          if (!val?.fileUrl) return;
         } else if (field.field_type === "number") {
-          if (val?.number === undefined || val?.number === null) {
-            return;
-          }
+          if (val?.number === undefined || val?.number === null) return;
         } else {
-          if (!val?.text?.trim()) {
-            return;
-          }
+          if (!val?.text?.trim()) return;
         }
       }
     }
@@ -97,7 +101,15 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
       })
       .join("\n");
 
-    const messageContent = `📋 **${template.name}**\n${summary}`;
+    const assigneeNames = selectedAssignees
+      .map((id) => members.find((m) => m.user_id === id)?.profile?.display_name || "Usuário")
+      .join(", ");
+
+    const assigneeInfo = selectedAssignees.length > 0
+      ? `\n👥 **Atribuído a:** ${assigneeNames}`
+      : "";
+
+    const messageContent = `📋 **${template.name}**\n${summary}${assigneeInfo}`;
 
     // Send the message first
     const message = await sendMessage.mutateAsync({
@@ -105,11 +117,11 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
       content: messageContent,
     });
 
-    // Create the task instance linked to the message
-    await createTaskInstance.mutateAsync({
+    // Create the task instance (use first assignee for backward compat)
+    const instance = await createTaskInstance.mutateAsync({
       templateId: template.id,
       channelId,
-      assignedTo: assignedTo || undefined,
+      assignedTo: selectedAssignees[0] || undefined,
       requiresApproval,
       messageId: message.id,
       fieldValues: fields.map((f) => ({
@@ -120,6 +132,16 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
         fileName: fieldValues[f.id]?.fileName || undefined,
       })),
     });
+
+    // Add all assignees to task_assignees table
+    if (selectedAssignees.length > 0) {
+      await supabase.from("task_assignees").insert(
+        selectedAssignees.map((userId) => ({
+          task_instance_id: instance.id,
+          user_id: userId,
+        }))
+      );
+    }
 
     onClose();
   };
@@ -198,25 +220,65 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
             </div>
           ))}
 
-          {/* Assign to user */}
+          {/* Multi-assign to users */}
           <div>
-            <Label className="flex items-center gap-1">
+            <Label className="flex items-center gap-1 mb-2">
               <User className="h-3.5 w-3.5" />
-              Atribuir a (opcional)
+              Atribuir a (selecione um ou mais)
             </Label>
-            <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Selecionar membro" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ninguém</SelectItem>
+
+            {/* Selected assignees */}
+            {selectedAssignees.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedAssignees.map((userId) => {
+                  const member = members.find((m) => m.user_id === userId);
+                  return (
+                    <Badge
+                      key={userId}
+                      variant="secondary"
+                      className="flex items-center gap-1 pr-1"
+                    >
+                      <Avatar className="h-4 w-4">
+                        <AvatarImage src={member?.profile?.avatar_url || undefined} />
+                        <AvatarFallback className="text-[8px]">
+                          {(member?.profile?.display_name || "U").charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs">{member?.profile?.display_name || "Usuário"}</span>
+                      <button
+                        onClick={() => toggleAssignee(userId)}
+                        className="ml-0.5 rounded-full hover:bg-muted p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+
+            <ScrollArea className="max-h-36 border rounded-lg">
+              <div className="p-1">
                 {members.map((m) => (
-                  <SelectItem key={m.user_id} value={m.user_id}>
-                    {m.profile?.display_name || "Usuário"}
-                  </SelectItem>
+                  <label
+                    key={m.user_id}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedAssignees.includes(m.user_id)}
+                      onCheckedChange={() => toggleAssignee(m.user_id)}
+                    />
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={m.profile?.avatar_url || undefined} />
+                      <AvatarFallback className="text-[8px]">
+                        {(m.profile?.display_name || "U").charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{m.profile?.display_name || "Usuário"}</span>
+                  </label>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            </ScrollArea>
           </div>
 
           {/* Requires approval */}

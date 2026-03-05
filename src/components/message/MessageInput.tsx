@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, Image, Clock, Mic, Plus, ClipboardList } from "lucide-react";
+import { Send, Paperclip, Image, Clock, Mic, Plus, ClipboardList, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
@@ -21,6 +21,7 @@ import { TaskFormDialog } from "@/components/tasks/TaskFormDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { type TaskTemplate } from "@/hooks/useTaskTemplates";
+import { CreatePollDialog } from "@/components/poll/CreatePollDialog";
 import { toast } from "sonner";
 
 interface MessageInputProps {
@@ -53,6 +54,7 @@ export function MessageInput({
   const { currentWorkspace } = useWorkspaceContext();
   const [selectedTaskTemplate, setSelectedTaskTemplate] = useState<TaskTemplate | null>(null);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const [showPollDialog, setShowPollDialog] = useState(false);
 
   const handleFilesAdded = useCallback((files: UploadedFile[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
@@ -390,6 +392,16 @@ export function MessageInput({
             variant="ghost"
             size="icon"
             className="rounded-xl shrink-0 h-10 w-10"
+            onClick={() => setShowPollDialog(true)}
+            title="Criar enquete"
+          >
+            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl shrink-0 h-10 w-10"
             onClick={() => setShowScheduleDialog(true)}
             disabled={!message.trim() && attachedFiles.length === 0}
             title="Agendar mensagem"
@@ -450,6 +462,13 @@ export function MessageInput({
                   </button>
                 )}
                 <button
+                  onClick={() => { setShowPollDialog(true); setShowMobileActions(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <span>Enquete</span>
+                </button>
+                <button
                   onClick={() => { setShowScheduleDialog(true); setShowMobileActions(false); }}
                   disabled={!message.trim() && attachedFiles.length === 0}
                   className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
@@ -507,6 +526,13 @@ export function MessageInput({
         onOpenChange={setShowScheduleDialog}
         onSchedule={handleSchedule}
         messagePreview={message || attachedFiles.map(f => f.name).join(", ")}
+      />
+
+      {/* Poll Dialog */}
+      <CreatePollDialog
+        open={showPollDialog}
+        onClose={() => setShowPollDialog(false)}
+        channelId={channelId}
       />
 
       {/* Task Form Dialog */}

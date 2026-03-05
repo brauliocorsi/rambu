@@ -1,8 +1,9 @@
-import { ClipboardList, User, Check, X, CheckCircle2, Clock, XCircle, ShieldCheck } from "lucide-react";
+import { ClipboardList, User, Check, X, CheckCircle2, Clock, XCircle, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useTaskInstanceByMessageId, useUpdateTaskStatus } from "@/hooks/useTaskInstances";
+import { useTaskAssignees, useUpdateAssigneeStatus, type TaskAssignee } from "@/hooks/useTaskAssignees";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { FilePreview } from "@/components/message/FilePreview";
@@ -23,14 +24,33 @@ export function TaskCard({ messageId }: Props) {
   const updateStatus = useUpdateTaskStatus();
   const { user } = useAuth();
 
+  // Fetch multi-assignees
+  const { data: assignees = [] } = useTaskAssignees(task?.id || null);
+  const updateAssigneeStatus = useUpdateAssigneeStatus();
+
   if (isLoading || !task) return null;
 
   const status = statusConfig[task.status];
   const StatusIcon = status.icon;
-  const isAssigned = task.assigned_to && user?.id === task.assigned_to;
+  
+  const hasMultiAssignees = assignees.length > 1;
+  const isAssignee = assignees.some((a) => a.user_id === user?.id);
+  const myAssignment = assignees.find((a) => a.user_id === user?.id);
+  const allCompleted = assignees.length > 0 && assignees.every((a) => a.status === "completed");
+  const completedCount = assignees.filter((a) => a.status === "completed").length;
+
+  // Fallback: single assignee (backward compat)
+  const isLegacyAssigned = !hasMultiAssignees && assignees.length <= 1 && task.assigned_to && user?.id === task.assigned_to;
   const canAct = task.requires_approval && task.status === "pending" && user?.id !== task.created_by;
-  const canComplete = task.status === "pending" && isAssigned;
-  const canReject = task.status === "pending" && isAssigned;
+  
+  // For multi-assign: user can complete their own assignment
+  const canCompleteMyPart = task.status === "pending" && isAssignee && myAssignment?.status === "pending";
+  // Legacy single-assign
+  const canComplete = task.status === "pending" && isLegacyAssigned && assignees.length === 0;
+  const canReject = task.status === "pending" && (isLegacyAssigned || isAssignee);
+
+  // Auto-complete task when all assignees complete
+  const shouldAutoComplete = allCompleted && task.status === "pending" && assignees.length > 0;
 
   return (
     <div className="mt-2 rounded-xl border border-border bg-card p-3 max-w-sm">
@@ -62,8 +82,46 @@ export function TaskCard({ messageId }: Props) {
         ))}
       </div>
 
-      {/* Assigned to */}
-      {task.assigned_profile && (
+      {/* Multi-assignees display */}
+      {assignees.length > 0 && (
+        <div className="mb-2 space-y-1">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Users className="h-3 w-3" />
+            <span>Atribuído a {assignees.length} pessoa{assignees.length > 1 ? "s" : ""}</span>
+            {hasMultiAssignees && (
+              <span className="text-[10px] ml-1">
+                ({completedCount}/{assignees.length} concluído{completedCount !== 1 ? "s" : ""})
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {assignees.map((a) => (
+              <Badge
+                key={a.id}
+                variant="outline"
+                className={cn(
+                  "text-[10px] px-1.5 py-0 flex items-center gap-1",
+                  a.status === "completed"
+                    ? "bg-green-500/10 text-green-600 border-green-500/30"
+                    : "bg-secondary/50"
+                )}
+              >
+                <Avatar className="h-3.5 w-3.5">
+                  <AvatarImage src={a.profile?.avatar_url || undefined} />
+                  <AvatarFallback className="text-[7px]">
+                    {(a.profile?.display_name || "U").charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{a.profile?.display_name || "Usuário"}</span>
+                {a.status === "completed" && <CheckCircle2 className="h-3 w-3" />}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Legacy single assigned to (no multi-assignees) */}
+      {assignees.length === 0 && task.assigned_profile && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
           <User className="h-3 w-3" />
           <span>Atribuído a </span>
@@ -86,7 +144,7 @@ export function TaskCard({ messageId }: Props) {
       )}
 
       {/* Action buttons */}
-      {(canAct || canComplete || canReject) && (
+      {(canAct || canComplete || canCompleteMyPart || canReject || shouldAutoComplete) && (
         <div className="flex items-center gap-1.5 pt-1 border-t border-border mt-1">
           {canAct && (
             <>
@@ -112,6 +170,22 @@ export function TaskCard({ messageId }: Props) {
               </Button>
             </>
           )}
+          {canCompleteMyPart && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-primary hover:bg-primary/10"
+              onClick={() => {
+                updateAssigneeStatus.mutate(
+                  { assigneeId: myAssignment!.id, status: "completed", taskInstanceId: task.id },
+                );
+              }}
+              disabled={updateAssigneeStatus.isPending}
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              {hasMultiAssignees ? "Concluir minha parte" : "Concluir"}
+            </Button>
+          )}
           {canComplete && (
             <Button
               size="sm"
@@ -122,6 +196,18 @@ export function TaskCard({ messageId }: Props) {
             >
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Concluir
+            </Button>
+          )}
+          {shouldAutoComplete && user?.id === task.created_by && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-green-600 hover:bg-green-500/10"
+              onClick={() => updateStatus.mutate({ taskId: task.id, status: "completed" })}
+              disabled={updateStatus.isPending}
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Todos concluíram – Finalizar
             </Button>
           )}
           {canReject && !canAct && (
