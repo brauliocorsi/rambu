@@ -1,67 +1,90 @@
 
-# Plano: Badges, Fluidez de Mensagens e Realtime
 
-## Problemas Identificados
+# Tarefas com Fluxos Personalizados nos Canais
 
-### 1. Badges nao somem ao entrar na conversa
-- No **mobile (DMsView)**, o `markAsRead` e chamado corretamente, mas a invalidacao da query `unread-dm-counts` pode demorar ate 30s para refletir na UI porque `staleTime: 10000` e `refetchInterval: 30000`.
-- Apos o `markAsRead.mutate()`, a invalidacao ocorre no `onSuccess`, mas o componente de lista (DMList, ChannelList) pode ja ter sido desmontado (usuario entrou no chat), entao a query invalidada nao refetch imediatamente.
-- **Solucao**: Atualizar o cache de unread counts **otimisticamente** ao entrar na conversa (setar count para 0 localmente antes mesmo da mutacao completar).
+## Conceito
 
-### 2. Badges sobrepondo texto nos canais
-- No `SortableChannel` (CategoryManager), o badge e o nome do canal estao no mesmo `flex` container com `truncate` no nome, mas o badge nao tem `shrink-0`, entao em canais com nomes longos o badge pode ser empurrado ou sobrepor.
-- No `ChannelList`, mesmo problema: badge e `ChevronRight` competem por espaço.
-- **Solucao**: Adicionar `shrink-0` ao `UnreadBadge` e garantir `min-w-0` no texto + `shrink-0` nos elementos de badge/icone.
+Sistema de **templates de tarefas** (fluxos) reutilizaveis com campos customizaveis. O usuario cria um template uma vez e pode invoca-lo em qualquer canal para preencher um formulario estruturado que gera uma tarefa visivel no chat.
 
-### 3. Texto variando formatacao apos envio
-- O problema e que a mensagem otimista (temp-) nao tem `profile` completo e quando o realtime chega com os dados reais, o `MessageBubble` re-renderiza com dados diferentes, causando um "flash" visual.
-- Alem disso, o `motion.div` com `initial={{ opacity: 0, y: 10 }}` re-anima cada vez que o ID muda (de temp- para real), causando a mensagem "pular".
-- **Solucao**: 
-  - Usar `layoutId` no motion.div para transicao suave quando o ID muda.
-  - Melhor: usar `key` estavel baseado no conteudo+timestamp para evitar re-mount.
-  - Remover animacao de entrada para mensagens otimistas (ja aparecem instantaneamente).
+## Estrutura de Dados (5 novas tabelas)
 
-### 4. Realtime com setTimeout de 500ms no DM
-- `useInfiniteDMMessages` ainda tem o `setTimeout` de 500ms (linha 115-117) que causa refetch desnecessario e possivel duplicacao visual.
-- **Solucao**: Remover o setTimeout, confiar na atualizacao otimista do cache.
+### 1. `task_templates` - Templates de fluxo
+- `id`, `workspace_id`, `created_by`, `name`, `description`, `created_at`
 
----
+### 2. `task_template_fields` - Campos do template
+- `id`, `template_id`, `field_type` (text, number, textarea, attachment), `label`, `is_required`, `position`
 
-## Mudancas Planejadas
+### 3. `task_instances` - Tarefas criadas a partir de templates
+- `id`, `template_id`, `channel_id`, `created_by`, `assigned_to` (nullable), `status` (pending, approved, rejected, completed), `requires_approval`, `reminder_at`, `message_id` (referencia a mensagem no chat), `created_at`
 
-### A. Badges - Limpeza otimista ao entrar na conversa
-**Arquivos**: `src/hooks/useNotifications.tsx`
-- No `useMarkChannelAsRead`, adicionar `onMutate` que seta otimisticamente `unreadCounts[channelId] = 0` no cache da query `unread-channel-counts`.
-- No `useMarkDMAsRead`, idem para `unread-dm-counts`.
-- Isso fara o badge sumir instantaneamente ao entrar na conversa.
+### 4. `task_field_values` - Valores preenchidos
+- `id`, `task_instance_id`, `template_field_id`, `value_text`, `value_number`, `file_url`, `file_name`
 
-### B. Badges - Layout correto nos canais
-**Arquivos**: `src/components/channel/CategoryManager.tsx`, `src/components/channel/ChannelList.tsx`
-- Adicionar `shrink-0` ao componente `UnreadBadge` e aos icones de favorito/chevron.
-- Garantir que o `span` do nome do canal tenha `min-w-0 truncate flex-1`.
+### 5. `task_approvals` - Historico de aprovacoes/rejeicoes
+- `id`, `task_instance_id`, `user_id`, `action` (approved/rejected), `comment`, `created_at`
 
-### C. Mensagens - Estabilizar renderizacao apos envio
-**Arquivos**: `src/components/message/MessageBubble.tsx`, `src/components/dm/DMMessageBubble.tsx`
-- Remover `initial={{ opacity: 0, y: 10 }}` para mensagens com ID temporario (startsWith "temp-"), evitando re-animacao quando o ID real chega.
-- Alternativa: trocar `motion.div` por `div` simples e usar CSS transition para hover, mantendo a UI estavel.
+## Componentes a Criar
 
-### D. Realtime DM - Remover setTimeout
-**Arquivo**: `src/hooks/useInfiniteDMMessages.tsx`
-- Remover o `setTimeout` de 500ms (linhas 115-117) que causa invalidacao redundante.
+### Gerenciamento de Templates
+- `src/components/tasks/CreateTaskTemplateDialog.tsx` - Dialog para criar/editar templates com campos dinamicos (arrastar para reordenar)
+- `src/components/tasks/TaskTemplateList.tsx` - Lista de templates do workspace
+- `src/hooks/useTaskTemplates.tsx` - CRUD de templates e campos
 
-### E. Invalidacao mais agressiva apos envio
-**Arquivos**: `src/hooks/useMessages.tsx`, `src/hooks/useDirectMessages.tsx`
-- No `onSuccess` do `useSendMessage` e `useSendDMMessage`, invalidar tambem `unread-channel-counts` / `unread-dm-counts` para que outros usuarios vejam o badge atualizado.
+### Invocacao no Chat
+- `src/components/tasks/TaskFormDialog.tsx` - Dialog com formulario dinamico baseado no template selecionado (campos text, number, textarea, upload). Opcoes de atribuir usuario, pedir aprovacao, e definir lembrete.
+- `src/components/tasks/TaskPicker.tsx` - Seletor de templates (aparece ao digitar `/tarefa` ou via botao no MessageInput)
 
----
+### Exibicao no Chat
+- `src/components/tasks/TaskCard.tsx` - Card especial renderizado dentro do MessageBubble quando a mensagem tem uma tarefa associada. Mostra campos preenchidos, status, botoes de aprovar/rejeitar.
 
-## Resumo de Arquivos
+### Hooks
+- `src/hooks/useTaskInstances.tsx` - Criar tarefas, buscar por canal, aprovar/rejeitar, completar
 
-1. `src/hooks/useNotifications.tsx` - limpeza otimista de badges
-2. `src/components/channel/CategoryManager.tsx` - layout de badges
-3. `src/components/channel/ChannelList.tsx` - layout de badges
-4. `src/components/message/MessageBubble.tsx` - estabilizar animacao
-5. `src/components/dm/DMMessageBubble.tsx` - estabilizar animacao
-6. `src/hooks/useInfiniteDMMessages.tsx` - remover setTimeout
-7. `src/hooks/useMessages.tsx` - invalidacao apos envio
-8. `src/hooks/useDirectMessages.tsx` - invalidacao apos envio
+## Fluxo do Usuario
+
+1. **Criar template**: Menu do workspace ou canal → "Criar Fluxo de Tarefa" → Define nome + campos (texto, numero, descricao, anexo) → Salva
+2. **Usar no chat**: No MessageInput, botao de tarefas ou `/tarefa` → Seleciona template → Preenche formulario → Opcionalmente atribui usuario e pede aprovacao → Envia
+3. **Mensagem especial**: No chat aparece um card com os dados preenchidos, status, e botoes de acao
+4. **Aprovar/Rejeitar**: Usuario atribuido ou qualquer membro com permissao pode aprovar/rejeitar direto no card
+
+## Integracao com MessageInput
+
+Adicionar botao de "Tarefas" (icone ClipboardList) ao lado dos botoes existentes (Anexar, Emoji, Agendar, Audio). Ao clicar, abre o TaskPicker para selecionar um template.
+
+## Arquivos a Criar
+1. `src/hooks/useTaskTemplates.tsx`
+2. `src/hooks/useTaskInstances.tsx`
+3. `src/components/tasks/CreateTaskTemplateDialog.tsx`
+4. `src/components/tasks/TaskTemplateList.tsx`
+5. `src/components/tasks/TaskFormDialog.tsx`
+6. `src/components/tasks/TaskPicker.tsx`
+7. `src/components/tasks/TaskCard.tsx`
+
+## Arquivos a Modificar
+1. `src/components/message/MessageInput.tsx` - Adicionar botao de tarefas
+2. `src/components/message/MessageBubble.tsx` - Renderizar TaskCard quando mensagem tem tarefa
+3. `src/components/dm/DMMessageInput.tsx` - Opcional: suporte em DMs
+4. `src/components/app/views/ChannelsView.tsx` - Acesso ao gerenciamento de templates
+
+## Migracoes SQL
+- Criar as 5 tabelas com RLS policies (apenas membros do workspace podem ver/criar templates; apenas participantes do canal veem tarefas)
+- Enum `task_status` (pending, approved, rejected, completed)
+- Enum `task_field_type` (text, number, textarea, attachment)
+
+## Escopo Inicial Recomendado
+
+Dado a complexidade, sugiro implementar em 2 fases:
+
+**Fase 1** (esta implementacao):
+- Tabelas + RLS
+- CRUD de templates com campos
+- Formulario de preenchimento no chat
+- TaskCard no MessageBubble
+- Atribuicao a usuario
+
+**Fase 2** (futuro):
+- Aprovacao/rejeicao com historico
+- Lembretes integrados
+- Dashboard de tarefas pendentes
+- Filtros e busca de tarefas
+
