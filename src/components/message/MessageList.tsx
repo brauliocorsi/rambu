@@ -111,9 +111,15 @@ export function MessageList({
     }
   }, [messages.length, isFetchingMore]);
 
-  // Scroll to bottom smoothly
+  // Scroll to bottom
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    bottomRef.current?.scrollIntoView({ behavior });
+    if (containerRef.current) {
+      if (behavior === "instant") {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior });
+      }
+    }
   }, []);
 
   // Scroll to bottom when loading finishes
@@ -122,9 +128,15 @@ export function MessageList({
       wasLoadingRef.current = true;
     } else if (wasLoadingRef.current) {
       wasLoadingRef.current = false;
+      // Use multiple rAFs + timeout fallback to ensure DOM is fully painted
       requestAnimationFrame(() => {
-        scrollToBottom("instant");
+        requestAnimationFrame(() => {
+          scrollToBottom("instant");
+        });
       });
+      // Fallback for late-rendering content
+      const timer = setTimeout(() => scrollToBottom("instant"), 150);
+      return () => clearTimeout(timer);
     }
   }, [isLoading, scrollToBottom]);
 

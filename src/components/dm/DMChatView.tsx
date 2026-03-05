@@ -76,6 +76,17 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
 
   const wasLoadingRef = useRef(true);
 
+  // Scroll to bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    if (containerRef.current) {
+      if (behavior === "instant") {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior });
+      }
+    }
+  }, []);
+
   // Scroll to bottom when loading finishes (initial load or DM switch)
   useEffect(() => {
     if (isLoading) {
@@ -83,10 +94,14 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     } else if (wasLoadingRef.current) {
       wasLoadingRef.current = false;
       requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "instant" });
+        requestAnimationFrame(() => {
+          scrollToBottom("instant");
+        });
       });
+      const timer = setTimeout(() => scrollToBottom("instant"), 150);
+      return () => clearTimeout(timer);
     }
-  }, [isLoading]);
+  }, [isLoading, scrollToBottom]);
 
   // Reset refs when DM changes
   useEffect(() => {
@@ -96,10 +111,6 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     wasLoadingRef.current = true;
     setShowScrollButton(false);
   }, [dm.id]);
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    bottomRef.current?.scrollIntoView({ behavior });
-  }, []);
 
   // Auto-scroll on new messages
   useEffect(() => {
