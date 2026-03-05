@@ -28,7 +28,7 @@ export function TaskCard({ messageId }: Props) {
   const status = statusConfig[task.status];
   const StatusIcon = status.icon;
   const canAct = task.requires_approval && task.status === "pending" && user?.id !== task.created_by;
-  const canComplete = task.status === "pending" && (user?.id === task.created_by || user?.id === task.assigned_to);
+  const canComplete = task.status === "pending" && task.assigned_to && user?.id === task.assigned_to;
 
   return (
     <div className="mt-2 rounded-xl border border-border bg-card p-3 max-w-sm">
