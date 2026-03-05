@@ -28,7 +28,10 @@ import {
   ArrowLeft,
   MoreVertical,
   Trash2,
+  ClipboardList,
 } from "lucide-react";
+import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
+import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
 
 // Channel Chat View
 function ChannelChatView() {
@@ -131,6 +134,7 @@ export function ChannelsView() {
   const { data: unreadCounts = {} } = useUnreadChannelCounts(currentWorkspace?.id || null);
   const markAsRead = useMarkChannelAsRead();
   const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
 
   // Mark channel as read when selected
   useEffect(() => {
@@ -163,14 +167,25 @@ export function ChannelsView() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Canais</h2>
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className="rounded-xl"
-          onClick={() => setShowCreateChannel(true)}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="rounded-xl"
+            onClick={() => setShowCreateTemplate(true)}
+            title="Gerenciar fluxos de tarefa"
+          >
+            <ClipboardList className="h-5 w-5" />
+          </Button>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="rounded-xl"
+            onClick={() => setShowCreateChannel(true)}
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -211,6 +226,14 @@ export function ChannelsView() {
       )}
 
       <CreateChannelDialog open={showCreateChannel} onClose={() => setShowCreateChannel(false)} />
+      
+      {currentWorkspace && (
+        <CreateTaskTemplateDialog
+          open={showCreateTemplate}
+          onClose={() => setShowCreateTemplate(false)}
+          workspaceId={currentWorkspace.id}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, Image, Clock, Mic, Plus } from "lucide-react";
+import { Send, Paperclip, Image, Clock, Mic, Plus, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
@@ -16,6 +16,11 @@ import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
 import { MentionInput, MentionInputRef } from "./MentionInput";
 import { ReplyPreview } from "./ReplyPreview";
 import { AudioRecordingIndicator } from "./AudioRecordingIndicator";
+import { TaskPicker } from "@/components/tasks/TaskPicker";
+import { TaskFormDialog } from "@/components/tasks/TaskFormDialog";
+import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
+import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { type TaskTemplate } from "@/hooks/useTaskTemplates";
 import { toast } from "sonner";
 
 interface MessageInputProps {
@@ -45,6 +50,9 @@ export function MessageInput({
   const containerRef = useRef<HTMLDivElement>(null);
   const sendMessage = useSendMessage();
   const createScheduledMessage = useCreateScheduledMessage();
+  const { currentWorkspace } = useWorkspaceContext();
+  const [selectedTaskTemplate, setSelectedTaskTemplate] = useState<TaskTemplate | null>(null);
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
 
   const handleFilesAdded = useCallback((files: UploadedFile[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
@@ -370,6 +378,14 @@ export function MessageInput({
 
           <EmojiPicker onSelect={addEmoji} />
 
+          {currentWorkspace && (
+            <TaskPicker
+              workspaceId={currentWorkspace.id}
+              onSelectTemplate={setSelectedTaskTemplate}
+              onCreateNew={() => setShowCreateTemplate(true)}
+            />
+          )}
+
           <Button
             variant="ghost"
             size="icon"
@@ -420,6 +436,19 @@ export function MessageInput({
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
                   <span>Anexar arquivo</span>
                 </button>
+                {currentWorkspace && (
+                  <button
+                    onClick={() => {
+                      setShowMobileActions(false);
+                      // Open task picker - on mobile just show create template
+                      setShowCreateTemplate(true);
+                    }}
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+                  >
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                    <span>Tarefas</span>
+                  </button>
+                )}
                 <button
                   onClick={() => { setShowScheduleDialog(true); setShowMobileActions(false); }}
                   disabled={!message.trim() && attachedFiles.length === 0}
@@ -479,6 +508,23 @@ export function MessageInput({
         onSchedule={handleSchedule}
         messagePreview={message || attachedFiles.map(f => f.name).join(", ")}
       />
+
+      {/* Task Form Dialog */}
+      <TaskFormDialog
+        open={!!selectedTaskTemplate}
+        onClose={() => setSelectedTaskTemplate(null)}
+        template={selectedTaskTemplate}
+        channelId={channelId}
+      />
+
+      {/* Create Template Dialog */}
+      {currentWorkspace && (
+        <CreateTaskTemplateDialog
+          open={showCreateTemplate}
+          onClose={() => setShowCreateTemplate(false)}
+          workspaceId={currentWorkspace.id}
+        />
+      )}
     </div>
   );
 }
