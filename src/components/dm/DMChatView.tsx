@@ -93,15 +93,19 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
       wasLoadingRef.current = true;
     } else if (wasLoadingRef.current) {
       wasLoadingRef.current = false;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom("instant");
-        });
-      });
-      const timer = setTimeout(() => scrollToBottom("instant"), 150);
-      return () => clearTimeout(timer);
+      const doScroll = () => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      };
+      // Multiple attempts to catch late-rendering content
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+      const t1 = setTimeout(doScroll, 100);
+      const t2 = setTimeout(doScroll, 300);
+      const t3 = setTimeout(doScroll, 600);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     }
-  }, [isLoading, scrollToBottom]);
+  }, [isLoading]);
 
   // Reset refs when DM changes
   useEffect(() => {
