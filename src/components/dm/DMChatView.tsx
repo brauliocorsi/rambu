@@ -117,12 +117,12 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
       if (isNearBottomRef.current) {
         requestAnimationFrame(() => {
-          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          scrollToBottom("smooth");
         });
       }
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
+  }, [messages.length, scrollToBottom]);
 
   // Helper to format day separator
   const formatDaySeparator = (date: Date): string => {
