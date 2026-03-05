@@ -280,7 +280,7 @@ export function MessageList({
       {/* Scroll to bottom button */}
       <ScrollToBottomButton
         visible={showScrollButton}
-        onClick={() => scrollToBottom("smooth")}
+        onClick={() => scrollToBottom("instant")}
       />
     </div>
   );
