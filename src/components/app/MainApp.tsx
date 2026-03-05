@@ -17,7 +17,7 @@ import { ChannelsView } from "@/components/app/views/ChannelsView";
 import { ProfileView } from "@/components/app/views/ProfileView";
 import { UnreadView } from "@/components/app/views/UnreadView";
 import { RemindersView } from "@/components/app/views/RemindersView";
-import { TasksView } from "@/components/app/views/TasksView";
+import { FlowsView } from "@/components/app/views/FlowsView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { SearchDialog } from "@/components/search/SearchDialog";
 
@@ -47,7 +47,7 @@ export function MainApp() {
       case "unread": return "Não Lidas";
       case "dms": return "Mensagens";
       case "channels": return currentWorkspace ? currentWorkspace.name : "Canais";
-      case "tasks": return "Tarefas";
+      case "flows": return "Fluxos";
       case "reminders": return "Lembretes";
       case "profile": return "Perfil";
       default: return "Rambu";
@@ -105,8 +105,8 @@ export function MainApp() {
         );
       case "channels": 
         return <ChannelsView />;
-      case "tasks":
-        return <TasksView onSelectChannel={handleSelectChannel} />;
+      case "flows":
+        return <FlowsView onSelectChannel={handleSelectChannel} />;
       case "reminders":
         return <RemindersView />;
       case "profile": 

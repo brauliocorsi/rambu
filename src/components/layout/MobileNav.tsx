@@ -18,7 +18,7 @@ const tabs = [
   { id: "unread", icon: Inbox, label: "Não Lidas" },
   { id: "dms", icon: MessageSquare, label: "DMs" },
   { id: "channels", icon: Hash, label: "Canais" },
-  { id: "tasks", icon: ClipboardList, label: "Tarefas" },
+  { id: "flows", icon: ClipboardList, label: "Fluxos" },
   { id: "reminders", icon: Bell, label: "Lembretes" },
   { id: "profile", icon: User, label: "Perfil" },
 ];
@@ -29,7 +29,7 @@ export function MobileNav({ activeTab, onTabChange, unreadDMs = 0, unreadChannel
     if (tabId === "channels") return unreadChannels;
     if (tabId === "unread") return totalUnread;
     if (tabId === "reminders") return pendingReminders;
-    if (tabId === "tasks") return pendingTasks;
+    if (tabId === "flows") return pendingTasks;
     return 0;
   };
 
