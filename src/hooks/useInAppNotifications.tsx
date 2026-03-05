@@ -7,7 +7,7 @@ import { usePushNotifications } from "./usePushNotifications";
 export interface Notification {
   id: string;
   user_id: string;
-  type: "mention" | "dm" | "channel" | "thread_reply" | "reminder";
+  type: "mention" | "dm" | "channel" | "thread_reply" | "reminder" | "task_assigned";
   title: string;
   body: string | null;
   is_read: boolean;
@@ -20,6 +20,7 @@ export interface Notification {
     channel_id?: string;
     channel_name?: string;
     reminder_id?: string;
+    task_instance_id?: string;
   } | null;
   created_at: string;
 }

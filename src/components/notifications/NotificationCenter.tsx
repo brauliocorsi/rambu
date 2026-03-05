@@ -144,7 +144,7 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
   };
 
   // Filter by type
-  const mentions = notifications.filter((n) => n.type === "mention");
+  const mentions = notifications.filter((n) => n.type === "mention" || n.type === "task_assigned");
   const dms = notifications.filter((n) => n.type === "dm" || n.type === "thread_reply");
   const reminders = notifications.filter((n) => n.type === "reminder");
 
