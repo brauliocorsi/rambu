@@ -103,14 +103,16 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
     }
 
     // Build summary for chat message
-    const summary = fields
-      .map((f) => {
-        const val = fieldValues[f.id];
-        if (f.field_type === "number") return `**${f.label}:** ${val?.number ?? "-"}`;
-        if (f.field_type === "attachment") return `**${f.label}:** ${val?.fileName || "-"}`;
-        return `**${f.label}:** ${val?.text || "-"}`;
-      })
-      .join("\n");
+    const fieldSummary = fields.length > 0
+      ? fields
+          .map((f) => {
+            const val = fieldValues[f.id];
+            if (f.field_type === "number") return `**${f.label}:** ${val?.number ?? "-"}`;
+            if (f.field_type === "attachment") return `**${f.label}:** ${val?.fileName || "-"}`;
+            return `**${f.label}:** ${val?.text || "-"}`;
+          })
+          .join("\n")
+      : "";
 
     const assigneeNames = selectedAssignees
       .map((id) => members.find((m) => m.user_id === id)?.profile?.display_name || "Usuário")
@@ -124,7 +126,7 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
       ? `\n✅ **Checklist:** ${checklistItems.length} item(ns)`
       : "";
 
-    const messageContent = `📋 **${template.name}**\n${summary}${assigneeInfo}${checklistInfo}`;
+    const messageContent = `📋 **${template.name}**${fieldSummary ? "\n" + fieldSummary : ""}${assigneeInfo}${checklistInfo}`;
 
     // Send the message first
     const message = await sendMessage.mutateAsync({
@@ -284,7 +286,7 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
               </div>
             )}
 
-            <ScrollArea className="max-h-36 border rounded-lg">
+            <ScrollArea className="max-h-48 border rounded-lg">
               <div className="p-1">
                 {members.map((m) => (
                   <label

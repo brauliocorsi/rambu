@@ -132,6 +132,79 @@ export function useCreateTaskTemplate() {
   });
 }
 
+export function useUpdateTaskTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      workspaceId,
+      name,
+      description,
+      fields,
+      defaultAssignees,
+      checklistItems,
+    }: {
+      templateId: string;
+      workspaceId: string;
+      name: string;
+      description?: string;
+      fields: Omit<TaskTemplateField, "id" | "template_id">[];
+      defaultAssignees?: string[];
+      checklistItems?: string[];
+    }) => {
+      // Update template
+      const { error: templateError } = await supabase
+        .from("task_templates")
+        .update({
+          name,
+          description: description || null,
+          checklist_items: checklistItems && checklistItems.length > 0 ? checklistItems : [],
+        })
+        .eq("id", templateId);
+      if (templateError) throw templateError;
+
+      // Replace fields: delete old, insert new
+      await supabase.from("task_template_fields").delete().eq("template_id", templateId);
+      if (fields.length > 0) {
+        const { error: fieldsError } = await supabase
+          .from("task_template_fields")
+          .insert(
+            fields.map((f, i) => ({
+              template_id: templateId,
+              field_type: f.field_type,
+              label: f.label,
+              is_required: f.is_required,
+              position: i,
+            }))
+          );
+        if (fieldsError) throw fieldsError;
+      }
+
+      // Replace assignees
+      await supabase.from("task_template_assignees").delete().eq("template_id", templateId);
+      if (defaultAssignees && defaultAssignees.length > 0) {
+        await supabase.from("task_template_assignees").insert(
+          defaultAssignees.map(userId => ({
+            template_id: templateId,
+            user_id: userId,
+          }))
+        );
+      }
+
+      return { templateId, workspaceId };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["task-templates", result.workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["task-template-fields", result.templateId] });
+      toast.success("Fluxo atualizado!");
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar fluxo");
+    },
+  });
+}
+
 export function useDeleteTaskTemplate() {
   const queryClient = useQueryClient();
 

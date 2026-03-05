@@ -109,9 +109,9 @@ export function CreateTaskTemplateDialog({ open, onClose, workspaceId }: Props) 
   const handleSubmit = async () => {
     if (!name.trim()) return;
     const validFields = fields.filter((f) => f.label.trim());
-    if (validFields.length === 0) return;
-
     const validChecklist = checklistItems.filter((c) => c.trim());
+    // Must have at least one field OR one checklist item
+    if (validFields.length === 0 && validChecklist.length === 0) return;
 
     const template = await createTemplate.mutateAsync({
       workspaceId,
@@ -269,7 +269,7 @@ export function CreateTaskTemplateDialog({ open, onClose, workspaceId }: Props) 
                 })}
               </div>
             )}
-            <ScrollArea className="max-h-28 border rounded-lg">
+            <ScrollArea className="max-h-48 border rounded-lg">
               <div className="p-1">
                 {members.map((m) => (
                   <label key={m.user_id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer">
@@ -421,7 +421,7 @@ export function CreateTaskTemplateDialog({ open, onClose, workspaceId }: Props) 
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!name.trim() || fields.every((f) => !f.label.trim()) || createTemplate.isPending}
+              disabled={!name.trim() || (fields.every((f) => !f.label.trim()) && checklistItems.every((c) => !c.trim())) || createTemplate.isPending}
               className="gradient-primary text-white"
             >
               {createTemplate.isPending ? "Criando..." : "Criar Fluxo"}
