@@ -255,10 +255,53 @@ export function useVotePoll() {
 
       if (error) throw error;
     },
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ["poll-by-message", vars.messageId] });
+      const previous = queryClient.getQueryData<Poll>(["poll-by-message", vars.messageId]);
+
+      if (previous && user) {
+        const newPoll = JSON.parse(JSON.stringify(previous)) as Poll;
+        const alreadyVoted = newPoll.options.find(o => o.id === vars.pollOptionId)?.voted_by_me;
+
+        if (alreadyVoted) {
+          // Toggle off
+          const opt = newPoll.options.find(o => o.id === vars.pollOptionId)!;
+          opt.voted_by_me = false;
+          opt.vote_count = Math.max(0, opt.vote_count - 1);
+          opt.voters = opt.voters.filter(v => v.id !== user.id);
+          newPoll.total_votes = Math.max(0, newPoll.total_votes - 1);
+        } else {
+          // If single choice, remove previous votes
+          if (!vars.isMultipleChoice) {
+            newPoll.options.forEach(o => {
+              if (o.voted_by_me) {
+                o.voted_by_me = false;
+                o.vote_count = Math.max(0, o.vote_count - 1);
+                o.voters = o.voters.filter(v => v.id !== user.id);
+                newPoll.total_votes = Math.max(0, newPoll.total_votes - 1);
+              }
+            });
+          }
+          // Add vote
+          const opt = newPoll.options.find(o => o.id === vars.pollOptionId)!;
+          opt.voted_by_me = true;
+          opt.vote_count += 1;
+          opt.voters.push({ id: user.id, display_name: null, avatar_url: null });
+          newPoll.total_votes += 1;
+        }
+
+        queryClient.setQueryData(["poll-by-message", vars.messageId], newPoll);
+      }
+
+      return { previous };
+    },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["poll-by-message", vars.messageId] });
     },
-    onError: () => {
+    onError: (_, vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["poll-by-message", vars.messageId], context.previous);
+      }
       toast.error("Erro ao votar");
     },
   });
