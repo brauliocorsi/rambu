@@ -60,7 +60,7 @@ export function DMList({ dms, selectedDM, onSelectDM, unreadCounts = {} }: DMLis
 
             <div className="flex-1 min-w-0 text-left">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold truncate">{displayName}</span>
+                <span className={cn("font-semibold truncate", unreadCount > 0 && "text-primary font-bold")}>{displayName}</span>
                 <div className="flex items-center gap-2 shrink-0">
                   {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
                   {timeAgo && (

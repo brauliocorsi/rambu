@@ -55,7 +55,7 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
           ) : (
             <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           )}
-          <span className="font-medium flex-1 text-left truncate min-w-0">{channel.name}</span>
+          <span className={cn("font-medium flex-1 text-left truncate min-w-0", unreadCount > 0 && "text-primary font-bold")}>{channel.name}</span>
           {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="shrink-0" />}
           <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
         </button>
