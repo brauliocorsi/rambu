@@ -20,6 +20,7 @@ import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
 import ResetPassword from "./pages/ResetPassword";
+import InstallPWA from "./pages/InstallPWA";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="/" element={<RootContent />} />
               <Route path="/join/:code" element={<JoinWorkspace />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/install" element={<InstallPWA />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
