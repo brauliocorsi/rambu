@@ -13,6 +13,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
 import { DMMessageInput } from "./DMMessageInput";
+import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -34,6 +35,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const prevMessagesLengthRef = useRef(0);
   const prevScrollHeightRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const otherUser = dm.other_user;
   const displayName = otherUser?.display_name || "Usuário";
@@ -47,7 +49,9 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
 
   // Track scroll position
   const handleScroll = useCallback(() => {
-    isNearBottomRef.current = checkIfNearBottom();
+    const nearBottom = checkIfNearBottom();
+    isNearBottomRef.current = nearBottom;
+    setShowScrollButton(!nearBottom);
     
     // Load more when scrolling near top
     if (containerRef.current && hasMore && !isFetchingMore) {
@@ -90,7 +94,12 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     prevMessagesLengthRef.current = 0;
     isLoadingMoreRef.current = false;
     wasLoadingRef.current = true;
+    setShowScrollButton(false);
   }, [dm.id]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomRef.current?.scrollIntoView({ behavior });
+  }, []);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -151,11 +160,12 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
       </div>
 
       {/* Messages */}
-      <div 
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto py-4 scroll-smooth min-h-0"
-      >
+      <div className="flex-1 min-h-0 relative">
+        <div 
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto py-4 scroll-smooth"
+        >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <LoadingSpinner size="lg" />
@@ -243,8 +253,14 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
           </>
         )}
         <div ref={bottomRef} />
-      </div>
+        </div>
 
+        {/* Scroll to bottom button */}
+        <ScrollToBottomButton
+          visible={showScrollButton}
+          onClick={() => scrollToBottom("smooth")}
+        />
+      </div>
       {/* Input */}
       <DMMessageInput
         dmId={dm.id}
