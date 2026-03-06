@@ -1424,6 +1424,7 @@ export type Database = {
           id: string
           message_id: string | null
           reminder_at: string | null
+          require_checklist_complete: boolean
           requires_approval: boolean
           status: Database["public"]["Enums"]["task_status"]
           template_id: string
@@ -1437,6 +1438,7 @@ export type Database = {
           id?: string
           message_id?: string | null
           reminder_at?: string | null
+          require_checklist_complete?: boolean
           requires_approval?: boolean
           status?: Database["public"]["Enums"]["task_status"]
           template_id: string
@@ -1450,6 +1452,7 @@ export type Database = {
           id?: string
           message_id?: string | null
           reminder_at?: string | null
+          require_checklist_complete?: boolean
           requires_approval?: boolean
           status?: Database["public"]["Enums"]["task_status"]
           template_id?: string

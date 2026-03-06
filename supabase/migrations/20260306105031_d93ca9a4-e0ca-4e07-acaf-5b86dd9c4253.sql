@@ -1,0 +1,1 @@
+ALTER TABLE public.task_instances ADD COLUMN require_checklist_complete boolean NOT NULL DEFAULT false;

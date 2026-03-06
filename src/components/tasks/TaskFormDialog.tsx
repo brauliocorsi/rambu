@@ -37,6 +37,7 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
   const [fieldValues, setFieldValues] = useState<Record<string, { text?: string; number?: number; fileUrl?: string; fileName?: string }>>({});
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [requireChecklistComplete, setRequireChecklistComplete] = useState(false);
   const [checklistItems, setChecklistItems] = useState<{ label: string; assignedTo: string | null }[]>([]);
 
   // Reset form and pre-fill from template defaults
@@ -167,6 +168,7 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
       dmId: dmId || undefined,
       assignedTo: selectedAssignees[0] || undefined,
       requiresApproval,
+      requireChecklistComplete: checklistItems.length > 0 ? requireChecklistComplete : false,
       messageId,
       fieldValues: fields.map((f) => ({
         templateFieldId: f.id,
@@ -339,6 +341,17 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar item
               </Button>
+            </div>
+          )}
+
+          {/* Require checklist complete */}
+          {checklistItems.length > 0 && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+              <Label className="flex items-center gap-1.5 cursor-pointer">
+                <CheckSquare className="h-4 w-4 text-primary" />
+                Bloquear conclusão sem checklist completo
+              </Label>
+              <Switch checked={requireChecklistComplete} onCheckedChange={setRequireChecklistComplete} />
             </div>
           )}
 
