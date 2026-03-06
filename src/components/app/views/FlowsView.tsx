@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { ClipboardList, Clock, CheckCircle2, Plus, Hash, User, MessageSquare } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ClipboardList, Clock, CheckCircle2, Plus, Hash, User, MessageSquare, Filter, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
@@ -69,6 +70,8 @@ export function FlowsView({ onSelectChannel }: FlowsViewProps) {
   const { currentWorkspace } = useWorkspaceContext();
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState("templates");
+  const [filterTemplate, setFilterTemplate] = useState<string>("all");
+  const [filterAssignee, setFilterAssignee] = useState<string>("all");
 
   const { data: pendingTasks = [], isLoading: loadingPending } = useWorkspaceTasks(
     currentWorkspace?.id || null,
@@ -78,6 +81,36 @@ export function FlowsView({ onSelectChannel }: FlowsViewProps) {
     currentWorkspace?.id || null,
     "completed"
   );
+
+  // Extract unique templates and assignees for filter options
+  const templateOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    pendingTasks.forEach(t => map.set(t.template_id, t.template_name));
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [pendingTasks]);
+
+  const assigneeOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    pendingTasks.forEach(t => {
+      if (t.assigned_to && t.assigned_name) map.set(t.assigned_to, t.assigned_name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [pendingTasks]);
+
+  const filteredPendingTasks = useMemo(() => {
+    return pendingTasks.filter(t => {
+      if (filterTemplate !== "all" && t.template_id !== filterTemplate) return false;
+      if (filterAssignee !== "all" && t.assigned_to !== filterAssignee) return false;
+      return true;
+    });
+  }, [pendingTasks, filterTemplate, filterAssignee]);
+
+  const hasActiveFilters = filterTemplate !== "all" || filterAssignee !== "all";
+
+  const clearFilters = () => {
+    setFilterTemplate("all");
+    setFilterAssignee("all");
+  };
 
   if (!currentWorkspace) {
     return (
@@ -132,16 +165,56 @@ export function FlowsView({ onSelectChannel }: FlowsViewProps) {
 
         <TabsContent value="pending" className="flex-1 min-h-0 mt-0">
           <ScrollArea className="h-full">
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-3">
+              {/* Filters */}
+              {pendingTasks.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {templateOptions.length > 1 && (
+                    <Select value={filterTemplate} onValueChange={setFilterTemplate}>
+                      <SelectTrigger className="h-8 text-xs w-auto min-w-[120px] max-w-[180px]">
+                        <SelectValue placeholder="Template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos templates</SelectItem>
+                        {templateOptions.map(o => (
+                          <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {assigneeOptions.length > 1 && (
+                    <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                      <SelectTrigger className="h-8 text-xs w-auto min-w-[120px] max-w-[180px]">
+                        <SelectValue placeholder="Responsável" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos responsáveis</SelectItem>
+                        {assigneeOptions.map(o => (
+                          <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-muted-foreground">
+                      <X className="h-3 w-3 mr-1" />
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+              )}
               {loadingPending ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
-              ) : pendingTasks.length === 0 ? (
+              ) : filteredPendingTasks.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma tarefa pendente</p>
+                  <p className="text-sm text-muted-foreground">
+                    {hasActiveFilters ? "Nenhuma tarefa encontrada com esses filtros" : "Nenhuma tarefa pendente"}
+                  </p>
                 </div>
               ) : (
-                pendingTasks.map((task) => (
+                filteredPendingTasks.map((task) => (
                   <TaskListItem key={task.id} task={task} onSelectChannel={onSelectChannel} />
                 ))
               )}
