@@ -1313,6 +1313,7 @@ export type Database = {
       }
       task_checklist_items: {
         Row: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -1323,6 +1324,7 @@ export type Database = {
           task_instance_id: string
         }
         Insert: {
+          assigned_to?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string
@@ -1333,6 +1335,7 @@ export type Database = {
           task_instance_id: string
         }
         Update: {
+          assigned_to?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string
@@ -1343,6 +1346,13 @@ export type Database = {
           task_instance_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "task_checklist_items_checked_by_fkey"
             columns: ["checked_by"]
