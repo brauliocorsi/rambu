@@ -118,6 +118,7 @@ export function useCreateTaskInstance() {
       dmId,
       assignedTo,
       requiresApproval,
+      requireChecklistComplete,
       reminderAt,
       messageId,
       fieldValues,
@@ -127,6 +128,7 @@ export function useCreateTaskInstance() {
       dmId?: string;
       assignedTo?: string;
       requiresApproval?: boolean;
+      requireChecklistComplete?: boolean;
       reminderAt?: string;
       messageId: string;
       fieldValues: {
@@ -148,6 +150,7 @@ export function useCreateTaskInstance() {
           created_by: user.id,
           assigned_to: assignedTo || null,
           requires_approval: requiresApproval || false,
+          require_checklist_complete: requireChecklistComplete || false,
           reminder_at: reminderAt || null,
           message_id: messageId,
           status: "pending",

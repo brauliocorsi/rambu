@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClipboardList, User, Check, X, CheckCircle2, Clock, XCircle, ShieldCheck, Users, CheckSquare, AlertTriangle } from "lucide-react";
+import { ClipboardList, User, Check, X, CheckCircle2, Clock, XCircle, ShieldCheck, Users, CheckSquare, AlertTriangle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -73,8 +73,10 @@ export function TaskCard({ messageId }: Props) {
     return isAssignee || user?.id === task.created_by;
   };
   const checklistIncomplete = checklistTotal > 0 && checkedCount < checklistTotal;
+  const checklistBlocked = checklistIncomplete && !!(task as any).require_checklist_complete;
 
   const handleComplete = () => {
+    if (checklistBlocked) return; // blocked by setting
     if (checklistIncomplete) {
       setObservationDialog({ type: "complete" });
       setObservation("");
@@ -84,6 +86,7 @@ export function TaskCard({ messageId }: Props) {
   };
 
   const handleCompleteMyPart = () => {
+    if (checklistBlocked) return; // blocked by setting
     if (checklistIncomplete) {
       setObservationDialog({ type: "completePart", assigneeId: myAssignment!.id });
       setObservation("");
@@ -141,6 +144,12 @@ export function TaskCard({ messageId }: Props) {
               <div className="flex items-center gap-1 text-xs font-medium">
                 <CheckSquare className="h-3 w-3 text-primary" />
                 Checklist
+                {checklistBlocked && (
+                  <span className="flex items-center gap-0.5 text-[10px] text-destructive ml-1">
+                    <Lock className="h-2.5 w-2.5" />
+                    Obrigatório
+                  </span>
+                )}
               </div>
               <span className="text-[10px] text-muted-foreground">
                 {checkedCount}/{checklistTotal}
@@ -288,11 +297,12 @@ export function TaskCard({ messageId }: Props) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs text-primary hover:bg-primary/10"
+                className={cn("h-7 text-xs", checklistBlocked ? "text-muted-foreground cursor-not-allowed" : "text-primary hover:bg-primary/10")}
                 onClick={handleCompleteMyPart}
-                disabled={updateAssigneeStatus.isPending}
+                disabled={updateAssigneeStatus.isPending || checklistBlocked}
+                title={checklistBlocked ? "Complete todos os itens do checklist antes de concluir" : undefined}
               >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {checklistBlocked ? <Lock className="h-3 w-3 mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
                 {hasMultiAssignees ? "Concluir minha parte" : "Concluir"}
               </Button>
             )}
@@ -300,11 +310,12 @@ export function TaskCard({ messageId }: Props) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs text-primary hover:bg-primary/10"
+                className={cn("h-7 text-xs", checklistBlocked ? "text-muted-foreground cursor-not-allowed" : "text-primary hover:bg-primary/10")}
                 onClick={handleComplete}
-                disabled={updateStatus.isPending}
+                disabled={updateStatus.isPending || checklistBlocked}
+                title={checklistBlocked ? "Complete todos os itens do checklist antes de concluir" : undefined}
               >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {checklistBlocked ? <Lock className="h-3 w-3 mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
                 Concluir
               </Button>
             )}
