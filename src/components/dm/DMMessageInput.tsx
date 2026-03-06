@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, X, Clock, Smile, Mic, Image, Plus } from "lucide-react";
+import { Send, Paperclip, X, Clock, Smile, Mic, Image, Plus, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/message/MentionInput";
 import { FilePreview } from "@/components/message/FilePreview";
@@ -12,6 +12,11 @@ import { useFilePasteDrop } from "@/hooks/useFilePasteDrop";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
+import { TaskPicker } from "@/components/tasks/TaskPicker";
+import { TaskFormDialog } from "@/components/tasks/TaskFormDialog";
+import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
+import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { type TaskTemplate } from "@/hooks/useTaskTemplates";
 import { toast } from "sonner";
 import { format, addHours, addDays, setHours, setMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -60,6 +65,9 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   const [time, setTime] = useState("09:00");
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
+  const [selectedTaskTemplate, setSelectedTaskTemplate] = useState<TaskTemplate | null>(null);
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const { currentWorkspace } = useWorkspaceContext();
   const inputRef = useRef<{ focus: () => void }>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -430,6 +438,14 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           >
             <Mic className="h-5 w-5 text-muted-foreground" />
           </Button>
+
+          {currentWorkspace && (
+            <TaskPicker
+              workspaceId={currentWorkspace.id}
+              onSelectTemplate={(template) => setSelectedTaskTemplate(template)}
+              onCreateNew={() => setShowCreateTemplate(true)}
+            />
+          )}
         </div>
 
         {/* Mobile action button - dropdown */}
@@ -629,6 +645,22 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           </div>
         </DialogContent>
       </Dialog>
+      {/* Task Form and Create Template for DMs */}
+      {currentWorkspace && (
+        <>
+          <TaskFormDialog
+            open={!!selectedTaskTemplate}
+            onClose={() => setSelectedTaskTemplate(null)}
+            template={selectedTaskTemplate}
+            dmId={dmId}
+          />
+          <CreateTaskTemplateDialog
+            open={showCreateTemplate}
+            onClose={() => setShowCreateTemplate(false)}
+            workspaceId={currentWorkspace.id}
+          />
+        </>
+      )}
     </div>
   );
 }

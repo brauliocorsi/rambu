@@ -115,6 +115,7 @@ export function useCreateTaskInstance() {
     mutationFn: async ({
       templateId,
       channelId,
+      dmId,
       assignedTo,
       requiresApproval,
       reminderAt,
@@ -122,7 +123,8 @@ export function useCreateTaskInstance() {
       fieldValues,
     }: {
       templateId: string;
-      channelId: string;
+      channelId?: string;
+      dmId?: string;
       assignedTo?: string;
       requiresApproval?: boolean;
       reminderAt?: string;
@@ -141,14 +143,15 @@ export function useCreateTaskInstance() {
         .from("task_instances")
         .insert({
           template_id: templateId,
-          channel_id: channelId,
+          channel_id: channelId || null,
+          dm_id: dmId || null,
           created_by: user.id,
           assigned_to: assignedTo || null,
           requires_approval: requiresApproval || false,
           reminder_at: reminderAt || null,
           message_id: messageId,
           status: "pending",
-        })
+        } as any)
         .select()
         .single();
 

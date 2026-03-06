@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClipboardList, Clock, CheckCircle2, Plus, Hash, User } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, Plus, Hash, User, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,13 +38,20 @@ function TaskListItem({ task, onSelectChannel }: { task: WorkspaceTask; onSelect
           </Badge>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <button
-            onClick={() => onSelectChannel?.(task.channel_id)}
-            className="flex items-center gap-1 hover:text-foreground transition-colors"
-          >
-            <Hash className="h-3 w-3" />
-            {task.channel_name}
-          </button>
+          {task.channel_name ? (
+            <button
+              onClick={() => onSelectChannel?.(task.channel_id!)}
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Hash className="h-3 w-3" />
+              {task.channel_name}
+            </button>
+          ) : task.dm_label ? (
+            <span className="flex items-center gap-1">
+              <MessageSquare className="h-3 w-3" />
+              {task.dm_label}
+            </span>
+          ) : null}
           {task.assigned_name && (
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />

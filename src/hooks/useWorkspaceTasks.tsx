@@ -5,7 +5,8 @@ import { useAuth } from "./useAuth";
 export interface WorkspaceTask {
   id: string;
   template_id: string;
-  channel_id: string;
+  channel_id: string | null;
+  dm_id: string | null;
   created_by: string;
   assigned_to: string | null;
   status: "pending" | "approved" | "rejected" | "completed";
@@ -13,7 +14,8 @@ export interface WorkspaceTask {
   message_id: string | null;
   created_at: string;
   template_name: string;
-  channel_name: string;
+  channel_name: string | null;
+  dm_label: string | null;
   creator_name: string | null;
   assigned_name: string | null;
 }
@@ -32,7 +34,7 @@ export function useWorkspaceTasks(workspaceId: string | null, statusFilter: "pen
 
       const { data: tasks, error } = await supabase
         .from("task_instances")
-        .select("id, template_id, channel_id, created_by, assigned_to, status, requires_approval, message_id, created_at")
+        .select("id, template_id, channel_id, dm_id, created_by, assigned_to, status, requires_approval, message_id, created_at")
         .in("status", statusValues)
         .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
         .order("created_at", { ascending: false });
@@ -40,15 +42,34 @@ export function useWorkspaceTasks(workspaceId: string | null, statusFilter: "pen
       if (error) throw error;
       if (!tasks || tasks.length === 0) return [];
 
-      const channelIds = [...new Set(tasks.map(t => t.channel_id))];
-      const { data: channels } = await supabase
-        .from("channels")
-        .select("id, name, workspace_id")
-        .in("id", channelIds)
-        .eq("workspace_id", workspaceId);
+      // Filter channel-based tasks by workspace
+      const channelIds = [...new Set(tasks.filter(t => t.channel_id).map(t => t.channel_id!))];
+      let channelMap = new Map<string, { id: string; name: string; workspace_id: string }>();
+      if (channelIds.length > 0) {
+        const { data: channels } = await supabase
+          .from("channels")
+          .select("id, name, workspace_id")
+          .in("id", channelIds)
+          .eq("workspace_id", workspaceId);
+        channelMap = new Map(channels?.map(c => [c.id, c]) || []);
+      }
 
-      const channelMap = new Map(channels?.map(c => [c.id, c]) || []);
-      const filteredTasks = tasks.filter(t => channelMap.has(t.channel_id));
+      // Filter DM-based tasks by workspace
+      const dmIds = [...new Set(tasks.filter(t => t.dm_id).map(t => t.dm_id!))];
+      let dmMap = new Map<string, { id: string; workspace_id: string }>();
+      if (dmIds.length > 0) {
+        const { data: dms } = await supabase
+          .from("direct_messages")
+          .select("id, workspace_id")
+          .in("id", dmIds)
+          .eq("workspace_id", workspaceId);
+        dmMap = new Map(dms?.map(d => [d.id, d]) || []);
+      }
+
+      const filteredTasks = tasks.filter(t => 
+        (t.channel_id && channelMap.has(t.channel_id)) || 
+        (t.dm_id && dmMap.has(t.dm_id))
+      );
 
       if (filteredTasks.length === 0) return [];
 
@@ -72,7 +93,8 @@ export function useWorkspaceTasks(workspaceId: string | null, statusFilter: "pen
       return filteredTasks.map(t => ({
         ...t,
         template_name: templateMap.get(t.template_id) || "Fluxo",
-        channel_name: channelMap.get(t.channel_id)?.name || "canal",
+        channel_name: t.channel_id ? (channelMap.get(t.channel_id)?.name || "canal") : null,
+        dm_label: t.dm_id ? "Mensagem Direta" : null,
         creator_name: profileMap.get(t.created_by) || null,
         assigned_name: t.assigned_to ? profileMap.get(t.assigned_to) || null : null,
       })) as WorkspaceTask[];
