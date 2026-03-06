@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, ShieldCheck, X, CheckSquare, Plus } from "lucide-react";
+import { ClipboardList, ShieldCheck, X, CheckSquare, Plus, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
   const [fieldValues, setFieldValues] = useState<Record<string, { text?: string; number?: number; fileUrl?: string; fileName?: string }>>({});
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [requiresApproval, setRequiresApproval] = useState(false);
-  const [checklistItems, setChecklistItems] = useState<string[]>([]);
+  const [checklistItems, setChecklistItems] = useState<{ label: string; assignedTo: string | null }[]>([]);
 
   // Reset form and pre-fill from template defaults
   useEffect(() => {
@@ -49,7 +49,9 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
       // Pre-fill checklist from template
       const templateChecklist = (templateWithFields as any)?.checklist_items;
       if (Array.isArray(templateChecklist)) {
-        setChecklistItems(templateChecklist.filter((i: any) => typeof i === "string" && i.trim()));
+        setChecklistItems(templateChecklist
+          .filter((i: any) => typeof i === "string" && i.trim())
+          .map((label: string) => ({ label, assignedTo: null })));
       } else {
         setChecklistItems([]);
       }
@@ -120,10 +122,10 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
       ? `\n👥 **Atribuído a:** ${assigneeNames}`
       : "";
 
-    const checklistInfo = checklistItems.length > 0
-      ? `\n✅ **Checklist:** ${checklistItems.length} item(ns)`
+    const validChecklist = checklistItems.filter(c => c.label.trim());
+    const checklistInfo = validChecklist.length > 0
+      ? `\n✅ **Checklist:** ${validChecklist.length} item(ns)`
       : "";
-
     const messageContent = `📋 **${template.name}**${fieldSummary ? "\n" + fieldSummary : ""}${assigneeInfo}${checklistInfo}`;
 
     // Send the message first
@@ -186,13 +188,13 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
     }
 
     // Create checklist items
-    const validChecklist = checklistItems.filter(c => c.trim());
     if (validChecklist.length > 0) {
       await supabase.from("task_checklist_items").insert(
-        validChecklist.map((label, i) => ({
+        validChecklist.map((item, i) => ({
           task_instance_id: instance.id,
-          label: label.trim(),
+          label: item.label.trim(),
           position: i,
+          assigned_to: item.assignedTo || null,
         }))
       );
     }
@@ -289,22 +291,42 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
                 <CheckSquare className="h-3.5 w-3.5" />
                 Checklist
               </Label>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {checklistItems.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      value={item}
-                      onChange={(e) => {
-                        setChecklistItems(prev => prev.map((it, i) => i === index ? e.target.value : it));
-                      }}
-                      placeholder={`Item ${index + 1}`}
-                      className="flex-1 h-8 text-sm"
-                    />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
-                      setChecklistItems(prev => prev.filter((_, i) => i !== index));
-                    }}>
-                      <X className="h-3 w-3" />
-                    </Button>
+                  <div key={index} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={item.label}
+                        onChange={(e) => {
+                          setChecklistItems(prev => prev.map((it, i) => i === index ? { ...it, label: e.target.value } : it));
+                        }}
+                        placeholder={`Item ${index + 1}`}
+                        className="flex-1 h-8 text-sm"
+                      />
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
+                        setChecklistItems(prev => prev.filter((_, i) => i !== index));
+                      }}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {/* Optional per-item assignee */}
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <select
+                        value={item.assignedTo || ""}
+                        onChange={(e) => {
+                          setChecklistItems(prev => prev.map((it, i) => i === index ? { ...it, assignedTo: e.target.value || null } : it));
+                        }}
+                        className="h-6 text-xs bg-transparent border border-border rounded px-1.5 text-foreground"
+                      >
+                        <option value="">Sem responsável</option>
+                        {members.map(m => (
+                          <option key={m.user_id} value={m.user_id}>
+                            {m.profile?.display_name || "Usuário"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -312,7 +334,7 @@ export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Pro
                 variant="outline"
                 size="sm"
                 className="mt-2 w-full rounded-lg"
-                onClick={() => setChecklistItems(prev => [...prev, ""])}
+                onClick={() => setChecklistItems(prev => [...prev, { label: "", assignedTo: null }])}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar item

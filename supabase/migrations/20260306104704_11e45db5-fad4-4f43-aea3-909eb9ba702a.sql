@@ -1,0 +1,1 @@
+ALTER TABLE public.task_checklist_items ADD COLUMN assigned_to uuid REFERENCES public.profiles(id) ON DELETE SET NULL;

@@ -66,7 +66,12 @@ export function TaskCard({ messageId }: Props) {
   const checkedCount = checklistItems.filter(i => i.is_checked).length;
   const checklistTotal = checklistItems.length;
   const checklistProgress = checklistTotal > 0 ? (checkedCount / checklistTotal) * 100 : 0;
-  const canToggleChecklist = task.status === "pending" && (isAssignee || user?.id === task.created_by);
+  const canToggleChecklist = (item: typeof checklistItems[number]) => {
+    if (task.status !== "pending") return false;
+    // If item has an assigned user, only they can check it
+    if (item.assigned_to) return item.assigned_to === user?.id;
+    return isAssignee || user?.id === task.created_by;
+  };
   const checklistIncomplete = checklistTotal > 0 && checkedCount < checklistTotal;
 
   const handleComplete = () => {
@@ -143,35 +148,50 @@ export function TaskCard({ messageId }: Props) {
             </div>
             <Progress value={checklistProgress} className="h-1.5" />
             <div className="space-y-0.5">
-              {checklistItems.map((item) => (
-                <label
-                  key={item.id}
-                  className={cn(
-                    "flex items-center gap-2 px-1.5 py-1 rounded text-xs cursor-pointer hover:bg-secondary/50",
-                    item.is_checked && "line-through text-muted-foreground"
-                  )}
-                >
-                  <Checkbox
-                    checked={item.is_checked}
-                    disabled={!canToggleChecklist || toggleChecklist.isPending}
-                    onCheckedChange={(checked) => {
-                      toggleChecklist.mutate({
-                        itemId: item.id,
-                        isChecked: !!checked,
-                        taskInstanceId: task.id,
-                      });
-                    }}
-                    className="h-3.5 w-3.5"
-                  />
-                  <span className="flex-1">{item.label}</span>
-                  {item.is_checked && item.checker_profile && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {item.checker_profile.display_name}
-                      {item.checked_at && ` · ${format(new Date(item.checked_at), "HH:mm")}`}
-                    </span>
-                  )}
-                </label>
-              ))}
+              {checklistItems.map((item) => {
+                const canToggle = canToggleChecklist(item);
+                return (
+                  <label
+                    key={item.id}
+                    className={cn(
+                      "flex items-center gap-2 px-1.5 py-1 rounded text-xs",
+                      canToggle ? "cursor-pointer hover:bg-secondary/50" : "cursor-default opacity-80",
+                      item.is_checked && "line-through text-muted-foreground"
+                    )}
+                  >
+                    <Checkbox
+                      checked={item.is_checked}
+                      disabled={!canToggle || toggleChecklist.isPending}
+                      onCheckedChange={(checked) => {
+                        toggleChecklist.mutate({
+                          itemId: item.id,
+                          isChecked: !!checked,
+                          taskInstanceId: task.id,
+                        });
+                      }}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="flex-1">{item.label}</span>
+                    {item.assignee_profile && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0">
+                        <Avatar className="h-3 w-3">
+                          <AvatarImage src={item.assignee_profile.avatar_url || undefined} />
+                          <AvatarFallback className="text-[6px]">
+                            {(item.assignee_profile.display_name || "U").charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {item.assignee_profile.display_name}
+                      </span>
+                    )}
+                    {item.is_checked && item.checker_profile && !item.assignee_profile && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {item.checker_profile.display_name}
+                        {item.checked_at && ` · ${format(new Date(item.checked_at), "HH:mm")}`}
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}

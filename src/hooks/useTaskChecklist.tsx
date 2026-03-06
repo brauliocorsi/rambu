@@ -9,10 +9,15 @@ export interface TaskChecklistItem {
   is_checked: boolean;
   checked_by: string | null;
   checked_at: string | null;
+  assigned_to: string | null;
   position: number;
   created_at: string;
   checker_profile?: {
     display_name: string | null;
+  };
+  assignee_profile?: {
+    display_name: string | null;
+    avatar_url: string | null;
   };
 }
 
@@ -28,20 +33,30 @@ export function useTaskChecklist(taskInstanceId: string | null) {
         .order("position");
       if (error) throw error;
 
-      // Fetch checker profiles for checked items
-      const checkedByIds = [...new Set((data || []).filter(i => i.checked_by).map(i => i.checked_by!))];
-      let profileMap = new Map<string, string>();
-      if (checkedByIds.length > 0) {
+      // Fetch all relevant profile IDs (checkers + assignees)
+      const profileIds = new Set<string>();
+      (data || []).forEach(i => {
+        if (i.checked_by) profileIds.add(i.checked_by);
+        if (i.assigned_to) profileIds.add(i.assigned_to);
+      });
+
+      let profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+      if (profileIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, display_name")
-          .in("id", checkedByIds);
-        profiles?.forEach(p => profileMap.set(p.id, p.display_name || "Usuário"));
+          .select("id, display_name, avatar_url")
+          .in("id", [...profileIds]);
+        profiles?.forEach(p => profileMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url }));
       }
 
       return (data || []).map(item => ({
         ...item,
-        checker_profile: item.checked_by ? { display_name: profileMap.get(item.checked_by) || null } : undefined,
+        checker_profile: item.checked_by
+          ? { display_name: profileMap.get(item.checked_by)?.display_name || null }
+          : undefined,
+        assignee_profile: item.assigned_to
+          ? profileMap.get(item.assigned_to) || { display_name: null, avatar_url: null }
+          : undefined,
       })) as TaskChecklistItem[];
     },
     enabled: !!taskInstanceId,
