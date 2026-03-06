@@ -1407,9 +1407,10 @@ export type Database = {
       task_instances: {
         Row: {
           assigned_to: string | null
-          channel_id: string
+          channel_id: string | null
           created_at: string
           created_by: string
+          dm_id: string | null
           id: string
           message_id: string | null
           reminder_at: string | null
@@ -1419,9 +1420,10 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
-          channel_id: string
+          channel_id?: string | null
           created_at?: string
           created_by: string
+          dm_id?: string | null
           id?: string
           message_id?: string | null
           reminder_at?: string | null
@@ -1431,9 +1433,10 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
-          channel_id?: string
+          channel_id?: string | null
           created_at?: string
           created_by?: string
+          dm_id?: string | null
           id?: string
           message_id?: string | null
           reminder_at?: string | null
@@ -1461,6 +1464,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_instances_dm_id_fkey"
+            columns: ["dm_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
             referencedColumns: ["id"]
           },
           {

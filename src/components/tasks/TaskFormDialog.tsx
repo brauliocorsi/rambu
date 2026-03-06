@@ -21,10 +21,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   template: TaskTemplate | null;
-  channelId: string;
+  channelId?: string;
+  dmId?: string;
 }
 
-export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
+export function TaskFormDialog({ open, onClose, template, channelId, dmId }: Props) {
   const { data: templateWithFields } = useTaskTemplateWithFields(template?.id || null);
   const { data: templateAssignees = [] } = useTaskTemplateAssignees(template?.id || null);
   const { currentWorkspace } = useWorkspaceContext();
@@ -126,18 +127,45 @@ export function TaskFormDialog({ open, onClose, template, channelId }: Props) {
     const messageContent = `📋 **${template.name}**${fieldSummary ? "\n" + fieldSummary : ""}${assigneeInfo}${checklistInfo}`;
 
     // Send the message first
-    const message = await sendMessage.mutateAsync({
-      channelId,
-      content: messageContent,
-    });
+    let messageId: string;
+    if (dmId) {
+      // Send as DM message
+      const { useSendDMMessage } = await import("@/hooks/useDirectMessages");
+      // We need to use supabase directly here since we can't use hooks dynamically
+      const { data: dmMsg, error: dmErr } = await supabase
+        .from("dm_messages")
+        .insert({
+          dm_id: dmId,
+          user_id: (await supabase.auth.getUser()).data.user?.id!,
+          content: messageContent,
+        })
+        .select()
+        .single();
+      if (dmErr) throw dmErr;
+      messageId = dmMsg.id;
+      // Update last_message_at
+      await supabase
+        .from("direct_messages")
+        .update({ last_message_at: new Date().toISOString() })
+        .eq("id", dmId);
+    } else if (channelId) {
+      const message = await sendMessage.mutateAsync({
+        channelId,
+        content: messageContent,
+      });
+      messageId = message.id;
+    } else {
+      return;
+    }
 
     // Create the task instance (use first assignee for backward compat)
     const instance = await createTaskInstance.mutateAsync({
       templateId: template.id,
-      channelId,
+      channelId: channelId || undefined,
+      dmId: dmId || undefined,
       assignedTo: selectedAssignees[0] || undefined,
       requiresApproval,
-      messageId: message.id,
+      messageId,
       fieldValues: fields.map((f) => ({
         templateFieldId: f.id,
         valueText: fieldValues[f.id]?.text || undefined,
