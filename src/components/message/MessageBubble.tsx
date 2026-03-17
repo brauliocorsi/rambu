@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Message, useToggleReaction, useMessageReactions, useEditMessage, useDeleteMessage, useMessageById } from "@/hooks/useMessages";
 import { useMarkChannelAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
+import { MessageContent } from "./MessageContent";
 import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -168,14 +169,14 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
             </div>
           ) : (
             message.content && !message.content.startsWith("📎 ") && (
-              useSlackLayout ? (
-                <p className="text-sm whitespace-pre-wrap break-words">{formatMentionsForDisplay(message.content)}</p>
+                useSlackLayout ? (
+                <MessageContent content={message.content} className="text-sm" />
               ) : (
                 <div className={cn(
                   "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
                   isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
                 )}>
-                  <p className="text-sm whitespace-pre-wrap break-words">{formatMentionsForDisplay(message.content)}</p>
+                  <MessageContent content={message.content} className="text-sm" />
                 </div>
               )
             )

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Hash, Loader2 } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
 import { MessageBubble } from "./MessageBubble";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { MessageListSkeleton } from "@/components/ui/skeletons";
 import { TypingIndicator } from "./TypingIndicator";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
@@ -172,11 +172,7 @@ export function MessageList({
   }, [messages, preferences.slackMode]);
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <MessageListSkeleton count={8} />;
   }
 
   if (messages.length === 0) {

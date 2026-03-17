@@ -94,6 +94,7 @@ import { useScheduledMessages } from "@/hooks/useScheduledMessages";
 import { PendingTasksPanel } from "@/components/tasks/PendingTasksPanel";
 import { usePendingTasks } from "@/hooks/usePendingTasks";
 import { FlowsView } from "@/components/app/views/FlowsView";
+import { ChannelListSkeleton, DMListSkeleton } from "@/components/ui/skeletons";
 
 export function DesktopApp() {
   const { user, signOut } = useAuth();
@@ -546,13 +547,7 @@ export function DesktopApp() {
                   Novo Canal
                 </Button>
                 {loadingChannels ? (
-                  <div className="flex justify-center py-4">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full"
-                    />
-                  </div>
+                  <ChannelListSkeleton />
                 ) : (
                   <ChannelList
                     channels={channels}
@@ -574,13 +569,7 @@ export function DesktopApp() {
                   Nova Mensagem
                 </Button>
                 {loadingDMs ? (
-                  <div className="flex justify-center py-4">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full"
-                    />
-                  </div>
+                  <DMListSkeleton />
                 ) : (
                   <DMList
                     dms={dms}
