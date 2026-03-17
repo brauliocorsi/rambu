@@ -12,6 +12,7 @@ interface MentionInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  onFormatInsert?: (prefix: string, suffix: string) => void;
 }
 
 export interface MentionInputRef {
