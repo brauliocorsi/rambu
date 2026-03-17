@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useCallback, useMemo } from "react";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Header } from "@/components/layout/Header";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
@@ -34,7 +33,7 @@ export function MainApp() {
   const { data: pendingReminders = [] } = useReminders();
   const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
 
-  const getTitle = () => {
+  const getTitle = useCallback(() => {
     if (showSettings) return "Configurações";
     if (activeTab === "channels" && currentChannel) {
       return `#${currentChannel.name}`;
@@ -43,7 +42,6 @@ export function MainApp() {
       return selectedDM.other_user?.display_name || "Mensagem";
     }
     switch (activeTab) {
-      case "home": return "Rambu";
       case "unread": return "Não Lidas";
       case "dms": return "Mensagens";
       case "channels": return currentWorkspace ? currentWorkspace.name : "Canais";
@@ -52,48 +50,46 @@ export function MainApp() {
       case "profile": return "Perfil";
       default: return "Rambu";
     }
-  };
+  }, [showSettings, activeTab, currentChannel, selectedDM, currentWorkspace]);
 
-  const handleNavigateToDMs = () => {
+  const handleNavigateToDMs = useCallback(() => {
     setActiveTab("dms");
-  };
+  }, []);
 
-  const handleSelectDM = (dm: DirectMessage | null) => {
+  const handleSelectDM = useCallback((dm: DirectMessage | null) => {
     setSelectedDM(dm);
     if (dm) {
       setActiveTab("dms");
     }
-  };
+  }, []);
 
-  const handleSelectChannel = (channelId: string) => {
-    // This would need to fetch the channel and set it
+  const handleSelectChannel = useCallback((channelId: string) => {
     setActiveTab("channels");
-  };
+  }, []);
 
-  const renderContent = () => {
+  const handleTabChange = useCallback((tab: string) => {
+    if (tab !== "dms") {
+      setSelectedDM(null);
+    }
+    if (tab !== "channels") {
+      setCurrentChannel(null);
+    }
+    setShowSettings(false);
+    setActiveTab(tab);
+  }, [setCurrentChannel]);
+
+  const content = useMemo(() => {
     if (showSettings) {
       return <SettingsView onBack={() => setShowSettings(false)} />;
     }
 
     switch (activeTab) {
-      case "home": 
-        return (
-          <HomeView 
-            onNavigateToDMs={handleNavigateToDMs}
-            onSelectDM={handleSelectDM}
-          />
-        );
       case "unread":
         return (
           <UnreadView
             onSelectChannel={handleSelectChannel}
-            onSelectDM={(dmId) => {
-              // Navigate to DMs view - this needs to find the DM by ID
-              setActiveTab("dms");
-            }}
-            onSelectGroup={(groupId) => {
-              setActiveTab("dms");
-            }}
+            onSelectDM={() => setActiveTab("dms")}
+            onSelectGroup={() => setActiveTab("dms")}
           />
         );
       case "dms": 
@@ -112,26 +108,9 @@ export function MainApp() {
       case "profile": 
         return <ProfileView onOpenSettings={() => setShowSettings(true)} />;
       default: 
-        return (
-          <HomeView 
-            onNavigateToDMs={handleNavigateToDMs}
-            onSelectDM={handleSelectDM}
-          />
-        );
+        return <ChannelsView />;
     }
-  };
-
-  // Reset selected DM when changing tabs
-  const handleTabChange = (tab: string) => {
-    if (tab !== "dms") {
-      setSelectedDM(null);
-    }
-    if (tab !== "channels") {
-      setCurrentChannel(null);
-    }
-    setShowSettings(false);
-    setActiveTab(tab);
-  };
+  }, [showSettings, activeTab, selectedDM, handleSelectChannel]);
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
@@ -140,18 +119,9 @@ export function MainApp() {
         onSearchClick={() => setShowSearch(true)}
       />
       <main className="flex-1 min-h-0 overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab + (currentChannel?.id || "") + (selectedDM?.id || "") + (showSettings ? "settings" : "")}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="h-full"
-          >
-            {renderContent()}
-          </motion.div>
-        </AnimatePresence>
+        <div className="h-full animate-fade-in" key={activeTab + (showSettings ? "s" : "")}>
+          {content}
+        </div>
       </main>
       <MobileNav 
         activeTab={activeTab} 

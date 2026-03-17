@@ -1,127 +1,83 @@
 
 
-# Plano de Melhoria Global do Rambu
+## Plano: Auto-atribuição em Templates + Tarefas com Checklist Recorrentes
 
-Este plano aborda melhorias em UX/UI, fluidez, performance, notificações e responsividade em lotes incrementais para evitar quebras.
-
----
-
-## Fase 1 -- UI Minimalista e Polimento Visual
-
-### 1.1 Navegação Mobile (MobileNav)
-- Reduzir de 7 tabs para 5 (remover Home e Reminders, consolidar em Perfil/Notificações)
-- Tabs: **DMs**, **Canais**, **Não Lidas**, **Fluxos**, **Perfil**
-- Ícones menores, labels opcionais (só no ativo), hitarea maior
-- Barra mais fina com blur mais forte
-
-### 1.2 Header simplificado
-- Remover animação do título (causa re-render desnecessário a cada mudança)
-- Título estático com transição CSS suave em vez de framer-motion
-- Adicionar avatar do usuário/canal no header contextual
-
-### 1.3 Tela de Login (AuthForm)
-- Fundo com gradiente sutil, card centralizado com glassmorphism
-- Transições entre login/signup mais suaves
-- Feedback visual melhorado nos inputs (estados focus/error/success)
-
-### 1.4 HomeView -- Redesign minimalista
-- Remover seção "Atividade Recente" vazia (placeholder sem função)
-- Cards de ação rápida mais sutis, com ícones outline em vez de blocos coloridos
-- Workspace switcher integrado no header em vez de inline
-
-### 1.5 ProfileView
-- Layout mais limpo, agrupar opções em seções (Conta, Aparência, Sistema)
-- Status do usuário editável inline
+### Contexto Atual
+O sistema de tarefas permite criar templates com campos dinâmicos e atribuir manualmente a membros ao enviar. Não existe conceito de auto-atribuição no template nem checklists ou recorrência.
 
 ---
 
-## Fase 2 -- Fluidez e Performance
+### 1. Auto-atribuição em Templates de Tarefa
 
-### 2.1 Reduzir animações excessivas
-- Remover `AnimatePresence mode="wait"` no MainApp (causa delay na troca de tabs)
-- Usar `CSS transitions` para mudanças de tab em vez de framer-motion mount/unmount
-- Manter framer-motion apenas para modais, popovers e micro-interações
+**Objetivo:** Ao criar um template, o criador pode pré-configurar pessoas que serão automaticamente atribuídas sempre que o fluxo for usado.
 
-### 2.2 MessageBubble otimização
-- Memoizar `MessageBubble` com `React.memo` para evitar re-renders em scroll
-- Lazy-load `FilePreview`, `TaskCard` e `PollCard` com `React.lazy`
-- Remover fetch individual de `useMessageById(reply_to)` em cada bubble -- agrupar no nível da lista
+**Database:**
+- Nova tabela `task_template_assignees` com colunas: `id`, `template_id` (ref task_templates), `user_id`, `created_at`
+- RLS: template creator pode inserir/deletar; workspace members podem ler
 
-### 2.3 MessageList scroll
-- Virtualizar mensagens com `react-virtuoso` ou similar para canais com muitas mensagens
-- Remover múltiplos `setTimeout` para scroll (100ms, 300ms, 600ms) -- usar `ResizeObserver` no container
+**UI - CreateTaskTemplateDialog:**
+- Adicionar seção "Auto-atribuição" com lista de membros do workspace (checkboxes), similar ao que já existe no TaskFormDialog
+- Guardar os user_ids selecionados na nova tabela ao criar o template
 
-### 2.4 Input de mensagem
-- Reduzir re-renders no `MessageInput` -- debounce no `handleInputChange`
-- Consolidar estado dos arquivos anexados com `useReducer`
+**UI - TaskFormDialog:**
+- Ao abrir um template que tem auto-assignees, pré-preencher `selectedAssignees` com esses users
+- O utilizador ainda pode adicionar/remover antes de enviar
 
----
-
-## Fase 3 -- Responsividade e Adaptação
-
-### 3.1 Desktop (DesktopApp)
-- Sidebar esquerda: tornar collapsible com toggle (16px -> 64px -> 256px)
-- Painel de threads: largura responsiva, fecha com Escape
-- Empty state central mais clean com menos texto
-
-### 3.2 Mobile
-- Transições entre views: deslizar lateral (swipe) em vez de fade
-- Input de mensagem: botão de envio maior, área de toque mínima 44px
-- Bottom sheet para ações em vez de popover (mais nativo mobile)
-
-### 3.3 Breakpoints intermediários (tablet)
-- Layout de 2 colunas para tablets (768-1024px)
-- Sidebar flutuante com overlay em tablets portrait
+**Hooks:**
+- `useTaskTemplateAssignees(templateId)` — busca assignees pré-configurados
+- Atualizar `useCreateTaskTemplate` para aceitar `defaultAssignees: string[]`
 
 ---
 
-## Fase 4 -- Notificações e Comunicação
+### 2. Tarefas com Checklist Programadas e Recorrentes
 
-### 4.1 Toast notifications
-- Toasts mais compactos e consistentes
-- Agrupar notificações repetidas (ex: "3 novas mensagens de João")
-- Posição fixa no canto superior direito, sem empurrar conteúdo
+**Objetivo:** Criar tarefas que contêm uma lista de itens (checklist) e que podem ser agendadas e repetidas automaticamente.
 
-### 4.2 Badges e indicadores
-- Animação de pulse sutil nos badges de unread (sem ser intrusivo)
-- Dot indicator para itens com atividade recente (além do número)
+**Database:**
+- Nova tabela `task_checklist_items`: `id`, `task_instance_id`, `label` (text), `is_checked` (bool default false), `checked_by` (uuid nullable), `checked_at` (timestamptz nullable), `position` (int), `created_at`
+- RLS: channel members podem ler; assignees e creator podem update (check/uncheck)
 
-### 4.3 Tipografia e formatação
-- Suporte a Markdown básico nas mensagens (negrito, itálico, código, links)
-- Links clicáveis auto-detectados nas mensagens
-- Preview de links (Open Graph) inline
+- Nova tabela `task_recurrence_rules`: `id`, `template_id`, `channel_id`, `created_by`, `cron_expression` (text — ex: "0 9 * * 1" para segunda às 9h), `auto_assignees` (jsonb array de user_ids), `is_active` (bool default true), `next_run_at` (timestamptz), `last_run_at` (timestamptz nullable), `created_at`
+- RLS: creator pode CRUD; workspace members podem ler
+
+- Adicionar campo `checklist_items` (jsonb) na tabela `task_templates` para guardar items default do checklist no template
+
+**UI - CreateTaskTemplateDialog:**
+- Nova seção "Checklist" onde o utilizador pode adicionar itens de checklist ao template (similar aos campos dinâmicos)
+- Toggle "Tarefa recorrente" com opções: diária, semanal (selecionar dia), mensal (selecionar dia do mês), ou cron personalizado
+- Selector de canal e hora de envio
+
+**UI - TaskCard:**
+- Renderizar checklist com checkboxes interativos
+- Barra de progresso mostrando X/Y itens concluídos
+- Cada item mostra quem marcou e quando
+
+**UI - TaskFormDialog:**
+- Mostrar checklist items pré-configurados do template (editáveis antes de enviar)
+- Permitir adicionar/remover items antes de submeter
+
+**Edge Function - process-recurring-tasks:**
+- Nova edge function que roda via cron (a cada minuto)
+- Busca regras de recorrência ativas onde `next_run_at <= now()`
+- Para cada regra: cria uma nova task_instance com os checklist items, envia mensagem no canal, atribui aos auto-assignees
+- Atualiza `next_run_at` baseado na expressão cron
 
 ---
 
-## Fase 5 -- Detalhes de Qualidade
+### Ficheiros a criar/editar
 
-### 5.1 Estados vazios
-- Ilustrações SVG leves para empty states em vez de ícones genéricos
-- Copy mais direcionada com CTAs claros
+**Novos:**
+- Migration SQL (tabelas + RLS)
+- `src/hooks/useTaskTemplateAssignees.tsx`
+- `src/hooks/useTaskChecklist.tsx`
+- `src/hooks/useTaskRecurrence.tsx`
+- `supabase/functions/process-recurring-tasks/index.ts`
 
-### 5.2 Loading states
-- Skeleton screens em vez de spinners para listas (canais, DMs, mensagens)
-- Shimmer effect consistente usando a classe `.animate-shimmer` já existente
-
-### 5.3 Micro-interações
-- Haptic feedback visual nos botões (scale down no press)
-- Transição de cor suave nos hover states
-- Indicador de "enviando" mais discreto no input
-
----
-
-## Ordem de Implementação Sugerida
-
-Dado que são muitas mudanças, recomendo implementar em **3 mensagens**:
-
-1. **Mensagem 1**: Fases 1 + 2 (UI minimalista + performance)
-2. **Mensagem 2**: Fase 3 (responsividade)
-3. **Mensagem 3**: Fases 4 + 5 (notificações + polish)
-
-### Arquivos principais afetados
-- `MobileNav.tsx`, `Header.tsx`, `MainApp.tsx`
-- `MessageBubble.tsx`, `MessageList.tsx`, `MessageInput.tsx`
-- `DesktopApp.tsx`, `DMChatView.tsx`
-- `AuthForm.tsx`, `HomeView.tsx`, `ProfileView.tsx`
-- `src/index.css` (novas utility classes)
+**Editar:**
+- `src/components/tasks/CreateTaskTemplateDialog.tsx` — auto-assignees + checklist items + recorrência
+- `src/components/tasks/TaskFormDialog.tsx` — pré-preencher assignees + mostrar checklist editável
+- `src/components/tasks/TaskCard.tsx` — renderizar checklist interativo
+- `src/hooks/useTaskTemplates.tsx` — incluir checklist_items no template
+- `src/hooks/useTaskInstances.tsx` — criar checklist items ao criar instância
+- `supabase/config.toml` — registrar nova edge function
 

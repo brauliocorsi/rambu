@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { X, Check, CornerDownRight, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,26 +35,13 @@ interface MessageBubbleProps {
   density?: MessageDensity;
 }
 
-// Density-based styles
 const densityStyles = {
-  compact: {
-    container: "py-0.5",
-    avatar: "h-7 w-7",
-    text: "text-sm",
-  },
-  normal: {
-    container: "py-1.5",
-    avatar: "h-9 w-9",
-    text: "text-sm",
-  },
-  comfortable: {
-    container: "py-3",
-    avatar: "h-10 w-10",
-    text: "text-base",
-  },
+  compact: { container: "py-0.5", avatar: "h-7 w-7", text: "text-sm" },
+  normal: { container: "py-1.5", avatar: "h-9 w-9", text: "text-sm" },
+  comfortable: { container: "py-3", avatar: "h-10 w-10", text: "text-base" },
 };
 
-export function MessageBubble({ message, channelId, onReply, onOpenThread, slackMode = false, density = "normal" }: MessageBubbleProps) {
+function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMode = false, density = "normal" }: MessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -66,8 +53,6 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
   const deleteMessage = useDeleteMessage();
   const markAsUnread = useMarkChannelAsUnread();
   const { data: reactions = [] } = useMessageReactions(message.id);
-  
-  // Fetch the original message if this is a reply
   const { data: originalMessage } = useMessageById(message.reply_to);
 
   const isOwn = user?.id === message.user_id;
@@ -78,7 +63,6 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
   const isTaskMessage = message.content.startsWith("📋 ");
   const isPollMessage = message.content.startsWith("📊 ");
 
-  // Group reactions by emoji
   const groupedReactions = reactions.reduce((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] || 0) + 1;
     return acc;
@@ -102,176 +86,111 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
       setEditContent(message.content);
       return;
     }
-
-    await editMessage.mutateAsync({
-      messageId: message.id,
-      content: editContent.trim(),
-      channelId,
-    });
+    await editMessage.mutateAsync({ messageId: message.id, content: editContent.trim(), channelId });
     setIsEditing(false);
   };
 
   const handleDelete = async () => {
-    await deleteMessage.mutateAsync({
-      messageId: message.id,
-      channelId,
-    });
+    await deleteMessage.mutateAsync({ messageId: message.id, channelId });
     setShowDeleteDialog(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleEdit();
-    } else if (e.key === "Escape") {
-      setIsEditing(false);
-      setEditContent(message.content);
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEdit(); }
+    else if (e.key === "Escape") { setIsEditing(false); setEditContent(message.content); }
   };
 
-  // In Slack mode, all messages are left-aligned without bubble styling
   const useSlackLayout = slackMode;
-
   const styles = densityStyles[density];
 
   return (
     <>
       <div
         className={cn(
-          "group flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
+          "group flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
           styles.container,
           !useSlackLayout && isOwn && "flex-row-reverse"
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        {/* Avatar */}
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
-          <AvatarFallback className="text-sm gradient-primary text-white">
+          <AvatarFallback className="text-sm gradient-primary text-primary-foreground">
             {displayName.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
 
-        {/* Content */}
         <div className={cn("flex-1 min-w-0", !useSlackLayout && isOwn && "flex flex-col items-end")}>
-          {/* Header */}
           <div className={cn("flex items-baseline gap-2 mb-0.5", !useSlackLayout && isOwn && "flex-row-reverse")}>
             <span className="font-semibold text-sm">{displayName}</span>
             <span className="text-xs text-muted-foreground">{time}</span>
-            {message.is_edited && (
-              <span className="text-xs text-muted-foreground">(editado)</span>
-            )}
+            {message.is_edited && <span className="text-xs text-muted-foreground">(editado)</span>}
           </div>
 
-          {/* Reply indicator - show original message */}
           {originalMessage && (
             <div className={cn(
               "flex items-start gap-2 mb-2 p-2 rounded-lg bg-secondary/50 border-l-2 border-primary/50",
               !useSlackLayout && isOwn && "border-r-2 border-l-0"
             )}>
-              <CornerDownRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-xs font-medium text-primary">
-                  {originalMessage.profile?.display_name || "Usuário"}
-                </span>
-                <p className="text-xs text-muted-foreground truncate">
-                  {formatMentionsForDisplay(originalMessage.content)}
-                </p>
+                <span className="text-xs font-medium text-primary">{originalMessage.profile?.display_name || "Usuário"}</span>
+                <p className="text-xs text-muted-foreground truncate">{formatMentionsForDisplay(originalMessage.content)}</p>
               </div>
             </div>
           )}
 
-          {/* File attachment */}
           {hasFile && (
             <div className="mb-2">
-              <FilePreview
-                url={message.file_url!}
-                name={message.file_name!}
-                type={message.file_type!}
-              />
+              <FilePreview url={message.file_url!} name={message.file_name!} type={message.file_type!} />
             </div>
           )}
 
-          {/* Message bubble - editing mode */}
           {isEditing ? (
             <div className="w-full">
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full px-4 py-2 rounded-xl bg-secondary border border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none text-sm"
+                className="w-full px-3 py-2 rounded-xl bg-secondary border border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none text-sm"
                 rows={2}
                 autoFocus
               />
-              <div className="flex items-center gap-2 mt-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditContent(message.content);
-                  }}
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Cancelar
+              <div className="flex items-center gap-2 mt-1.5">
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setIsEditing(false); setEditContent(message.content); }}>
+                  <X className="h-3 w-3 mr-1" />Cancelar
                 </Button>
-                <Button
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={handleEdit}
-                  disabled={editMessage.isPending}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Salvar
+                <Button size="sm" className="h-7 px-2 text-xs" onClick={handleEdit} disabled={editMessage.isPending}>
+                  <Check className="h-3 w-3 mr-1" />Salvar
                 </Button>
               </div>
             </div>
           ) : (
-            /* Message bubble - display mode */
             message.content && !message.content.startsWith("📎 ") && (
               useSlackLayout ? (
-                // Slack mode - plain text without bubble
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {formatMentionsForDisplay(message.content)}
-                </p>
+                <p className="text-sm whitespace-pre-wrap break-words">{formatMentionsForDisplay(message.content)}</p>
               ) : (
-                // Standard mode - bubble styling
-                <div
-                  className={cn(
-                    "px-4 py-2 rounded-2xl inline-block max-w-[85%]",
-                    isOwn
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-secondary text-secondary-foreground rounded-bl-md"
-                  )}
-                >
-                  <p className="text-sm whitespace-pre-wrap break-words">
-                    {formatMentionsForDisplay(message.content)}
-                  </p>
+                <div className={cn(
+                  "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
+                  isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
+                )}>
+                  <p className="text-sm whitespace-pre-wrap break-words">{formatMentionsForDisplay(message.content)}</p>
                 </div>
               )
             )
           )}
 
-          {/* Task Card */}
           {isTaskMessage && <TaskCard messageId={message.id} />}
-
-          {/* Poll Card */}
           {isPollMessage && <PollCard messageId={message.id} />}
 
-          {/* Thread indicator */}
           {threadCount > 0 && !isEditing && (
-            <button
-              onClick={() => onOpenThread?.(message)}
-              className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
-            >
+            <button onClick={() => onOpenThread?.(message)} className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline">
               <MessageSquare className="h-3 w-3" />
               <span>{threadCount} {threadCount === 1 ? "resposta" : "respostas"}</span>
             </button>
           )}
 
-          {/* Reactions */}
           {Object.keys(groupedReactions).length > 0 && !isEditing && (
             <div className={cn("flex flex-wrap gap-1 mt-1", !useSlackLayout && isOwn && "justify-end")}>
               {Object.entries(groupedReactions).map(([emoji, count]) => (
@@ -279,21 +198,17 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
                   key={emoji}
                   onClick={() => handleReaction(emoji)}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors",
-                    userReactions.includes(emoji)
-                      ? "bg-primary/20 text-primary"
-                      : "bg-secondary hover:bg-secondary/80"
+                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors active:scale-95",
+                    userReactions.includes(emoji) ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
                   )}
                 >
-                  <span>{emoji}</span>
-                  <span>{count}</span>
+                  <span>{emoji}</span><span>{count}</span>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Actions */}
         {showActions && !isEditing && (
           <MessageActionsMenu
             messageId={message.id}
@@ -306,10 +221,7 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
             onMarkAsUnread={handleMarkAsUnread}
             onReply={() => onReply?.(message.id)}
             onOpenThread={() => onOpenThread?.(message)}
-            onEdit={() => {
-              setIsEditing(true);
-              setEditContent(message.content);
-            }}
+            onEdit={() => { setIsEditing(true); setEditContent(message.content); }}
             onDelete={() => setShowDeleteDialog(true)}
             onAddReaction={handleReaction}
             showThread
@@ -318,21 +230,15 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
         )}
       </div>
 
-      {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Deletar mensagem?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A mensagem será permanentemente removida.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleteMessage.isPending ? "Deletando..." : "Deletar"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -341,3 +247,5 @@ export function MessageBubble({ message, channelId, onReply, onOpenThread, slack
     </>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleInner);
