@@ -20,7 +20,7 @@ export interface MentionInputRef {
 }
 
 export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
-  ({ value, onChange, onKeyDown, onBlur, placeholder, className, disabled }, ref) => {
+  ({ value, onChange, onKeyDown, onBlur, placeholder, className, disabled, onFormatInsert }, ref) => {
     const { currentWorkspace } = useWorkspaceContext();
     const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
     
