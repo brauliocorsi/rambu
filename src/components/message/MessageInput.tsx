@@ -59,6 +59,20 @@ export function MessageInput({
   const [showPollDialog, setShowPollDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Insert markdown formatting around selection or at cursor
+  const handleInsertMarkdown = useCallback((prefix: string, suffix: string, placeholder?: string) => {
+    // For links, just insert the placeholder
+    if (!prefix && !suffix) {
+      setMessage((prev) => prev + (placeholder || ""));
+      inputRef.current?.focus();
+      return;
+    }
+    const text = prefix + (placeholder || "") + suffix;
+    setMessage((prev) => prev + text);
+    inputRef.current?.focus();
+  }, []);
+  const [showPreview, setShowPreview] = useState(false);
+
   const handleFilesAdded = useCallback((files: UploadedFile[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
   }, []);
