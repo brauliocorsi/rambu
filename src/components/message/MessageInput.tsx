@@ -71,7 +71,6 @@ export function MessageInput({
     setMessage((prev) => prev + text);
     inputRef.current?.focus();
   }, []);
-  const [showPreview, setShowPreview] = useState(false);
 
   const handleFilesAdded = useCallback((files: UploadedFile[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
