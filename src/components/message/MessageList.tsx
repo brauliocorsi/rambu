@@ -172,11 +172,7 @@ export function MessageList({
   }, [messages, preferences.slackMode]);
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <MessageListSkeleton count={8} />;
   }
 
   if (messages.length === 0) {
