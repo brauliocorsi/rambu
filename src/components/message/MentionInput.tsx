@@ -105,6 +105,37 @@ export const MentionInput = forwardRef<MentionInputRef, MentionInputProps>(
     };
 
     const handleKeyDownInternal = (e: React.KeyboardEvent) => {
+      // Markdown formatting shortcuts
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const selected = value.slice(start, end);
+
+          let prefix = "";
+          let suffix = "";
+          if (e.key === "b") { prefix = "**"; suffix = "**"; }
+          else if (e.key === "i") { prefix = "*"; suffix = "*"; }
+          else if (e.key === "e") { prefix = "`"; suffix = "`"; }
+
+          if (prefix) {
+            e.preventDefault();
+            const before = value.slice(0, start);
+            const after = value.slice(end);
+            const wrapped = prefix + (selected || "texto") + suffix;
+            onChange(before + wrapped + after);
+            setTimeout(() => {
+              const newPos = selected ? start + wrapped.length : start + prefix.length;
+              const newEnd = selected ? newPos : newPos + (selected || "texto").length;
+              textarea.setSelectionRange(newPos, newEnd);
+              textarea.focus();
+            }, 0);
+            return;
+          }
+        }
+      }
+
       if (showSuggestions && filteredMembers.length > 0) {
         if (e.key === "ArrowDown") {
           e.preventDefault();
