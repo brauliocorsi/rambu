@@ -569,13 +569,7 @@ export function DesktopApp() {
                   Nova Mensagem
                 </Button>
                 {loadingDMs ? (
-                  <div className="flex justify-center py-4">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full"
-                    />
-                  </div>
+                  <DMListSkeleton />
                 ) : (
                   <DMList
                     dms={dms}
