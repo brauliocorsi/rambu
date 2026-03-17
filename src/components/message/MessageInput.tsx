@@ -22,6 +22,8 @@ import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateD
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { type TaskTemplate } from "@/hooks/useTaskTemplates";
 import { CreatePollDialog } from "@/components/poll/CreatePollDialog";
+import { MarkdownToolbar } from "./MarkdownToolbar";
+import { MessageContent } from "./MessageContent";
 import { toast } from "sonner";
 
 interface MessageInputProps {
