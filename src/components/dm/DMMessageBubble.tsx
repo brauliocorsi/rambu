@@ -207,12 +207,8 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
             /* Message bubble - display mode */
             message.content && !message.content.startsWith("📎 ") && (
               useSlackLayout ? (
-                // Slack mode - plain text without bubble
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {formatMentionsForDisplay(message.content)}
-                </p>
+                <MessageContent content={message.content} className="text-sm" />
               ) : (
-                // Standard mode - bubble styling
                 <div
                   className={cn(
                     "px-4 py-2 rounded-2xl inline-block max-w-[85%]",
@@ -221,9 +217,7 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
                       : "bg-secondary text-secondary-foreground rounded-bl-md"
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap break-words">
-                    {formatMentionsForDisplay(message.content)}
-                  </p>
+                  <MessageContent content={message.content} className="text-sm" />
                 </div>
               )
             )
