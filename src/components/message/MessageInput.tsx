@@ -260,7 +260,7 @@ export function MessageInput({
   return (
     <div
       ref={containerRef}
-      className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0"
+      className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0 z-40"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -507,16 +507,6 @@ export function MessageInput({
 
         {/* Input field with formatting toolbar */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* Formatting toolbar */}
-          <div className="hidden md:flex mb-1">
-            <MarkdownToolbar
-              onInsert={handleInsertMarkdown}
-              showPreview={showPreview}
-              onTogglePreview={() => setShowPreview(!showPreview)}
-              hasContent={!!message.trim()}
-            />
-          </div>
-
           {showPreview && message.trim() ? (
             /* Live preview */
             <div className="min-h-[44px] md:min-h-[48px] max-h-32 overflow-y-auto px-4 py-3 rounded-xl bg-secondary/50 border border-dashed border-border text-sm">
@@ -533,6 +523,15 @@ export function MessageInput({
               className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-base resize-none"
             />
           )}
+          {/* Formatting toolbar - below input, subtle */}
+          <div className="hidden md:flex mt-0.5">
+            <MarkdownToolbar
+              onInsert={handleInsertMarkdown}
+              showPreview={showPreview}
+              onTogglePreview={() => setShowPreview(!showPreview)}
+              hasContent={!!message.trim()}
+            />
+          </div>
         </div>
 
         <Button

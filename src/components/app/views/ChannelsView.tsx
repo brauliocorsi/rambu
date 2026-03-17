@@ -73,32 +73,34 @@ function ChannelChatView() {
             <p className="text-xs text-muted-foreground truncate">{currentChannel.description}</p>
           )}
         </div>
-        <ChannelMembersPopover channelId={currentChannel.id} />
-        {(channelRole === 'owner' || channelRole === 'admin') && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-xl">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl w-44">
-              <DropdownMenuItem
-                className="rounded-lg text-destructive focus:text-destructive"
-                onClick={() => {
-                  if (confirm(`Remover o canal #${currentChannel.name}? Esta ação não pode ser desfeita.`)) {
-                    deleteChannel.mutate(
-                      { channelId: currentChannel.id, workspaceId: currentWorkspace!.id },
-                      { onSuccess: () => setCurrentChannel(null) }
-                    );
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Remover Canal
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          <ChannelMembersPopover channelId={currentChannel.id} />
+          {(channelRole === 'owner' || channelRole === 'admin') && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 touch-target">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]" sideOffset={4}>
+                <DropdownMenuItem
+                  className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
+                  onSelect={() => {
+                    if (confirm(`Remover o canal #${currentChannel.name}? Esta ação não pode ser desfeita.`)) {
+                      deleteChannel.mutate(
+                        { channelId: currentChannel.id, workspaceId: currentWorkspace!.id },
+                        { onSuccess: () => setCurrentChannel(null) }
+                      );
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remover Canal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       {/* Messages Area */}
