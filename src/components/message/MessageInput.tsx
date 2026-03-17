@@ -22,6 +22,8 @@ import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateD
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { type TaskTemplate } from "@/hooks/useTaskTemplates";
 import { CreatePollDialog } from "@/components/poll/CreatePollDialog";
+import { MarkdownToolbar } from "./MarkdownToolbar";
+import { MessageContent } from "./MessageContent";
 import { toast } from "sonner";
 
 interface MessageInputProps {
@@ -55,6 +57,20 @@ export function MessageInput({
   const [selectedTaskTemplate, setSelectedTaskTemplate] = useState<TaskTemplate | null>(null);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const [showPollDialog, setShowPollDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Insert markdown formatting around selection or at cursor
+  const handleInsertMarkdown = useCallback((prefix: string, suffix: string, placeholder?: string) => {
+    // For links, just insert the placeholder
+    if (!prefix && !suffix) {
+      setMessage((prev) => prev + (placeholder || ""));
+      inputRef.current?.focus();
+      return;
+    }
+    const text = prefix + (placeholder || "") + suffix;
+    setMessage((prev) => prev + text);
+    inputRef.current?.focus();
+  }, []);
 
   const handleFilesAdded = useCallback((files: UploadedFile[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
@@ -489,17 +505,34 @@ export function MessageInput({
           </AnimatePresence>
         </div>
 
-        {/* Input field - flexible height for mobile */}
-        <div className="flex-1 min-w-0">
-          <MentionInput
-            ref={inputRef}
-            value={message}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onBlur={() => onStopTyping?.()}
-            placeholder={`Mensagem em #${channelName}`}
-            className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-base resize-none"
-          />
+        {/* Input field with formatting toolbar */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Formatting toolbar */}
+          <div className="hidden md:flex mb-1">
+            <MarkdownToolbar
+              onInsert={handleInsertMarkdown}
+              showPreview={showPreview}
+              onTogglePreview={() => setShowPreview(!showPreview)}
+              hasContent={!!message.trim()}
+            />
+          </div>
+
+          {showPreview && message.trim() ? (
+            /* Live preview */
+            <div className="min-h-[44px] md:min-h-[48px] max-h-32 overflow-y-auto px-4 py-3 rounded-xl bg-secondary/50 border border-dashed border-border text-sm">
+              <MessageContent content={message} className="text-sm" />
+            </div>
+          ) : (
+            <MentionInput
+              ref={inputRef}
+              value={message}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onBlur={() => onStopTyping?.()}
+              placeholder={`Mensagem em #${channelName}`}
+              className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-base resize-none"
+            />
+          )}
         </div>
 
         <Button
