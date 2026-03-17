@@ -57,6 +57,7 @@ export function MessageInput({
   const [selectedTaskTemplate, setSelectedTaskTemplate] = useState<TaskTemplate | null>(null);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const [showPollDialog, setShowPollDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleFilesAdded = useCallback((files: UploadedFile[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
