@@ -473,6 +473,21 @@ export function DesktopApp() {
         </DropdownMenu>
       </div>
 
+      {/* Expand sidebar button - visible when collapsed */}
+      {sidebarCollapsed && (
+        <div className="flex items-start pt-4 border-r border-border bg-card">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg mx-1"
+            onClick={() => setSidebarCollapsed(false)}
+            title="Expandir painel"
+          >
+            <ChevronDown className="h-4 w-4 rotate-90" />
+          </Button>
+        </div>
+      )}
+
       {/* Second Sidebar - Channels & DMs (collapsible) */}
       <div className={`${sidebarCollapsed ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'} sidebar-transition bg-card border-r border-border flex flex-col`}>
         <div className="p-4 border-b border-border flex items-center justify-between">
