@@ -472,8 +472,8 @@ export function DesktopApp() {
         </DropdownMenu>
       </div>
 
-      {/* Second Sidebar - Channels & DMs */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
+      {/* Second Sidebar - Channels & DMs (collapsible) */}
+      <div className={`${sidebarCollapsed ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'} sidebar-transition bg-card border-r border-border flex flex-col`}>
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="font-bold text-lg truncate">
             {currentWorkspace?.name || "Rambu"}
