@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DMMessage, useEditDMMessage, useDeleteDMMessage, useDMMessageById } from "@/hooks/useDirectMessages";
 import { useMarkDMAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
+import { MessageContent } from "@/components/message/MessageContent";
 import { FilePreview } from "@/components/message/FilePreview";
 import { MessageActionsMenu } from "@/components/message/MessageActionsMenu";
 import { cn } from "@/lib/utils";
