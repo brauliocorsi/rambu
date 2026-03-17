@@ -143,6 +143,19 @@ export function DesktopApp() {
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [threadMessage, setThreadMessage] = useState<Message | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Close thread panel with Escape
+  const handleGlobalEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape" && threadMessage) {
+      setThreadMessage(null);
+    }
+  }, [threadMessage]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleGlobalEscape);
+    return () => window.removeEventListener("keydown", handleGlobalEscape);
+  }, [handleGlobalEscape]);
 
   const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
 
