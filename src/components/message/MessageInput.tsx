@@ -426,7 +426,7 @@ export function MessageInput({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl h-9 w-9"
+            className="rounded-xl h-11 w-11 touch-target"
             onClick={() => setShowMobileActions(!showMobileActions)}
           >
             <Plus className={`h-5 w-5 text-muted-foreground transition-transform ${showMobileActions ? "rotate-45" : ""}`} />
@@ -504,7 +504,7 @@ export function MessageInput({
 
         <Button
           size="icon"
-          className="h-11 w-11 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
+          className="h-12 w-12 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0 press-scale touch-target"
           disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >

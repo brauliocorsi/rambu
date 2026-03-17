@@ -53,13 +53,22 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
     }
   };
 
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   return (
     <motion.div
       initial={{ x: "100%", opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="w-96 border-l border-border bg-card flex flex-col h-full"
+      className="w-80 lg:w-96 border-l border-border bg-card flex flex-col h-full"
     >
       {/* Header */}
       <div className="h-14 border-b border-border flex items-center justify-between px-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
@@ -143,6 +143,19 @@ export function DesktopApp() {
   const [activeSection, setActiveSection] = useState<"channels" | "dms">("channels");
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [threadMessage, setThreadMessage] = useState<Message | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Close thread panel with Escape
+  const handleGlobalEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape" && threadMessage) {
+      setThreadMessage(null);
+    }
+  }, [threadMessage]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleGlobalEscape);
+    return () => window.removeEventListener("keydown", handleGlobalEscape);
+  }, [handleGlobalEscape]);
 
   const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
 
@@ -459,20 +472,31 @@ export function DesktopApp() {
         </DropdownMenu>
       </div>
 
-      {/* Second Sidebar - Channels & DMs */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
+      {/* Second Sidebar - Channels & DMs (collapsible) */}
+      <div className={`${sidebarCollapsed ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'} sidebar-transition bg-card border-r border-border flex flex-col`}>
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="font-bold text-lg truncate">
             {currentWorkspace?.name || "Rambu"}
           </h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
-            onClick={() => setShowSearch(true)}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={() => setShowSearch(true)}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={() => setSidebarCollapsed(true)}
+              title="Recolher painel"
+            >
+              <ChevronDown className="h-4 w-4 -rotate-90" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex border-b border-border">
@@ -572,8 +596,8 @@ export function DesktopApp() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex min-h-0">
-        <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex min-h-0 min-w-0">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
           {showFlows ? (
             <FlowsView
               onSelectChannel={(channelId) => {
@@ -671,38 +695,39 @@ export function DesktopApp() {
             <DMChatView dm={selectedDM} onBack={() => setSelectedDM(null)} />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-4"
-              >
-                <div className="h-20 w-20 mx-auto rounded-2xl gradient-primary flex items-center justify-center">
-                  <MessageSquare className="h-10 w-10 text-white" />
+              {sidebarCollapsed && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-4 left-4 rounded-lg"
+                  onClick={() => setSidebarCollapsed(false)}
+                >
+                  <ChevronDown className="h-4 w-4 rotate-90 mr-1" />
+                  Canais
+                </Button>
+              )}
+              <div className="space-y-4 animate-fade-in">
+                <div className="h-16 w-16 mx-auto rounded-2xl gradient-primary flex items-center justify-center">
+                  <MessageSquare className="h-8 w-8 text-primary-foreground" />
                 </div>
-                <h2 className="text-2xl font-bold">
-                  Bem-vindo ao <span className="gradient-text">Rambu</span>!
+                <h2 className="text-xl font-bold">
+                  Selecione uma conversa
                 </h2>
-                <p className="text-muted-foreground max-w-md">
-                  Selecione um canal ou inicie uma conversa direta para começar.
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Escolha um canal ou DM para começar.
                 </p>
                 <div className="flex gap-2 justify-center">
                   <Button
                     variant="outline"
+                    size="sm"
                     className="rounded-xl"
                     onClick={() => setShowSearch(true)}
                   >
                     <Search className="h-4 w-4 mr-2" />
                     Buscar (⌘K)
                   </Button>
-                  <Button
-                    className="rounded-xl"
-                    onClick={() => setShowInviteLink(true)}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Convidar
-                  </Button>
                 </div>
-              </motion.div>
+              </div>
             </div>
           )}
         </div>
