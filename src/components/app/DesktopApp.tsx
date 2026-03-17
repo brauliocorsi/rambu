@@ -94,6 +94,7 @@ import { useScheduledMessages } from "@/hooks/useScheduledMessages";
 import { PendingTasksPanel } from "@/components/tasks/PendingTasksPanel";
 import { usePendingTasks } from "@/hooks/usePendingTasks";
 import { FlowsView } from "@/components/app/views/FlowsView";
+import { ChannelListSkeleton, DMListSkeleton } from "@/components/ui/skeletons";
 
 export function DesktopApp() {
   const { user, signOut } = useAuth();
