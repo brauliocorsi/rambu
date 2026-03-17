@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
@@ -7,7 +6,6 @@ import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
 import { NewDMDialog } from "@/components/dm/NewDMDialog";
-import { Card } from "@/components/ui/card";
 import { 
   MessageSquare, 
   Hash, 
@@ -30,112 +28,53 @@ export function HomeView({ onNavigateToDMs, onSelectDM }: HomeViewProps) {
   
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Usuário";
 
-  const handleNewMessage = () => {
-    if (currentWorkspace) {
-      setShowNewDM(true);
-    }
-  };
-
   return (
-    <div className="p-4 space-y-6">
-      {/* Welcome section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-2"
-      >
-        <h2 className="text-2xl font-bold">
-          Olá, <span className="gradient-text">{displayName}</span>! 👋
+    <div className="p-4 space-y-5">
+      <div className="animate-fade-in">
+        <h2 className="text-xl font-semibold">
+          Olá, <span className="gradient-text">{displayName}</span> 👋
         </h2>
-        <p className="text-muted-foreground">O que você quer fazer hoje?</p>
-      </motion.div>
+        <p className="text-sm text-muted-foreground mt-0.5">O que você quer fazer?</p>
+      </div>
 
-      {/* Workspace Switcher */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <WorkspaceSwitcher />
-      </motion.div>
+      <WorkspaceSwitcher />
 
-      {/* Quick actions */}
       {currentWorkspace && (
-        <div className="grid grid-cols-2 gap-3">
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            onClick={() => setShowCreateChannel(true)}
-            className="gradient-primary p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft"
-          >
-            <Hash className="h-6 w-6" />
-            <span className="text-sm font-medium">Criar Canal</span>
-          </motion.button>
-          
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            onClick={handleNewMessage}
-            className="bg-primary p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft"
-          >
-            <MessageSquare className="h-6 w-6" />
-            <span className="text-sm font-medium">Nova Mensagem</span>
-          </motion.button>
-          
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-            onClick={() => setShowInviteLink(true)}
-            className="bg-accent p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft"
-          >
-            <Users className="h-6 w-6" />
-            <span className="text-sm font-medium">Convidar</span>
-          </motion.button>
-          
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            onClick={() => setShowCreateWorkspace(true)}
-            className="bg-accent p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft"
-          >
-            <Briefcase className="h-6 w-6" />
-            <span className="text-sm font-medium">Novo Workspace</span>
-          </motion.button>
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { icon: Hash, label: "Criar Canal", action: () => setShowCreateChannel(true), variant: "gradient" as const },
+            { icon: MessageSquare, label: "Nova Mensagem", action: () => setShowNewDM(true), variant: "primary" as const },
+            { icon: Users, label: "Convidar", action: () => setShowInviteLink(true), variant: "outline" as const },
+            { icon: Briefcase, label: "Novo Workspace", action: () => setShowCreateWorkspace(true), variant: "outline" as const },
+          ].map((item, i) => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className={`p-3.5 rounded-xl flex flex-col items-center gap-2 transition-all active:scale-[0.97] animate-fade-in ${
+                item.variant === "gradient" 
+                  ? "gradient-primary text-primary-foreground" 
+                  : item.variant === "primary"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card hover:bg-secondary"
+              }`}
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-xs font-medium">{item.label}</span>
+            </button>
+          ))}
         </div>
       )}
 
       {!currentWorkspace && (
-        <div className="grid grid-cols-1 gap-3">
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            onClick={() => setShowCreateWorkspace(true)}
-            className="gradient-primary p-4 rounded-2xl flex flex-col items-center gap-2 text-white shadow-soft"
-          >
-            <Briefcase className="h-6 w-6" />
-            <span className="text-sm font-medium">Criar Primeiro Workspace</span>
-          </motion.button>
-        </div>
+        <button
+          onClick={() => setShowCreateWorkspace(true)}
+          className="w-full gradient-primary p-4 rounded-xl flex flex-col items-center gap-2 text-primary-foreground active:scale-[0.98] transition-transform animate-fade-in"
+        >
+          <Briefcase className="h-5 w-5" />
+          <span className="text-sm font-medium">Criar Primeiro Workspace</span>
+        </button>
       )}
-
-      {/* Recent activity */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-lg">Atividade Recente</h3>
-        <Card className="p-4 rounded-2xl">
-          <div className="flex items-center justify-center h-24 text-muted-foreground">
-            {currentWorkspace ? (
-              <p>Nenhuma atividade recente em {currentWorkspace.name}</p>
-            ) : (
-              <p>Crie um workspace para começar!</p>
-            )}
-          </div>
-        </Card>
-      </div>
 
       <CreateChannelDialog open={showCreateChannel} onClose={() => setShowCreateChannel(false)} />
       <CreateWorkspaceDialog open={showCreateWorkspace} onClose={() => setShowCreateWorkspace(false)} />

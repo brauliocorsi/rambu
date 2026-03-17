@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -29,74 +28,83 @@ export function ProfileView({ onOpenSettings }: ProfileViewProps) {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
-  const menuItems = [
-    { icon: Settings, label: "Configurações", action: onOpenSettings },
-    { icon: Bell, label: "Notificações", action: onOpenSettings },
-    { 
-      icon: resolvedTheme === "dark" ? Sun : Moon, 
-      label: resolvedTheme === "dark" ? "Modo Claro" : "Modo Escuro", 
-      action: handleThemeToggle 
+  const sections = [
+    {
+      title: "Conta",
+      items: [
+        { icon: Settings, label: "Configurações", action: onOpenSettings },
+        { icon: Bell, label: "Notificações", action: onOpenSettings },
+      ],
     },
-    { 
-      icon: isMobile ? Monitor : Smartphone, 
-      label: isMobile ? "Versão Desktop" : "Versão Mobile", 
-      action: toggleViewMode 
+    {
+      title: "Aparência",
+      items: [
+        { 
+          icon: resolvedTheme === "dark" ? Sun : Moon, 
+          label: resolvedTheme === "dark" ? "Modo Claro" : "Modo Escuro", 
+          action: handleThemeToggle 
+        },
+        { 
+          icon: isMobile ? Monitor : Smartphone, 
+          label: isMobile ? "Versão Desktop" : "Versão Mobile", 
+          action: toggleViewMode 
+        },
+      ],
     },
   ];
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-5 overflow-y-auto h-full pb-24">
       {/* Profile header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center gap-4"
-      >
-        <div className="relative">
-          <Avatar className="h-24 w-24 ring-4 ring-primary/20">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="text-2xl gradient-primary text-white">
-              {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full status-online border-2 border-background" />
-        </div>
-        <div className="text-center">
-          <h2 className="text-xl font-bold">{displayName}</h2>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
-        </div>
-        <Button variant="outline" className="rounded-xl" onClick={onOpenSettings}>
-          Editar Perfil
-        </Button>
-      </motion.div>
-
-      {/* Menu */}
-      <div className="space-y-2">
-        {menuItems.map((item, i) => (
-          <motion.button
-            key={item.label}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-            onClick={item.action}
-            className="w-full flex items-center justify-between p-4 rounded-2xl bg-card hover:bg-secondary transition-colors"
+      <div className="flex items-center gap-4 animate-fade-in">
+        <Avatar className="h-16 w-16 ring-2 ring-primary/20">
+          <AvatarImage src={user?.user_metadata?.avatar_url} />
+          <AvatarFallback className="text-lg gradient-primary text-primary-foreground">
+            {displayName.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-semibold truncate">{displayName}</h2>
+          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+          <button
+            onClick={onOpenSettings}
+            className="text-xs text-primary mt-1 hover:underline"
           >
-            <div className="flex items-center gap-3">
-              <item.icon className="h-5 w-5 text-muted-foreground" />
-              <span className="font-medium">{item.label}</span>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </motion.button>
-        ))}
+            Editar perfil
+          </button>
+        </div>
       </div>
+
+      {/* Grouped menu */}
+      {sections.map((section, si) => (
+        <div key={section.title} className="space-y-1 animate-fade-in" style={{ animationDelay: `${(si + 1) * 50}ms` }}>
+          <h3 className="text-xs font-medium text-muted-foreground px-1 mb-1.5">{section.title}</h3>
+          <div className="rounded-xl border border-border overflow-hidden">
+            {section.items.map((item, i) => (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className="w-full flex items-center justify-between p-3 bg-card hover:bg-secondary/50 transition-colors active:scale-[0.99]"
+                style={{ borderTop: i > 0 ? '1px solid hsl(var(--border))' : undefined }}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{item.label}</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {/* Logout */}
       <Button
         variant="ghost"
         onClick={signOut}
-        className="w-full h-12 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+        className="w-full h-10 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 text-sm"
       >
-        <LogOut className="h-5 w-5 mr-2" />
+        <LogOut className="h-4 w-4 mr-2" />
         Sair da conta
       </Button>
     </div>

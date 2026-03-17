@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Menu, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,37 +17,33 @@ export function Header({
   onSearchClick,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 glass border-b border-border safe-top">
-      <div className="flex items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-top">
+      <div className="flex items-center justify-between px-4 h-12">
         <div className="flex items-center gap-3">
           {onMenuClick && (
-            <Button variant="ghost" size="icon" onClick={onMenuClick} className="rounded-xl">
-              <Menu className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={onMenuClick} className="rounded-xl h-8 w-8">
+              <Menu className="h-4 w-4" />
             </Button>
           )}
-          <motion.h1 
-            className="text-xl font-bold gradient-text"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
+          <h1 className="text-lg font-semibold truncate max-w-[200px]">
             {title}
-          </motion.h1>
+          </h1>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {showSearch && (
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-xl"
+              className="rounded-xl h-8 w-8"
               onClick={onSearchClick}
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-4 w-4" />
             </Button>
           )}
           {onSettingsClick && (
-            <Button variant="ghost" size="icon" onClick={onSettingsClick} className="rounded-xl">
-              <Settings className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={onSettingsClick} className="rounded-xl h-8 w-8">
+              <Settings className="h-4 w-4" />
             </Button>
           )}
         </div>
