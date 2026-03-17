@@ -426,7 +426,7 @@ export function MessageInput({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl h-9 w-9"
+            className="rounded-xl h-11 w-11 touch-target"
             onClick={() => setShowMobileActions(!showMobileActions)}
           >
             <Plus className={`h-5 w-5 text-muted-foreground transition-transform ${showMobileActions ? "rotate-45" : ""}`} />
