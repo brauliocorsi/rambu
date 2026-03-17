@@ -643,16 +643,16 @@ export function DesktopApp() {
                     <Search className="h-4 w-4" />
                   </Button>
                   {(currentChannelRole === 'owner' || currentChannelRole === 'admin') && (
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="rounded-lg">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl w-44">
+                      <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]" sideOffset={4}>
                         <DropdownMenuItem
-                          className="rounded-lg text-destructive focus:text-destructive"
-                          onClick={() => {
+                          className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
+                          onSelect={() => {
                             if (confirm(`Remover o canal #${currentChannel.name}? Esta ação não pode ser desfeita.`)) {
                               deleteChannel.mutate(
                                 { channelId: currentChannel.id, workspaceId: currentWorkspace!.id },
