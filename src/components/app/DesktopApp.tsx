@@ -478,14 +478,25 @@ export function DesktopApp() {
           <h2 className="font-bold text-lg truncate">
             {currentWorkspace?.name || "Rambu"}
           </h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
-            onClick={() => setShowSearch(true)}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={() => setShowSearch(true)}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={() => setSidebarCollapsed(true)}
+              title="Recolher painel"
+            >
+              <ChevronDown className="h-4 w-4 -rotate-90" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex border-b border-border">
