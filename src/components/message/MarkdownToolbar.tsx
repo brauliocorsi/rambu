@@ -1,4 +1,5 @@
-import { Bold, Italic, Code, Link2, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { Bold, Italic, Code, Link2, Eye, EyeOff, Type, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -23,46 +24,78 @@ const tools = [
 ];
 
 export function MarkdownToolbar({ onInsert, showPreview, onTogglePreview, hasContent, className }: MarkdownToolbarProps) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className={cn("flex items-center gap-0.5", className)}>
-      {tools.map((tool) => (
-        <Tooltip key={tool.label}>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="h-7 w-7 rounded-md"
-              onClick={() => onInsert(tool.prefix, tool.suffix, tool.placeholder)}
-            >
-              <tool.icon className="h-3.5 w-3.5 text-muted-foreground" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">
-            {tool.label}{tool.shortcut && ` (${tool.shortcut})`}
-          </TooltipContent>
-        </Tooltip>
-      ))}
-
-      <div className="h-4 w-px bg-border mx-1" />
-
+      {/* Toggle expand/collapse */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
             type="button"
-            className={cn("h-7 w-7 rounded-md", showPreview && "bg-secondary text-primary")}
-            onClick={onTogglePreview}
-            disabled={!hasContent}
+            className={cn(
+              "h-6 w-6 rounded-md transition-colors",
+              expanded && "bg-secondary"
+            )}
+            onClick={() => setExpanded(!expanded)}
           >
-            {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5 text-muted-foreground" />}
+            {expanded ? (
+              <ChevronLeft className="h-3 w-3 text-muted-foreground" />
+            ) : (
+              <Type className="h-3 w-3 text-muted-foreground" />
+            )}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          {showPreview ? "Ocultar preview" : "Preview"}
+          {expanded ? "Recolher formatação" : "Formatação"}
         </TooltipContent>
       </Tooltip>
+
+      {/* Tools - only shown when expanded */}
+      {expanded && (
+        <>
+          {tools.map((tool) => (
+            <Tooltip key={tool.label}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  className="h-6 w-6 rounded-md"
+                  onClick={() => onInsert(tool.prefix, tool.suffix, tool.placeholder)}
+                >
+                  <tool.icon className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {tool.label}{tool.shortcut && ` (${tool.shortcut})`}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+
+          <div className="h-3 w-px bg-border mx-0.5" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                className={cn("h-6 w-6 rounded-md", showPreview && "bg-secondary text-primary")}
+                onClick={onTogglePreview}
+                disabled={!hasContent}
+              >
+                {showPreview ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {showPreview ? "Ocultar preview" : "Preview"}
+            </TooltipContent>
+          </Tooltip>
+        </>
+      )}
     </div>
   );
 }

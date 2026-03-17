@@ -260,7 +260,7 @@ export function MessageInput({
   return (
     <div
       ref={containerRef}
-      className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0"
+      className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0 z-40"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
