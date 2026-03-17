@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Message, useToggleReaction, useMessageReactions, useEditMessage, useDeleteMessage, useMessageById } from "@/hooks/useMessages";
 import { useMarkChannelAsUnread } from "@/hooks/useMarkAsUnread";
+import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "./MessageContent";
 import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
