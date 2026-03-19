@@ -31,8 +31,8 @@ export function MobileNav({ activeTab, onTabChange, unreadDMs = 0, unreadChannel
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border safe-bottom bg-background/80 backdrop-blur-xl">
-      <div className="flex items-center justify-around py-1.5">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 safe-bottom bg-background/80 backdrop-blur-xl">
+      <div className="flex items-center justify-around py-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;

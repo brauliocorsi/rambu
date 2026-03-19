@@ -260,7 +260,7 @@ export function MessageInput({
   return (
     <div
       ref={containerRef}
-      className="p-3 md:p-4 border-t border-border bg-background sticky bottom-0 z-40"
+      className="px-2 py-2 md:px-4 md:py-3 border-t border-border bg-background sticky bottom-0 z-40"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -371,7 +371,7 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1.5 md:gap-2">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -383,15 +383,16 @@ export function MessageInput({
         />
 
         {/* Action buttons - hidden on mobile, shown in a compact row */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
+            title="Anexar arquivo"
           >
-            <Paperclip className="h-5 w-5 text-muted-foreground" />
+            <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <EmojiPicker onSelect={addEmoji} />
@@ -407,109 +408,114 @@ export function MessageInput({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={() => setShowPollDialog(true)}
             title="Criar enquete"
           >
-            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            <BarChart3 className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={() => setShowScheduleDialog(true)}
             disabled={!message.trim() && attachedFiles.length === 0}
             title="Agendar mensagem"
           >
-            <Clock className="h-5 w-5 text-muted-foreground" />
+            <Clock className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={handleStartRecording}
             disabled={isRecording || isUploading}
             title="Gravar áudio"
           >
-            <Mic className="h-5 w-5 text-muted-foreground" />
+            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
         </div>
 
         {/* Mobile action button - dropdown */}
-        <div className="relative flex md:hidden shrink-0">
+        <div className="flex md:hidden items-center gap-0.5 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl h-11 w-11 touch-target"
-            onClick={() => setShowMobileActions(!showMobileActions)}
+            className="rounded-lg h-9 w-9"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
           >
-            <Plus className={`h-5 w-5 text-muted-foreground transition-transform ${showMobileActions ? "rotate-45" : ""}`} />
+            <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
-          <AnimatePresence>
-            {showMobileActions && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 bg-popover border border-border rounded-xl shadow-lg p-1.5 z-50"
-              >
-                <button
-                  onClick={() => { fileInputRef.current?.click(); setShowMobileActions(false); }}
-                  disabled={isUploading}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <Paperclip className="h-4 w-4 text-muted-foreground" />
-                  <span>Anexar arquivo</span>
-                </button>
-                {currentWorkspace && (
-                  <button
-                    onClick={() => {
-                      setShowMobileActions(false);
-                      // Open task picker - on mobile just show create template
-                      setShowCreateTemplate(true);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-lg h-9 w-9"
+            onClick={handleStartRecording}
+            disabled={isRecording || isUploading}
+          >
+            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
+          </Button>
+
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-lg h-9 w-9"
+              onClick={() => setShowMobileActions(!showMobileActions)}
+            >
+              <Plus className={`h-4.5 w-4.5 text-muted-foreground transition-transform duration-200 ${showMobileActions ? "rotate-45" : ""}`} />
+            </Button>
+
+            <AnimatePresence>
+              {showMobileActions && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMobileActions(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full right-0 mb-2 flex flex-col min-w-[160px] bg-popover border border-border rounded-xl shadow-xl p-1 z-50"
                   >
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <span>Tarefas</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => { setShowPollDialog(true); setShowMobileActions(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
-                >
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  <span>Enquete</span>
-                </button>
-                <button
-                  onClick={() => { setShowScheduleDialog(true); setShowMobileActions(false); }}
-                  disabled={!message.trim() && attachedFiles.length === 0}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>Agendar</span>
-                </button>
-                <button
-                  onClick={() => { handleStartRecording(); setShowMobileActions(false); }}
-                  disabled={isRecording || isUploading}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <Mic className="h-4 w-4 text-muted-foreground" />
-                  <span>Gravar áudio</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    {currentWorkspace && (
+                      <button
+                        onClick={() => { setShowMobileActions(false); setShowCreateTemplate(true); }}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-secondary/80 active:bg-secondary transition-colors"
+                      >
+                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                        <span>Tarefas</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setShowPollDialog(true); setShowMobileActions(false); }}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-secondary/80 active:bg-secondary transition-colors"
+                    >
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                      <span>Enquete</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowScheduleDialog(true); setShowMobileActions(false); }}
+                      disabled={!message.trim() && attachedFiles.length === 0}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-secondary/80 active:bg-secondary transition-colors disabled:opacity-50"
+                    >
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>Agendar</span>
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Input field with formatting toolbar */}
         <div className="flex-1 min-w-0 flex flex-col">
           {showPreview && message.trim() ? (
-            /* Live preview */
-            <div className="min-h-[44px] md:min-h-[48px] max-h-32 overflow-y-auto px-4 py-3 rounded-xl bg-secondary/50 border border-dashed border-border text-sm">
+            <div className="min-h-[40px] md:min-h-[44px] max-h-28 overflow-y-auto px-3 py-2.5 rounded-xl bg-secondary/50 border border-dashed border-border text-sm">
               <MessageContent content={message} className="text-sm" />
             </div>
           ) : (
@@ -520,7 +526,7 @@ export function MessageInput({
               onKeyDown={handleKeyDown}
               onBlur={() => onStopTyping?.()}
               placeholder={`Mensagem em #${channelName}`}
-              className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-base resize-none"
+              className="w-full min-h-[40px] md:min-h-[44px] max-h-28 px-3 py-2.5 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-sm md:text-base resize-none"
             />
           )}
           {/* Formatting toolbar - below input, subtle */}
@@ -536,7 +542,7 @@ export function MessageInput({
 
         <Button
           size="icon"
-          className="h-12 w-12 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0 press-scale touch-target"
+          className="h-10 w-10 md:h-11 md:w-11 rounded-xl gradient-primary text-white shrink-0 press-scale"
           disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
@@ -544,10 +550,10 @@ export function MessageInput({
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+              className="h-4.5 w-4.5 border-2 border-white border-t-transparent rounded-full"
             />
           ) : (
-            <Send className="h-5 w-5" />
+            <Send className="h-4.5 w-4.5" />
           )}
         </Button>
       </div>

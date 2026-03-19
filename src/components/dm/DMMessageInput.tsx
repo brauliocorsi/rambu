@@ -265,7 +265,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
 
   return (
     <div
-      className="p-3 md:p-4 border-t border-border bg-background"
+      className="px-2 py-2 md:px-4 md:py-3 border-t border-border bg-background"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -388,16 +388,16 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1.5 md:gap-2">
         {/* Left actions */}
-        <div className="hidden md:flex items-center gap-1 shrink-0">
+        <div className="hidden md:flex items-center gap-0.5 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={() => setShowEmojis(!showEmojis)}
           >
-            <Smile className="h-5 w-5 text-muted-foreground" />
+            <Smile className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <input
@@ -411,32 +411,32 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
           >
-            <Paperclip className="h-5 w-5 text-muted-foreground" />
+            <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={() => setShowSchedule(true)}
             title="Agendar mensagem"
           >
-            <Clock className="h-5 w-5 text-muted-foreground" />
+            <Clock className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={handleStartRecording}
             disabled={isRecording || isUploading}
             title="Gravar áudio"
           >
-            <Mic className="h-5 w-5 text-muted-foreground" />
+            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           {currentWorkspace && (
@@ -449,65 +449,75 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         </div>
 
         {/* Mobile action button - dropdown */}
-        <div className="relative flex md:hidden shrink-0">
+        <div className="flex md:hidden items-center gap-0.5 shrink-0">
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,.pdf,.doc,.docx,.txt"
             multiple
             onChange={handleFileSelect}
-            className="hidden md:hidden"
+            className="hidden"
           />
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl h-9 w-9"
-            onClick={() => setShowMobileActions(!showMobileActions)}
+            className="rounded-lg h-9 w-9"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
           >
-            <Plus className={`h-5 w-5 text-muted-foreground transition-transform ${showMobileActions ? "rotate-45" : ""}`} />
+            <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
-          <AnimatePresence>
-            {showMobileActions && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 bg-popover border border-border rounded-xl shadow-lg p-1.5 z-50"
-              >
-                <button
-                  onClick={() => { setShowEmojis(!showEmojis); setShowMobileActions(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
-                >
-                  <Smile className="h-4 w-4 text-muted-foreground" />
-                  <span>Emoji</span>
-                </button>
-                <button
-                  onClick={() => { fileInputRef.current?.click(); setShowMobileActions(false); }}
-                  disabled={isUploading}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <Paperclip className="h-4 w-4 text-muted-foreground" />
-                  <span>Anexar arquivo</span>
-                </button>
-                <button
-                  onClick={() => { setShowSchedule(true); setShowMobileActions(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors"
-                >
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>Agendar</span>
-                </button>
-                <button
-                  onClick={() => { handleStartRecording(); setShowMobileActions(false); }}
-                  disabled={isRecording || isUploading}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <Mic className="h-4 w-4 text-muted-foreground" />
-                  <span>Gravar áudio</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-lg h-9 w-9"
+            onClick={handleStartRecording}
+            disabled={isRecording || isUploading}
+          >
+            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
+          </Button>
+
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-lg h-9 w-9"
+              onClick={() => setShowMobileActions(!showMobileActions)}
+            >
+              <Plus className={`h-4.5 w-4.5 text-muted-foreground transition-transform duration-200 ${showMobileActions ? "rotate-45" : ""}`} />
+            </Button>
+
+            <AnimatePresence>
+              {showMobileActions && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMobileActions(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full right-0 mb-2 flex flex-col min-w-[150px] bg-popover border border-border rounded-xl shadow-xl p-1 z-50"
+                  >
+                    <button
+                      onClick={() => { setShowEmojis(!showEmojis); setShowMobileActions(false); }}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-secondary/80 active:bg-secondary transition-colors"
+                    >
+                      <Smile className="h-4 w-4 text-muted-foreground" />
+                      <span>Emoji</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowSchedule(true); setShowMobileActions(false); }}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-secondary/80 active:bg-secondary transition-colors"
+                    >
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>Agendar</span>
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Message Input */}
@@ -518,14 +528,14 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             onChange={handleMessageChange}
             onKeyDown={handleKeyDown}
             placeholder={`Mensagem para ${otherUserName}`}
-            className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-base resize-none"
+            className="w-full min-h-[40px] md:min-h-[44px] max-h-28 px-3 py-2.5 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm md:text-base resize-none"
           />
         </div>
 
         {/* Send Button */}
         <Button
           size="icon"
-          className="h-11 w-11 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
+          className="h-10 w-10 md:h-11 md:w-11 rounded-xl gradient-primary text-white shrink-0 press-scale"
           disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
@@ -533,10 +543,10 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+              className="h-4.5 w-4.5 border-2 border-white border-t-transparent rounded-full"
             />
           ) : (
-            <Send className="h-5 w-5" />
+            <Send className="h-4.5 w-4.5" />
           )}
         </Button>
       </div>

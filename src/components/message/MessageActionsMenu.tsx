@@ -71,20 +71,21 @@ export function MessageActionsMenu({
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex items-center gap-0.5 self-start bg-card/80 backdrop-blur-sm rounded-lg border border-border shadow-sm p-0.5"
+        transition={{ duration: 0.1 }}
+        className="flex items-center gap-px self-start bg-card/90 backdrop-blur-sm rounded-lg border border-border/50 shadow-sm p-px"
       >
         {/* Reactions */}
         <div className="relative">
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg"
+            className="h-6 w-6 rounded-md"
             onClick={() => setShowReactions(!showReactions)}
             title="Adicionar reação"
           >
-            <Smile className="h-4 w-4" />
+            <Smile className="h-3.5 w-3.5" />
           </Button>
 
           {showReactions && (
@@ -114,11 +115,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg"
+            className="h-6 w-6 rounded-md"
             onClick={onReply}
             title="Responder"
           >
-            <Reply className="h-4 w-4" />
+            <Reply className="h-3.5 w-3.5" />
           </Button>
         )}
 
@@ -127,13 +128,13 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg relative"
+            className="h-6 w-6 rounded-md relative"
             onClick={onOpenThread}
             title="Abrir thread"
           >
-            <MessageCircle className="h-4 w-4" />
+            <MessageCircle className="h-3.5 w-3.5" />
             {threadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] rounded-full h-3.5 min-w-3.5 flex items-center justify-center px-0.5">
                 {threadCount}
               </span>
             )}
@@ -145,11 +146,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg"
+            className="h-6 w-6 rounded-md"
             onClick={onMarkAsUnread}
             title="Marcar como não lido"
           >
-            <MailQuestion className="h-4 w-4" />
+            <MailQuestion className="h-3.5 w-3.5" />
           </Button>
         )}
 
@@ -157,33 +158,33 @@ export function MessageActionsMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-lg"
+          className="h-6 w-6 rounded-md"
           onClick={() => setShowRemindDialog(true)}
           title="Lembrar-me depois"
         >
-          <Clock className="h-4 w-4" />
+          <Clock className="h-3.5 w-3.5" />
         </Button>
 
         {/* Copy */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-lg"
+          className="h-6 w-6 rounded-md"
           onClick={handleCopy}
           title="Copiar mensagem"
         >
-          <Copy className="h-4 w-4" />
+          <Copy className="h-3.5 w-3.5" />
         </Button>
 
         {/* Forward */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-lg"
+          className="h-6 w-6 rounded-md"
           onClick={() => setShowForwardDialog(true)}
           title="Encaminhar"
         >
-          <Forward className="h-4 w-4" />
+          <Forward className="h-3.5 w-3.5" />
         </Button>
 
         {/* Edit - only for own messages */}
@@ -191,11 +192,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg"
+            className="h-6 w-6 rounded-md"
             onClick={onEdit}
             title="Editar"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
 
@@ -204,11 +205,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg text-destructive hover:text-destructive"
+            className="h-6 w-6 rounded-md text-destructive hover:text-destructive"
             onClick={onDelete}
             title="Deletar"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </motion.div>
