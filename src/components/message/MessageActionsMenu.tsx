@@ -128,13 +128,13 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg relative"
+            className="h-6 w-6 rounded-md relative"
             onClick={onOpenThread}
             title="Abrir thread"
           >
-            <MessageCircle className="h-4 w-4" />
+            <MessageCircle className="h-3.5 w-3.5" />
             {threadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] rounded-full h-3.5 min-w-3.5 flex items-center justify-center px-0.5">
                 {threadCount}
               </span>
             )}
