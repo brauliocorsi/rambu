@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";

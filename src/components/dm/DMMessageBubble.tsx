@@ -119,7 +119,6 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
-        onTouchStart={() => setShowActions(true)}
       >
         {/* Avatar */}
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>

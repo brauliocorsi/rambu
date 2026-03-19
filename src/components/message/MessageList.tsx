@@ -6,6 +6,7 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageListSkeleton } from "@/components/ui/skeletons";
 import { TypingIndicator } from "./TypingIndicator";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";

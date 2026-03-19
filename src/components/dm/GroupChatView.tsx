@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
