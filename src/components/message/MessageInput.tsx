@@ -383,15 +383,16 @@ export function MessageInput({
         />
 
         {/* Action buttons - hidden on mobile, shown in a compact row */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
+            title="Anexar arquivo"
           >
-            <Paperclip className="h-5 w-5 text-muted-foreground" />
+            <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <EmojiPicker onSelect={addEmoji} />
@@ -407,33 +408,33 @@ export function MessageInput({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={() => setShowPollDialog(true)}
             title="Criar enquete"
           >
-            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            <BarChart3 className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={() => setShowScheduleDialog(true)}
             disabled={!message.trim() && attachedFiles.length === 0}
             title="Agendar mensagem"
           >
-            <Clock className="h-5 w-5 text-muted-foreground" />
+            <Clock className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl shrink-0 h-10 w-10"
+            className="rounded-lg shrink-0 h-9 w-9"
             onClick={handleStartRecording}
             disabled={isRecording || isUploading}
             title="Gravar áudio"
           >
-            <Mic className="h-5 w-5 text-muted-foreground" />
+            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
         </div>
 
