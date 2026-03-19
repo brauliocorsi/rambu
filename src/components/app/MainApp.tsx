@@ -112,6 +112,9 @@ export function MainApp() {
     }
   }, [showSettings, activeTab, selectedDM, handleSelectChannel]);
 
+  // Hide bottom nav when inside a chat (DM selected or channel selected)
+  const isInChat = !!(selectedDM || currentChannel);
+
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
       <Header 
@@ -123,15 +126,17 @@ export function MainApp() {
           {content}
         </div>
       </main>
-      <MobileNav 
-        activeTab={activeTab} 
-        onTabChange={handleTabChange}
-        unreadDMs={unreadDMs}
-        unreadChannels={unreadChannels}
-        totalUnread={totalUnread}
-        pendingReminders={pendingReminders.length}
-        pendingTasks={pendingTasksList.length}
-      />
+      {!isInChat && (
+        <MobileNav 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+          unreadDMs={unreadDMs}
+          unreadChannels={unreadChannels}
+          totalUnread={totalUnread}
+          pendingReminders={pendingReminders.length}
+          pendingTasks={pendingTasksList.length}
+        />
+      )}
       <SearchDialog 
         open={showSearch} 
         onClose={() => setShowSearch(false)}

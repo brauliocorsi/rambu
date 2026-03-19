@@ -120,41 +120,6 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
         </DropdownMenu>
       </div>
 
-      {/* Always show workspace users list */}
-      <WorkspaceUsersList
-        members={members}
-        currentUserId={user?.id}
-        userUnreadCounts={userUnreadCounts}
-        onSelectUser={async (userId) => {
-          const existingDM = dms.find(dm => dm.other_user?.id === userId);
-          if (existingDM) {
-            onSelectDM(existingDM);
-          } else if (currentWorkspace) {
-            // Directly create or get DM for this user
-            try {
-              const dm = await createOrGetDM.mutateAsync({
-                workspaceId: currentWorkspace.id,
-                otherUserId: userId,
-              });
-              const member = members.find(m => m.user_id === userId);
-              const dmWithProfile: DirectMessage = {
-                ...dm,
-                other_user: member?.profile ? {
-                  id: userId,
-                  display_name: member.profile.display_name,
-                  avatar_url: member.profile.avatar_url,
-                  status: member.profile.status,
-                  last_seen: member.profile.last_seen,
-                } : undefined,
-              };
-              onSelectDM(dmWithProfile);
-            } catch {
-              setShowNewDM(true);
-            }
-          }
-        }}
-      />
-
       {isLoadingAll ? (
         <Card className="p-8 rounded-2xl flex items-center justify-center">
           <motion.div
