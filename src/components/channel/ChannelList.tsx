@@ -19,9 +19,18 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
   const favoriteIds = useFavoriteChannelIds(currentWorkspace?.id || null);
   const toggleFavorite = useToggleChannelFavorite();
 
-  const favoriteChannels = channels.filter(c => favoriteIds.includes(c.id));
-  const publicChannels = channels.filter(c => !c.is_private && !favoriteIds.includes(c.id));
-  const privateChannels = channels.filter(c => c.is_private && !favoriteIds.includes(c.id));
+  // Sort channels: unread first, then alphabetical
+  const sortByUnread = (a: Channel, b: Channel) => {
+    const unreadA = unreadCounts[a.id] || 0;
+    const unreadB = unreadCounts[b.id] || 0;
+    if (unreadA > 0 && unreadB === 0) return -1;
+    if (unreadB > 0 && unreadA === 0) return 1;
+    return a.name.localeCompare(b.name);
+  };
+
+  const favoriteChannels = channels.filter(c => favoriteIds.includes(c.id)).sort(sortByUnread);
+  const publicChannels = channels.filter(c => !c.is_private && !favoriteIds.includes(c.id)).sort(sortByUnread);
+  const privateChannels = channels.filter(c => c.is_private && !favoriteIds.includes(c.id)).sort(sortByUnread);
 
   const handleToggleFavorite = (e: React.MouseEvent, channelId: string, isFavorite: boolean) => {
     e.stopPropagation();
