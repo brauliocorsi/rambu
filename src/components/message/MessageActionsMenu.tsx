@@ -192,11 +192,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg"
+            className="h-6 w-6 rounded-md"
             onClick={onEdit}
             title="Editar"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
 
