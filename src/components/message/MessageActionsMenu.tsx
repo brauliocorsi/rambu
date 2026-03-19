@@ -81,11 +81,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg"
+            className="h-6 w-6 rounded-md"
             onClick={() => setShowReactions(!showReactions)}
             title="Adicionar reação"
           >
-            <Smile className="h-4 w-4" />
+            <Smile className="h-3.5 w-3.5" />
           </Button>
 
           {showReactions && (
