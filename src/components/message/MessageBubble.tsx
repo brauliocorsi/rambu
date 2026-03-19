@@ -108,12 +108,13 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
     <>
       <div
         className={cn(
-          "group flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
+          "group relative flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
           styles.container,
           !useSlackLayout && isOwn && "flex-row-reverse"
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
+        onTouchStart={() => setShowActions(true)}
       >
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
@@ -210,24 +211,27 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
           )}
         </div>
 
+        {/* Actions - positioned absolutely to avoid squeezing content */}
         {showActions && !isEditing && (
-          <MessageActionsMenu
-            messageId={message.id}
-            messageContent={message.content}
-            messageCreatedAt={message.created_at}
-            isOwn={isOwn}
-            messageType="channel"
-            contextId={channelId}
-            senderName={displayName}
-            onMarkAsUnread={handleMarkAsUnread}
-            onReply={() => onReply?.(message.id)}
-            onOpenThread={() => onOpenThread?.(message)}
-            onEdit={() => { setIsEditing(true); setEditContent(message.content); }}
-            onDelete={() => setShowDeleteDialog(true)}
-            onAddReaction={handleReaction}
-            showThread
-            threadCount={threadCount}
-          />
+          <div className="absolute top-0 right-4 z-10 -translate-y-1/2">
+            <MessageActionsMenu
+              messageId={message.id}
+              messageContent={message.content}
+              messageCreatedAt={message.created_at}
+              isOwn={isOwn}
+              messageType="channel"
+              contextId={channelId}
+              senderName={displayName}
+              onMarkAsUnread={handleMarkAsUnread}
+              onReply={() => onReply?.(message.id)}
+              onOpenThread={() => onOpenThread?.(message)}
+              onEdit={() => { setIsEditing(true); setEditContent(message.content); }}
+              onDelete={() => setShowDeleteDialog(true)}
+              onAddReaction={handleReaction}
+              showThread
+              threadCount={threadCount}
+            />
+          </div>
         )}
       </div>
 
