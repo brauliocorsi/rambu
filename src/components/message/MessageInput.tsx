@@ -371,7 +371,7 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1.5 md:gap-2">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
