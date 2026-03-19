@@ -113,12 +113,13 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
     <>
       <div
         className={cn(
-          "group flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
+          "group relative flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
           styles.container,
           !useSlackLayout && isOwn && "flex-row-reverse"
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
+        onTouchStart={() => setShowActions(true)}
       >
         {/* Avatar */}
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
@@ -224,24 +225,26 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
           )}
         </div>
 
-        {/* Actions */}
+        {/* Actions - positioned absolutely to avoid squeezing content */}
         {showActions && !isEditing && (
-          <MessageActionsMenu
-            messageId={message.id}
-            messageContent={message.content}
-            messageCreatedAt={message.created_at}
-            isOwn={isOwn}
-            messageType="dm"
-            contextId={dmId}
-            senderName={displayName}
-            onMarkAsUnread={handleMarkAsUnread}
-            onReply={() => onReply?.(message.id)}
-            onEdit={() => {
-              setIsEditing(true);
-              setEditContent(message.content);
-            }}
-            onDelete={() => setShowDeleteDialog(true)}
-          />
+          <div className="absolute top-0 right-4 z-10 -translate-y-1/2">
+            <MessageActionsMenu
+              messageId={message.id}
+              messageContent={message.content}
+              messageCreatedAt={message.created_at}
+              isOwn={isOwn}
+              messageType="dm"
+              contextId={dmId}
+              senderName={displayName}
+              onMarkAsUnread={handleMarkAsUnread}
+              onReply={() => onReply?.(message.id)}
+              onEdit={() => {
+                setIsEditing(true);
+                setEditContent(message.content);
+              }}
+              onDelete={() => setShowDeleteDialog(true)}
+            />
+          </div>
         )}
       </div>
 
