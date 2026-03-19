@@ -52,7 +52,7 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
         <button
           onClick={() => onSelectChannel(channel)}
           className={cn(
-            "w-full flex items-center gap-3 p-3 rounded-xl transition-colors",
+            "w-full flex items-center gap-2 px-2.5 py-2 rounded-xl transition-colors",
             selectedChannel?.id === channel.id
               ? "bg-primary/10 text-primary"
               : "hover:bg-secondary",
@@ -62,25 +62,26 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
           {isPrivate ? (
             <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
           ) : (
-            <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
+            <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
           )}
-          <span className={cn("font-medium flex-1 text-left truncate min-w-0", unreadCount > 0 && "text-primary font-bold")}>{channel.name}</span>
-          {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="shrink-0" />}
-          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          <span className={cn("font-medium flex-1 text-left truncate text-sm min-w-0", unreadCount > 0 && "text-primary font-bold")}>{channel.name}</span>
+          
+          <div className="flex items-center gap-1 shrink-0">
+            {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-6 w-6 rounded-md transition-opacity",
+                isFavorite ? "opacity-100 text-yellow-500" : "opacity-0 group-hover:opacity-100"
+              )}
+              onClick={(e) => handleToggleFavorite(e, channel.id, isFavorite)}
+            >
+              <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-yellow-500")} />
+            </Button>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
         </button>
-
-        {/* Favorite button - shown on hover */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "absolute right-10 top-1/2 -translate-y-1/2 h-7 w-7 rounded-lg transition-opacity",
-            isFavorite ? "opacity-100 text-yellow-500" : "opacity-0 group-hover:opacity-100"
-          )}
-          onClick={(e) => handleToggleFavorite(e, channel.id, isFavorite)}
-        >
-          <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-500")} />
-        </Button>
       </motion.div>
     );
   };
