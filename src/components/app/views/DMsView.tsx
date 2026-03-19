@@ -11,7 +11,7 @@ import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { NewGroupDialog } from "@/components/dm/NewGroupDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { 
   MessageSquare, 
   Plus, 
