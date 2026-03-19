@@ -40,12 +40,10 @@ export function DMListWithArchive({
   const activeDMs = dms
     .filter((dm) => !archivedIds.includes(dm.id))
     .sort((a, b) => {
-      // Prioritize DMs with unread messages
       const unreadA = unreadCounts[a.id] || 0;
       const unreadB = unreadCounts[b.id] || 0;
       if (unreadA > 0 && unreadB === 0) return -1;
       if (unreadB > 0 && unreadA === 0) return 1;
-      // Then sort by most recent message
       const timeA = a.last_message?.created_at || a.created_at || "";
       const timeB = b.last_message?.created_at || b.created_at || "";
       return timeB.localeCompare(timeA);
@@ -64,74 +62,92 @@ export function DMListWithArchive({
         })
       : "";
     const unreadCount = unreadCounts[dm.id] || 0;
+    const isSelected = selectedDM?.id === dm.id;
 
     return (
       <motion.div
         key={dm.id}
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
         className="group relative"
       >
         <button
           onClick={() => onSelectDM(dm)}
           className={cn(
-            "w-full flex items-center gap-3 p-3 rounded-xl transition-colors",
-            selectedDM?.id === dm.id ? "bg-primary/10" : "hover:bg-secondary",
-            unreadCount > 0 && "font-semibold"
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
+            isSelected
+              ? "bg-primary/10"
+              : "hover:bg-secondary/70 active:bg-secondary",
           )}
         >
+          {/* Avatar */}
           <div className="shrink-0 relative">
-            {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" className="absolute -top-1 -right-1 z-10" />}
             <AvatarWithStatus
               status={status}
               lastSeen={lastSeen}
               indicatorSize="sm"
             >
-              <Avatar className="h-12 w-12">
+              <Avatar className="h-10 w-10">
                 <AvatarImage src={dm.other_user?.avatar_url || undefined} />
-                <AvatarFallback className="gradient-primary text-white">
+                <AvatarFallback className="gradient-primary text-white text-sm">
                   {displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </AvatarWithStatus>
           </div>
 
+          {/* Content */}
           <div className="flex-1 min-w-0 text-left">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold truncate">{displayName}</span>
-              <div className="flex items-center gap-2 shrink-0">
-                {timeAgo && (
-                  <span className="text-xs text-muted-foreground">{timeAgo}</span>
-                )}
-              </div>
+              <span className={cn(
+                "text-sm font-medium truncate",
+                unreadCount > 0 && "font-bold text-foreground",
+                isSelected && "text-primary"
+              )}>
+                {displayName}
+              </span>
+              {timeAgo && (
+                <span className={cn(
+                  "text-[11px] shrink-0",
+                  unreadCount > 0 ? "text-primary font-medium" : "text-muted-foreground/70"
+                )}>
+                  {timeAgo}
+                </span>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground truncate">{lastMessage}</p>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <p className={cn(
+                "text-xs truncate",
+                unreadCount > 0 ? "text-foreground/70" : "text-muted-foreground"
+              )}>
+                {lastMessage}
+              </p>
+              {unreadCount > 0 && (
+                <UnreadBadge count={unreadCount} size="sm" className="shrink-0" />
+              )}
+            </div>
           </div>
         </button>
 
-        {/* Archive/Unarchive button */}
+        {/* Context menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="min-w-[140px]">
             {isArchived ? (
-              <DropdownMenuItem
-                onClick={() => unarchiveDM.mutate({ dmId: dm.id })}
-              >
+              <DropdownMenuItem onClick={() => unarchiveDM.mutate({ dmId: dm.id })}>
                 <ArchiveRestore className="h-4 w-4 mr-2" />
                 Restaurar
               </DropdownMenuItem>
             ) : (
-              <DropdownMenuItem
-                onClick={() => archiveDM.mutate({ dmId: dm.id })}
-              >
+              <DropdownMenuItem onClick={() => archiveDM.mutate({ dmId: dm.id })}>
                 <Archive className="h-4 w-4 mr-2" />
                 Arquivar
               </DropdownMenuItem>
@@ -143,32 +159,33 @@ export function DMListWithArchive({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Active DMs */}
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {activeDMs.map((dm) => renderDMItem(dm, false))}
-        
+
         {activeDMs.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Nenhuma conversa ativa
-          </p>
+          <div className="flex flex-col items-center py-8 text-muted-foreground">
+            <p className="text-sm">Nenhuma conversa ativa</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Inicie uma nova conversa</p>
+          </div>
         )}
       </div>
 
       {/* Archived DMs */}
       {archivedDMs.length > 0 && (
-        <div className="space-y-1">
+        <div>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className="w-full flex items-center gap-2 px-2 py-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-secondary/50"
           >
             {showArchived ? (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3.5 w-3.5" />
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             )}
-            <Archive className="h-4 w-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">
+            <Archive className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium">
               Arquivadas ({archivedDMs.length})
             </span>
           </button>
@@ -179,7 +196,8 @@ export function DMListWithArchive({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden space-y-1 ml-4"
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden space-y-0.5 mt-1"
               >
                 {archivedDMs.map((dm) => renderDMItem(dm, true))}
               </motion.div>
