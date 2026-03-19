@@ -388,16 +388,16 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1.5 md:gap-2">
         {/* Left actions */}
-        <div className="hidden md:flex items-center gap-1 shrink-0">
+        <div className="hidden md:flex items-center gap-0.5 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={() => setShowEmojis(!showEmojis)}
           >
-            <Smile className="h-5 w-5 text-muted-foreground" />
+            <Smile className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <input
@@ -411,32 +411,32 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
           >
-            <Paperclip className="h-5 w-5 text-muted-foreground" />
+            <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={() => setShowSchedule(true)}
             title="Agendar mensagem"
           >
-            <Clock className="h-5 w-5 text-muted-foreground" />
+            <Clock className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl"
+            className="h-9 w-9 rounded-lg"
             onClick={handleStartRecording}
             disabled={isRecording || isUploading}
             title="Gravar áudio"
           >
-            <Mic className="h-5 w-5 text-muted-foreground" />
+            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
           {currentWorkspace && (
