@@ -71,9 +71,10 @@ export function MessageActionsMenu({
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex items-center gap-0.5 self-start bg-card/80 backdrop-blur-sm rounded-lg border border-border shadow-sm p-0.5"
+        transition={{ duration: 0.1 }}
+        className="flex items-center gap-px self-start bg-card/90 backdrop-blur-sm rounded-lg border border-border/50 shadow-sm p-px"
       >
         {/* Reactions */}
         <div className="relative">
