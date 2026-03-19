@@ -36,27 +36,13 @@ interface DMsViewProps {
 
 export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   const { currentWorkspace } = useWorkspaceContext();
-  const { user } = useAuth();
   const { data: dms = [], isLoading } = useDirectMessages(currentWorkspace?.id || null);
   const { data: groups = [], isLoading: loadingGroups } = useDMGroups(currentWorkspace?.id || null);
   const { data: unreadCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
-  const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id || null);
   const markAsRead = useMarkDMAsRead();
-  const createOrGetDM = useCreateOrGetDM();
   const [showNewDM, setShowNewDM] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DMGroup | null>(null);
-
-  // Map unread DM counts to user IDs for the workspace users list
-  const userUnreadCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    dms.forEach(dm => {
-      if (dm.other_user?.id && unreadCounts[dm.id]) {
-        map[dm.other_user.id] = unreadCounts[dm.id];
-      }
-    });
-    return map;
-  }, [dms, unreadCounts]);
 
   const isLoadingAll = isLoading || loadingGroups;
   const hasNoConversations = dms.length === 0 && groups.length === 0;
