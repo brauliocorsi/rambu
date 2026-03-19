@@ -542,7 +542,7 @@ export function MessageInput({
 
         <Button
           size="icon"
-          className="h-12 w-12 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0 press-scale touch-target"
+          className="h-10 w-10 md:h-11 md:w-11 rounded-xl gradient-primary text-white shrink-0 press-scale"
           disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
@@ -550,10 +550,10 @@ export function MessageInput({
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+              className="h-4.5 w-4.5 border-2 border-white border-t-transparent rounded-full"
             />
           ) : (
-            <Send className="h-5 w-5" />
+            <Send className="h-4.5 w-4.5" />
           )}
         </Button>
       </div>

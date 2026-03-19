@@ -205,11 +205,11 @@ export function MessageActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg text-destructive hover:text-destructive"
+            className="h-6 w-6 rounded-md text-destructive hover:text-destructive"
             onClick={onDelete}
             title="Deletar"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </motion.div>
