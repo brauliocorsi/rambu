@@ -271,7 +271,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
         <div 
           ref={containerRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-auto py-4 scroll-smooth"
+          className="absolute inset-0 overflow-y-auto py-4 overscroll-contain"
         >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
