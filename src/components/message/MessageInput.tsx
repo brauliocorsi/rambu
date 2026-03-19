@@ -515,8 +515,7 @@ export function MessageInput({
         {/* Input field with formatting toolbar */}
         <div className="flex-1 min-w-0 flex flex-col">
           {showPreview && message.trim() ? (
-            /* Live preview */
-            <div className="min-h-[44px] md:min-h-[48px] max-h-32 overflow-y-auto px-4 py-3 rounded-xl bg-secondary/50 border border-dashed border-border text-sm">
+            <div className="min-h-[40px] md:min-h-[44px] max-h-28 overflow-y-auto px-3 py-2.5 rounded-xl bg-secondary/50 border border-dashed border-border text-sm">
               <MessageContent content={message} className="text-sm" />
             </div>
           ) : (
@@ -527,7 +526,7 @@ export function MessageInput({
               onKeyDown={handleKeyDown}
               onBlur={() => onStopTyping?.()}
               placeholder={`Mensagem em #${channelName}`}
-              className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-base resize-none"
+              className="w-full min-h-[40px] md:min-h-[44px] max-h-28 px-3 py-2.5 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground text-sm md:text-base resize-none"
             />
           )}
           {/* Formatting toolbar - below input, subtle */}
