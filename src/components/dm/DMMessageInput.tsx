@@ -528,7 +528,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
             onChange={handleMessageChange}
             onKeyDown={handleKeyDown}
             placeholder={`Mensagem para ${otherUserName}`}
-            className="w-full min-h-[44px] md:min-h-[48px] max-h-32 px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-base resize-none"
+            className="w-full min-h-[40px] md:min-h-[44px] max-h-28 px-3 py-2.5 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm md:text-base resize-none"
           />
         </div>
 
