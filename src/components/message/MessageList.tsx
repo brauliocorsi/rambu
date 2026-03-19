@@ -6,6 +6,7 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageListSkeleton } from "@/components/ui/skeletons";
 import { TypingIndicator } from "./TypingIndicator";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -66,6 +67,7 @@ export function MessageList({
   typingUsers = [],
 }: MessageListProps) {
   const { preferences } = useLayoutPreferences();
+  const { isMobile } = useViewMode();
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,7 @@ export function MessageList({
   const prevMessagesLengthRef = useRef(0);
   const prevScrollHeightRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const rafScrollRef = useRef<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Check if user is near bottom (within 150px)
@@ -84,14 +87,18 @@ export function MessageList({
 
   // Track scroll position and detect scroll to top for infinite loading
   const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
+
     const nearBottom = checkIfNearBottom();
-    isNearBottomRef.current = nearBottom;
-    setShowScrollButton(!nearBottom);
+    if (isNearBottomRef.current !== nearBottom) {
+      isNearBottomRef.current = nearBottom;
+      setShowScrollButton(!nearBottom);
+    }
     
     // Load more when scrolling near top
-    if (containerRef.current && hasMore && onLoadMore && !isFetchingMore) {
+    if (hasMore && onLoadMore && !isFetchingMore && !isLoadingMoreRef.current) {
       const { scrollTop } = containerRef.current;
-      if (scrollTop < 100) {
+      if (scrollTop < 48) {
         isLoadingMoreRef.current = true;
         prevScrollHeightRef.current = containerRef.current.scrollHeight;
         onLoadMore();
@@ -106,21 +113,28 @@ export function MessageList({
     if (isLoadingMoreRef.current && containerRef.current && !isFetchingMore) {
       const newScrollHeight = containerRef.current.scrollHeight;
       const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
-      containerRef.current.scrollTop = scrollDiff;
+      containerRef.current.scrollTop += scrollDiff;
+      prevScrollHeightRef.current = newScrollHeight;
       isLoadingMoreRef.current = false;
     }
   }, [messages.length, isFetchingMore]);
 
   // Scroll to bottom
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    if (containerRef.current) {
-      if (behavior === "instant") {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      } else {
-        bottomRef.current?.scrollIntoView({ behavior });
-      }
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = isMobile ? "auto" : "smooth") => {
+    if (rafScrollRef.current) {
+      cancelAnimationFrame(rafScrollRef.current);
     }
-  }, []);
+
+    rafScrollRef.current = requestAnimationFrame(() => {
+      if (containerRef.current) {
+        if (behavior === "instant" || behavior === "auto") {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        } else {
+          bottomRef.current?.scrollIntoView({ behavior });
+        }
+      }
+    });
+  }, [isMobile]);
 
   // Scroll to bottom when loading finishes
   useEffect(() => {
@@ -133,7 +147,6 @@ export function MessageList({
           containerRef.current.scrollTop = containerRef.current.scrollHeight;
         }
       };
-      // Multiple attempts to catch late-rendering content
       requestAnimationFrame(() => requestAnimationFrame(doScroll));
       const t1 = setTimeout(doScroll, 100);
       const t2 = setTimeout(doScroll, 300);
@@ -146,22 +159,27 @@ export function MessageList({
   useEffect(() => {
     isNearBottomRef.current = true;
     prevMessagesLengthRef.current = 0;
+    prevScrollHeightRef.current = 0;
     isLoadingMoreRef.current = false;
     wasLoadingRef.current = true;
     setShowScrollButton(false);
   }, [channelId]);
 
+  useEffect(() => {
+    return () => {
+      if (rafScrollRef.current) {
+        cancelAnimationFrame(rafScrollRef.current);
+      }
+    };
+  }, []);
+
   // Auto-scroll on new messages only if user is near bottom
   useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
-      if (isNearBottomRef.current) {
-        requestAnimationFrame(() => {
-          scrollToBottom("smooth");
-        });
-      }
+    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current && isNearBottomRef.current) {
+      scrollToBottom(isMobile ? "auto" : "smooth");
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length, scrollToBottom]);
+  }, [messages.length, scrollToBottom, isMobile]);
 
   // Group messages by day when in Slack mode (must be before any returns)
   const messageGroups = useMemo(() => {
@@ -198,7 +216,7 @@ export function MessageList({
       <div 
         ref={containerRef}
         onScroll={handleScroll}
-        className="absolute inset-0 overflow-y-auto py-4 scroll-smooth"
+        className="absolute inset-0 overflow-y-auto py-4 overscroll-contain"
       >
         {/* Loading more indicator */}
         {isFetchingMore && (

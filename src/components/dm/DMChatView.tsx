@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
@@ -26,6 +27,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const { preferences } = useLayoutPreferences();
+  const { isMobile } = useViewMode();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteDMMessages(dm.id);
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(dm.id, true);
   const [replyTo, setReplyTo] = useState<string | undefined>();
@@ -35,6 +37,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const prevMessagesLengthRef = useRef(0);
   const prevScrollHeightRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const rafScrollRef = useRef<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   const otherUser = dm.other_user;
@@ -49,14 +52,18 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
 
   // Track scroll position
   const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
+
     const nearBottom = checkIfNearBottom();
-    isNearBottomRef.current = nearBottom;
-    setShowScrollButton(!nearBottom);
+    if (isNearBottomRef.current !== nearBottom) {
+      isNearBottomRef.current = nearBottom;
+      setShowScrollButton(!nearBottom);
+    }
     
     // Load more when scrolling near top
-    if (containerRef.current && hasMore && !isFetchingMore) {
+    if (hasMore && !isFetchingMore && !isLoadingMoreRef.current) {
       const { scrollTop } = containerRef.current;
-      if (scrollTop < 100) {
+      if (scrollTop < 48) {
         isLoadingMoreRef.current = true;
         prevScrollHeightRef.current = containerRef.current.scrollHeight;
         loadMore();
@@ -69,7 +76,8 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     if (isLoadingMoreRef.current && containerRef.current && !isFetchingMore) {
       const newScrollHeight = containerRef.current.scrollHeight;
       const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
-      containerRef.current.scrollTop = scrollDiff;
+      containerRef.current.scrollTop += scrollDiff;
+      prevScrollHeightRef.current = newScrollHeight;
       isLoadingMoreRef.current = false;
     }
   }, [messages.length, isFetchingMore]);
@@ -77,15 +85,21 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const wasLoadingRef = useRef(true);
 
   // Scroll to bottom
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    if (containerRef.current) {
-      if (behavior === "instant") {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      } else {
-        bottomRef.current?.scrollIntoView({ behavior });
-      }
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = isMobile ? "auto" : "smooth") => {
+    if (rafScrollRef.current) {
+      cancelAnimationFrame(rafScrollRef.current);
     }
-  }, []);
+
+    rafScrollRef.current = requestAnimationFrame(() => {
+      if (containerRef.current) {
+        if (behavior === "instant" || behavior === "auto") {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        } else {
+          bottomRef.current?.scrollIntoView({ behavior });
+        }
+      }
+    });
+  }, [isMobile]);
 
   // Scroll to bottom when loading finishes (initial load or DM switch)
   useEffect(() => {
@@ -98,7 +112,6 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
           containerRef.current.scrollTop = containerRef.current.scrollHeight;
         }
       };
-      // Multiple attempts to catch late-rendering content
       requestAnimationFrame(() => requestAnimationFrame(doScroll));
       const t1 = setTimeout(doScroll, 100);
       const t2 = setTimeout(doScroll, 300);
@@ -111,22 +124,27 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   useEffect(() => {
     isNearBottomRef.current = true;
     prevMessagesLengthRef.current = 0;
+    prevScrollHeightRef.current = 0;
     isLoadingMoreRef.current = false;
     wasLoadingRef.current = true;
     setShowScrollButton(false);
   }, [dm.id]);
 
+  useEffect(() => {
+    return () => {
+      if (rafScrollRef.current) {
+        cancelAnimationFrame(rafScrollRef.current);
+      }
+    };
+  }, []);
+
   // Auto-scroll on new messages
   useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
-      if (isNearBottomRef.current) {
-        requestAnimationFrame(() => {
-          scrollToBottom("smooth");
-        });
-      }
+    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current && isNearBottomRef.current) {
+      scrollToBottom(isMobile ? "auto" : "smooth");
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length, scrollToBottom]);
+  }, [messages.length, scrollToBottom, isMobile]);
 
   // Helper to format day separator
   const formatDaySeparator = (date: Date): string => {
@@ -179,7 +197,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
         <div 
           ref={containerRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-auto py-4 scroll-smooth"
+          className="absolute inset-0 overflow-y-auto py-4 overscroll-contain"
         >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">

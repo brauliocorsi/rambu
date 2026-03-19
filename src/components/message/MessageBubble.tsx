@@ -114,7 +114,6 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
-        onTouchStart={() => setShowActions(true)}
       >
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />

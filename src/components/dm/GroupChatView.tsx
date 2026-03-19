@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
@@ -57,6 +58,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const { data: profile } = useProfile();
   const { currentWorkspace } = useWorkspaceContext();
   const { preferences } = useLayoutPreferences();
+  const { isMobile } = useViewMode();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useDMGroupMessages(group.id);
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(`group:${group.id}`, true);
   const sendMessage = useSendGroupMessage();
@@ -69,6 +71,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const prevScrollHeightRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
   const wasLoadingRef = useRef(true);
+  const rafScrollRef = useRef<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Get group display name
@@ -91,13 +94,17 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
 
   // Track scroll position
   const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
+
     const nearBottom = checkIfNearBottom();
-    isNearBottomRef.current = nearBottom;
-    setShowScrollButton(!nearBottom);
+    if (isNearBottomRef.current !== nearBottom) {
+      isNearBottomRef.current = nearBottom;
+      setShowScrollButton(!nearBottom);
+    }
     
-    if (containerRef.current && hasMore && !isFetchingMore) {
+    if (hasMore && !isFetchingMore && !isLoadingMoreRef.current) {
       const { scrollTop } = containerRef.current;
-      if (scrollTop < 100) {
+      if (scrollTop < 48) {
         isLoadingMoreRef.current = true;
         prevScrollHeightRef.current = containerRef.current.scrollHeight;
         loadMore();
@@ -110,21 +117,28 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
     if (isLoadingMoreRef.current && containerRef.current && !isFetchingMore) {
       const newScrollHeight = containerRef.current.scrollHeight;
       const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
-      containerRef.current.scrollTop = scrollDiff;
+      containerRef.current.scrollTop += scrollDiff;
+      prevScrollHeightRef.current = newScrollHeight;
       isLoadingMoreRef.current = false;
     }
   }, [messages.length, isFetchingMore]);
 
   // Scroll to bottom
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    if (containerRef.current) {
-      if (behavior === "instant") {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      } else {
-        bottomRef.current?.scrollIntoView({ behavior });
-      }
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = isMobile ? "auto" : "smooth") => {
+    if (rafScrollRef.current) {
+      cancelAnimationFrame(rafScrollRef.current);
     }
-  }, []);
+
+    rafScrollRef.current = requestAnimationFrame(() => {
+      if (containerRef.current) {
+        if (behavior === "instant" || behavior === "auto") {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        } else {
+          bottomRef.current?.scrollIntoView({ behavior });
+        }
+      }
+    });
+  }, [isMobile]);
 
   // Scroll to bottom when loading finishes
   useEffect(() => {
@@ -147,24 +161,29 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
 
   // Auto-scroll on new messages
   useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current) {
-      if (isNearBottomRef.current) {
-        requestAnimationFrame(() => {
-          scrollToBottom("smooth");
-        });
-      }
+    if (messages.length > prevMessagesLengthRef.current && !isLoadingMoreRef.current && isNearBottomRef.current) {
+      scrollToBottom(isMobile ? "auto" : "smooth");
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length, scrollToBottom]);
+  }, [messages.length, scrollToBottom, isMobile]);
 
   // Reset refs when group changes
   useEffect(() => {
     isNearBottomRef.current = true;
     prevMessagesLengthRef.current = 0;
+    prevScrollHeightRef.current = 0;
     isLoadingMoreRef.current = false;
     wasLoadingRef.current = true;
     setShowScrollButton(false);
   }, [group.id]);
+
+  useEffect(() => {
+    return () => {
+      if (rafScrollRef.current) {
+        cancelAnimationFrame(rafScrollRef.current);
+      }
+    };
+  }, []);
 
   // Helper to format day separator
   const formatDaySeparator = (date: Date): string => {
@@ -252,7 +271,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
         <div 
           ref={containerRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-auto py-4 scroll-smooth"
+          className="absolute inset-0 overflow-y-auto py-4 overscroll-contain"
         >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
