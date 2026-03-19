@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 interface UnreadBadgeProps {
@@ -7,30 +8,34 @@ interface UnreadBadgeProps {
   pulse?: boolean;
 }
 
-export function UnreadBadge({ count, size = "md", className, pulse = false }: UnreadBadgeProps) {
-  if (count <= 0) return null;
+export const UnreadBadge = React.forwardRef<HTMLSpanElement, UnreadBadgeProps>(
+  ({ count, size = "md", className, pulse = false }, ref) => {
+    if (count <= 0) return null;
 
-  const displayCount = count > 99 ? "99+" : count.toString();
+    const displayCount = count > 99 ? "99+" : count.toString();
 
-  const sizeClasses = {
-    sm: "h-4 min-w-4 text-[10px] px-1",
-    md: "h-5 min-w-5 text-xs px-1.5",
-    lg: "h-6 min-w-6 text-sm px-2",
-  };
+    const sizeClasses = {
+      sm: "h-4 min-w-4 text-[10px] px-1",
+      md: "h-5 min-w-5 text-xs px-1.5",
+      lg: "h-6 min-w-6 text-sm px-2",
+    };
 
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground font-bold animate-scale-in",
-        sizeClasses[size],
-        pulse && "animate-pulse",
-        className
-      )}
-    >
-      {displayCount}
-    </span>
-  );
-}
+    return (
+      <span
+        ref={ref}
+        className={cn(
+          "inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground font-bold animate-scale-in",
+          sizeClasses[size],
+          pulse && "animate-pulse",
+          className
+        )}
+      >
+        {displayCount}
+      </span>
+    );
+  }
+);
+UnreadBadge.displayName = "UnreadBadge";
 
 /** Simple dot indicator for activity */
 export function ActivityDot({ className }: { className?: string }) {
