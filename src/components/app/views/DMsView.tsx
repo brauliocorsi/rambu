@@ -1,15 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
-import { useDirectMessages, DirectMessage, useCreateOrGetDM } from "@/hooks/useDirectMessages";
+import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { useDMGroups, DMGroup } from "@/hooks/useDMGroups";
 import { useUnreadDMCounts, useMarkDMAsRead } from "@/hooks/useNotifications";
-import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
-import { useAuth } from "@/hooks/useAuth";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { GroupChatView } from "@/components/dm/GroupChatView";
 import { DMListWithArchive } from "@/components/dm/DMListWithArchive";
-import { WorkspaceUsersList } from "@/components/dm/WorkspaceUsersList";
 import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { NewGroupDialog } from "@/components/dm/NewGroupDialog";
 import { Card } from "@/components/ui/card";
