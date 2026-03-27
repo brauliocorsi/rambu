@@ -275,6 +275,7 @@ export function MessageList({
                   onOpenThread={onOpenThread}
                   slackMode
                   density={preferences.density}
+                  viewData={viewCounts[message.id]}
                 />
               ))}
             </div>
@@ -289,6 +290,7 @@ export function MessageList({
               onReply={onReply}
               onOpenThread={onOpenThread}
               density={preferences.density}
+              viewData={viewCounts[message.id]}
             />
           ))
         )}
