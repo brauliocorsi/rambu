@@ -132,16 +132,26 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
           </div>
 
           {originalMessage && (
-            <div className={cn(
-              "flex items-start gap-2 mb-2 p-2 rounded-lg bg-secondary/50 border-l-2 border-primary/50",
-              !useSlackLayout && isOwn && "border-r-2 border-l-0"
-            )}>
+            <button
+              onClick={() => {
+                const el = document.querySelector(`[data-message-id="${message.reply_to}"]`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  el.classList.add("bg-primary/10");
+                  setTimeout(() => el.classList.remove("bg-primary/10"), 2000);
+                }
+              }}
+              className={cn(
+                "flex items-start gap-2 mb-2 p-2 rounded-lg bg-secondary/50 border-l-2 border-primary/50 cursor-pointer hover:bg-secondary/80 transition-colors text-left",
+                !useSlackLayout && isOwn && "border-r-2 border-l-0"
+              )}
+            >
               <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
                 <span className="text-xs font-medium text-primary">{originalMessage.profile?.display_name || "Usuário"}</span>
                 <p className="text-xs text-muted-foreground truncate">{formatMentionsForDisplay(originalMessage.content)}</p>
               </div>
-            </div>
+            </button>
           )}
 
           {hasFile && (
