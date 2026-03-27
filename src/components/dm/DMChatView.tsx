@@ -41,6 +41,11 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const rafScrollRef = useRef<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
+  // Track message views
+  const visibleMessageIds = useMemo(() => messages.map(m => m.id).filter(id => !id.startsWith("temp-")), [messages]);
+  useRecordDMMessageView(visibleMessageIds, dm.id);
+  const { data: dmViewCounts = {} } = useDMMessageViewCounts(visibleMessageIds);
+
   const otherUser = dm.other_user;
   const displayName = otherUser?.display_name || "Usuário";
 
