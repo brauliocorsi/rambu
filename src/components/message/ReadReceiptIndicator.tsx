@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, CheckCheck, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMessageViews, useDMMessageViews } from "@/hooks/useMessageViews";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -90,10 +91,12 @@ export function ReadReceiptIndicator({
 }
 
 function ReadReceiptDetails({ messageId, type }: { messageId: string; type: "channel" | "dm" }) {
+  const { user } = useAuth();
   const channelViews = useMessageViews(type === "channel" ? messageId : null);
   const dmViews = useDMMessageViews(type === "dm" ? messageId : null);
   
-  const views = type === "channel" ? channelViews.data : dmViews.data;
+  const rawViews = type === "channel" ? channelViews.data : dmViews.data;
+  const views = rawViews?.filter(v => v.user_id !== user?.id);
   const isLoading = type === "channel" ? channelViews.isLoading : dmViews.isLoading;
 
   if (isLoading) {
