@@ -15,6 +15,7 @@ import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
 import { DMMessageInput } from "./DMMessageInput";
 import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
+import { useRecordDMMessageView, useDMMessageViewCounts } from "@/hooks/useMessageViews";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
