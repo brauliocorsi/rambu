@@ -2,13 +2,14 @@
 <html lang="pt-BR" class="light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Rambu - Comunicação em Equipe</title>
     <meta name="description" content="Rambu é sua plataforma de comunicação em equipe. Organize conversas, canais e colabore de forma eficiente." />
     <meta name="author" content="Rambu" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#6366f1" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,6 +17,7 @@
     <meta name="application-name" content="Rambu" />
     <meta name="msapplication-TileColor" content="#6366f1" />
     <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="format-detection" content="telephone=no" />
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -25,6 +27,13 @@
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png" />
+
+    <!-- Apple Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1125x2436.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1125x2436.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1125x2436.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1125x2436.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -38,25 +47,55 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@RambuApp" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- Safe area support for notch devices -->
+    <style>
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sar: env(safe-area-inset-right);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+      }
+      body {
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Register Service Worker -->
+    <!-- Register Service Worker (only in production, not in preview/iframe) -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+      (function() {
+        if (!('serviceWorker' in navigator)) return;
+
+        // Don't register SW in Lovable preview or iframe contexts
+        var isInIframe = false;
+        try { isInIframe = window.self !== window.top; } catch(e) { isInIframe = true; }
+
+        var isPreviewHost = window.location.hostname.includes('id-preview--') ||
+                           window.location.hostname.includes('lovableproject.com');
+
+        if (isPreviewHost || isInIframe) {
+          // Unregister any existing service workers in preview
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            registrations.forEach(function(r) { r.unregister(); });
+          });
+          return;
+        }
+
+        window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
+            .then(function(registration) {
               console.log('SW registered:', registration.scope);
             })
-            .catch((error) => {
+            .catch(function(error) {
               console.log('SW registration failed:', error);
             });
         });
-      }
+      })();
     </script>
   </body>
 </html>
