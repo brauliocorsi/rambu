@@ -210,6 +210,18 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
               ))}
             </div>
           )}
+
+          {/* Read receipt */}
+          {isOwn && !isEditing && (
+            <ReadReceiptIndicator
+              messageId={message.id}
+              isOwn={isOwn}
+              type="channel"
+              viewerCount={viewData?.count || 0}
+              viewers={viewData?.viewers || []}
+              className={!useSlackLayout && isOwn ? "justify-end" : ""}
+            />
+          )}
         </div>
 
         {/* Actions - positioned absolutely to avoid squeezing content */}
