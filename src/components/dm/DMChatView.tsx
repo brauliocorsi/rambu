@@ -205,11 +205,6 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
           onScroll={handleScroll}
           className="absolute inset-0 overflow-y-auto py-4 overscroll-contain"
         >
-        {(() => {
-          // Record views and fetch view counts
-          const visibleIds = messages.map(m => m.id).filter(id => !id.startsWith("temp-"));
-          return null;
-        })()}
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <LoadingSpinner size="lg" />
@@ -273,6 +268,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                       onReply={setReplyTo}
                       slackMode
                       density={preferences.density}
+                      viewData={dmViewCounts[msg.id]}
                     />
                   ))}
                 </div>
@@ -286,6 +282,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                   dmId={dm.id}
                   onReply={setReplyTo}
                   density={preferences.density}
+                  viewData={dmViewCounts[msg.id]}
                 />
               ))
             )}
