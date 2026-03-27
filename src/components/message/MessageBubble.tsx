@@ -109,6 +109,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   return (
     <>
       <div
+        data-message-id={message.id}
         className={cn(
           "group relative flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
           styles.container,

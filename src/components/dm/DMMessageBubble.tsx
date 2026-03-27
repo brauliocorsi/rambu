@@ -114,6 +114,7 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
   return (
     <>
       <div
+        data-message-id={message.id}
         className={cn(
           "group relative flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
           styles.container,
