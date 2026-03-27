@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Check, CornerDownRight } from "lucide-react";
+import { ReadReceiptIndicator } from "@/components/message/ReadReceiptIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,9 +48,10 @@ interface DMMessageBubbleProps {
   onReply?: (messageId: string) => void;
   slackMode?: boolean;
   density?: MessageDensity;
+  viewData?: { count: number; viewers: { user_id: string; display_name: string | null; avatar_url: string | null }[] };
 }
 
-export function DMMessageBubble({ message, dmId, onReply, slackMode = false, density = "normal" }: DMMessageBubbleProps) {
+export function DMMessageBubble({ message, dmId, onReply, slackMode = false, density = "normal", viewData }: DMMessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -221,6 +223,18 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
                 </div>
               )
             )
+          )}
+
+          {/* Read receipt */}
+          {isOwn && !isEditing && (
+            <ReadReceiptIndicator
+              messageId={message.id}
+              isOwn={isOwn}
+              type="dm"
+              viewerCount={viewData?.count || 0}
+              viewers={viewData?.viewers || []}
+              className={!useSlackLayout && isOwn ? "justify-end" : ""}
+            />
           )}
         </div>
 

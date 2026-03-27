@@ -8,6 +8,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
+import { useRecordMessageView, useMessageViewCounts } from "@/hooks/useMessageViews";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -189,6 +190,13 @@ export function MessageList({
     return null;
   }, [messages, preferences.slackMode]);
 
+  // Record views for visible messages
+  const visibleMessageIds = useMemo(() => messages.map(m => m.id).filter(id => !id.startsWith("temp-")), [messages]);
+  useRecordMessageView(visibleMessageIds, channelId);
+
+  // Fetch view counts for all visible messages
+  const { data: viewCounts = {} } = useMessageViewCounts(visibleMessageIds);
+
   if (isLoading) {
     return <MessageListSkeleton count={8} />;
   }
@@ -267,6 +275,7 @@ export function MessageList({
                   onOpenThread={onOpenThread}
                   slackMode
                   density={preferences.density}
+                  viewData={viewCounts[message.id]}
                 />
               ))}
             </div>
@@ -281,6 +290,7 @@ export function MessageList({
               onReply={onReply}
               onOpenThread={onOpenThread}
               density={preferences.density}
+              viewData={viewCounts[message.id]}
             />
           ))
         )}

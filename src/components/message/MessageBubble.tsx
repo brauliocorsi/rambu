@@ -1,5 +1,6 @@
 import { useState, memo } from "react";
 import { X, Check, CornerDownRight, MessageSquare } from "lucide-react";
+import { ReadReceiptIndicator } from "./ReadReceiptIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +35,7 @@ interface MessageBubbleProps {
   onOpenThread?: (message: Message) => void;
   slackMode?: boolean;
   density?: MessageDensity;
+  viewData?: { count: number; viewers: { user_id: string; display_name: string | null; avatar_url: string | null }[] };
 }
 
 const densityStyles = {
@@ -42,7 +44,7 @@ const densityStyles = {
   comfortable: { container: "py-3", avatar: "h-10 w-10", text: "text-base" },
 };
 
-function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMode = false, density = "normal" }: MessageBubbleProps) {
+function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMode = false, density = "normal", viewData }: MessageBubbleProps) {
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -207,6 +209,18 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
                 </button>
               ))}
             </div>
+          )}
+
+          {/* Read receipt */}
+          {isOwn && !isEditing && (
+            <ReadReceiptIndicator
+              messageId={message.id}
+              isOwn={isOwn}
+              type="channel"
+              viewerCount={viewData?.count || 0}
+              viewers={viewData?.viewers || []}
+              className={!useSlackLayout && isOwn ? "justify-end" : ""}
+            />
           )}
         </div>
 

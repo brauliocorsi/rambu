@@ -15,6 +15,7 @@ import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
 import { DMMessageInput } from "./DMMessageInput";
 import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
+import { useRecordDMMessageView, useDMMessageViewCounts } from "@/hooks/useMessageViews";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -39,6 +40,11 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   const isLoadingMoreRef = useRef(false);
   const rafScrollRef = useRef<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  // Track message views
+  const visibleMessageIds = useMemo(() => messages.map(m => m.id).filter(id => !id.startsWith("temp-")), [messages]);
+  useRecordDMMessageView(visibleMessageIds, dm.id);
+  const { data: dmViewCounts = {} } = useDMMessageViewCounts(visibleMessageIds);
 
   const otherUser = dm.other_user;
   const displayName = otherUser?.display_name || "Usuário";
@@ -262,6 +268,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                       onReply={setReplyTo}
                       slackMode
                       density={preferences.density}
+                      viewData={dmViewCounts[msg.id]}
                     />
                   ))}
                 </div>
@@ -275,6 +282,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                   dmId={dm.id}
                   onReply={setReplyTo}
                   density={preferences.density}
+                  viewData={dmViewCounts[msg.id]}
                 />
               ))
             )}
