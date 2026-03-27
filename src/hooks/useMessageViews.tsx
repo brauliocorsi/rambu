@@ -108,6 +108,7 @@ export function useDMMessageViews(dmMessageId: string | null) {
 
 // Fetch view counts for multiple messages at once (channel)
 export function useMessageViewCounts(messageIds: string[]) {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["message-view-counts", messageIds.sort().join(",")],
     queryFn: async () => {
@@ -120,6 +121,8 @@ export function useMessageViewCounts(messageIds: string[]) {
       
       const counts: Record<string, { count: number; viewers: { user_id: string; display_name: string | null; avatar_url: string | null }[] }> = {};
       for (const row of data) {
+        // Skip the sender's own view
+        if (row.user_id === user?.id) continue;
         if (!counts[row.message_id]) {
           counts[row.message_id] = { count: 0, viewers: [] };
         }
