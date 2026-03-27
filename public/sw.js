@@ -1,5 +1,5 @@
-const CACHE_NAME = 'rambu-cache-v1';
-const urlsToCache = [
+const CACHE_NAME = 'rambu-cache-v2';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json'
@@ -9,10 +9,7 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+      .then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -20,86 +17,99 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      )
+    )
   );
   self.clients.claim();
 });
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests and chrome-extension requests
-  if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension://')) {
+  if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Never cache auth routes or API calls
+  if (url.pathname.startsWith('/~oauth') ||
+      url.pathname.startsWith('/auth') ||
+      url.hostname.includes('supabase')) {
     return;
   }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Check if valid response
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-
-        // Clone the response
         const responseToCache = response.clone();
-
-        // Cache the response for future use
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
         return response;
       })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
 
-// Handle push notifications
+// Handle push notifications (Web Push API)
 self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'Nova notificação do Rambu',
+  let data = {
+    title: 'Rambu',
+    body: 'Nova notificação',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
+    badge: '/icons/icon-96x96.png',
+  };
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    } catch {
+      data.body = event.data.text();
     }
-    // Note: Safari does not support 'actions' or 'vibrate' in notifications
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-96x96.png',
+    tag: data.tag || 'rambu-notification',
+    renotify: true,
+    data: {
+      url: data.url || '/',
+      dateOfArrival: Date.now(),
+    },
   };
 
   event.waitUntil(
-    self.registration.showNotification('Rambu', options)
+    self.registration.showNotification(data.title, options)
   );
 });
 
-// Handle notification click
+// Handle notification click - open/focus the app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
+  const targetUrl = event.notification.data?.url || '/';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open, focus it
+      // Focus existing window if available
       for (const client of clientList) {
-        if ('focus' in client) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
-      // Otherwise, open a new window
+      // Open new window
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow(targetUrl);
       }
     })
   );
