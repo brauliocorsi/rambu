@@ -224,6 +224,18 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
               )
             )
           )}
+
+          {/* Read receipt */}
+          {isOwn && !isEditing && (
+            <ReadReceiptIndicator
+              messageId={message.id}
+              isOwn={isOwn}
+              type="dm"
+              viewerCount={viewData?.count || 0}
+              viewers={viewData?.viewers || []}
+              className={!useSlackLayout && isOwn ? "justify-end" : ""}
+            />
+          )}
         </div>
 
         {/* Actions - positioned absolutely to avoid squeezing content */}
