@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import { useState } from "react";
 import { Forward, Hash, User, Users, Search } from "lucide-react";
 import {
   Dialog,
