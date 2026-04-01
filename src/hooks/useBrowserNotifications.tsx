@@ -344,11 +344,38 @@ export function useBrowserNotifications() {
     };
   }, [user?.id, currentWorkspace?.id, showNotification, playSound, queryClient]);
 
+  const sendTestNotification = useCallback(async () => {
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg.showNotification) {
+          await reg.showNotification("Rambu", {
+            body: "Notificações ativadas com sucesso! 🎉",
+            icon: "/icons/icon-192x192.png",
+            badge: "/icons/icon-72x72.png",
+          });
+          return true;
+        }
+      } catch {}
+    }
+    // Fallback to Notification API
+    try {
+      new Notification("Rambu", {
+        body: "Notificações ativadas com sucesso! 🎉",
+        icon: "/icons/icon-192x192.png",
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   return {
     isSupported,
     permission,
     isEnabled: permission === "granted",
     requestPermission,
     showNotification,
+    sendTestNotification,
   };
 }

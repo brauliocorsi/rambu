@@ -11,6 +11,7 @@ import {
   useUpdateNotificationPreferences,
 } from "@/hooks/useProfile";
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
+import { useIOSNotificationHelper } from "@/hooks/useIOSNotificationHelper";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,10 +40,15 @@ import {
   Rows3,
   Rows2,
   Rows4,
+  Download,
+  CheckCircle2,
+  XCircle,
+  Send,
 } from "lucide-react";
 import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
 import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
+import { useNavigate } from "react-router-dom";
 
 interface SettingsViewProps {
   onBack: () => void;
