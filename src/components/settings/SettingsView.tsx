@@ -76,6 +76,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const [activeSection, setActiveSection] = useState<'profile' | 'quick-replies'>('profile');
   const [hasChanges, setHasChanges] = useState(false);
   const [testSent, setTestSent] = useState(false);
+  const [testSent, setTestSent] = useState(false);
   // Initialize form when profile loads
   useState(() => {
     if (profile) {
