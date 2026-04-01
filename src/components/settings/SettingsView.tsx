@@ -533,85 +533,135 @@ export function SettingsView({ onBack }: SettingsViewProps) {
               )}
 
               {/* Push Notifications */}
-              {pushSupported && (
-                <div className="pt-3 border-t border-border space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium flex items-center gap-2">
-                        <BellRing className="h-4 w-4 text-primary" />
-                        Notificações Push
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {pushPermission === "granted" 
-                          ? "Ativas — alertas em tempo real no seu dispositivo"
-                          : pushPermission === "denied"
-                          ? "Bloqueadas nas configurações do dispositivo"
-                          : "Receba alertas mesmo com o app fechado"}
-                      </p>
-                    </div>
-                    {pushPermission === "granted" ? (
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium px-2.5 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-                        ✓ Ativas
-                      </span>
-                    ) : pushPermission === "denied" ? (
-                      <span className="text-xs text-destructive font-medium px-2.5 py-1 bg-destructive/10 rounded-full">
-                        Bloqueadas
-                      </span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="rounded-xl"
-                        onClick={requestPushPermission}
-                      >
-                        <Bell className="h-3.5 w-3.5 mr-1.5" />
-                        Ativar
-                      </Button>
-                    )}
+              <div className="pt-3 border-t border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium flex items-center gap-2">
+                      <BellRing className="h-4 w-4 text-primary" />
+                      Notificações Push
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {isIOS && !isPWA
+                        ? "Instale o app para receber notificações"
+                        : pushPermission === "granted" 
+                        ? "Ativas — alertas em tempo real no seu dispositivo"
+                        : pushPermission === "denied"
+                        ? "Bloqueadas nas configurações do dispositivo"
+                        : "Receba alertas mesmo com o app fechado"}
+                    </p>
                   </div>
-
-                  {/* Re-request / Help for denied or default */}
-                  {pushPermission === "default" && (
-                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-                      <p className="text-xs text-foreground font-medium mb-1">📱 Primeiro acesso?</p>
-                      <p className="text-xs text-muted-foreground">
-                        Toque em "Ativar" acima e depois em "Permitir" na janela do sistema. No iPhone, o app precisa estar instalado na tela inicial (via Safari → Compartilhar → Adicionar à Tela de Início).
-                      </p>
-                    </div>
-                  )}
-
-                  {pushPermission === "denied" && (
-                    <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3 space-y-2">
-                      <p className="text-xs text-foreground font-medium">🔒 Como reativar?</p>
-                      <div className="text-xs text-muted-foreground space-y-1.5">
-                        <p><strong>iPhone (Safari):</strong> Ajustes → Rambu → Notificações → Ativar</p>
-                        <p><strong>Android (Chrome):</strong> Toque no cadeado 🔒 ao lado da URL → Notificações → Permitir</p>
-                        <p><strong>Desktop:</strong> Clique no cadeado 🔒 na barra de endereço → Notificações → Permitir</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-xl w-full mt-2 text-xs"
-                        onClick={async () => {
-                          const result = await requestPushPermission();
-                          if (!result) {
-                            // Permission still denied - can't do anything from JS
-                          }
-                        }}
-                      >
-                        Tentar ativar novamente
-                      </Button>
-                    </div>
-                  )}
-
-                  {pushPermission === "granted" && (
-                    <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/30 rounded-xl p-3">
-                      <p className="text-xs text-green-700 dark:text-green-400">
-                        ✅ Notificações ativas! Você receberá alertas de mensagens, menções e lembretes em tempo real, mesmo com o app minimizado.
-                      </p>
-                    </div>
+                  {isIOS && !isPWA ? (
+                    <span className="text-xs text-muted-foreground font-medium px-2.5 py-1 bg-muted rounded-full flex items-center gap-1">
+                      <Download className="h-3 w-3" />
+                      Instalar
+                    </span>
+                  ) : pushPermission === "granted" ? (
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1 bg-primary/10 text-primary">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Ativas
+                    </span>
+                  ) : pushPermission === "denied" ? (
+                    <span className="text-xs text-destructive font-medium px-2.5 py-1 bg-destructive/10 rounded-full flex items-center gap-1">
+                      <XCircle className="h-3 w-3" />
+                      Bloqueadas
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={async () => {
+                        const granted = await requestPushPermission();
+                        if (granted) {
+                          sendTestNotification();
+                          setTestSent(true);
+                        }
+                      }}
+                    >
+                      <Bell className="h-3.5 w-3.5 mr-1.5" />
+                      Ativar
+                    </Button>
                   )}
                 </div>
-              )}
+
+                {/* iOS not installed as PWA */}
+                {isIOS && !isPWA && (
+                  <div className="bg-accent/50 border border-border rounded-xl p-3 space-y-2">
+                    <p className="text-xs text-foreground font-medium">📱 App não instalado</p>
+                    <p className="text-xs text-muted-foreground">
+                      No iPhone, notificações push só funcionam quando o Rambu está instalado na tela inicial. Instale o app para ativar.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl w-full text-xs"
+                      onClick={() => navigate("/install")}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Ver instruções de instalação
+                    </Button>
+                  </div>
+                )}
+
+                {/* Permission default — can request */}
+                {!(isIOS && !isPWA) && pushPermission === "default" && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+                    <p className="text-xs text-foreground font-medium mb-1">📱 Primeiro acesso?</p>
+                    <p className="text-xs text-muted-foreground">
+                      Toque em "Ativar" acima e depois em "Permitir" na janela do sistema.
+                    </p>
+                  </div>
+                )}
+
+                {/* Permission denied */}
+                {pushPermission === "denied" && (
+                  <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3 space-y-2">
+                    <p className="text-xs text-foreground font-medium">🔒 Como reativar?</p>
+                    <div className="text-xs text-muted-foreground space-y-1.5">
+                      {isIOS ? (
+                        <p><strong>iPhone:</strong> Ajustes → Rambu → Notificações → Ativar</p>
+                      ) : (
+                        <>
+                          <p><strong>Android (Chrome):</strong> Toque no cadeado 🔒 ao lado da URL → Notificações → Permitir</p>
+                          <p><strong>Desktop:</strong> Clique no cadeado 🔒 na barra de endereço → Notificações → Permitir</p>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Após alterar, volte aqui — o status atualiza automaticamente.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl w-full mt-2 text-xs"
+                      onClick={requestPushPermission}
+                    >
+                      Tentar ativar novamente
+                    </Button>
+                  </div>
+                )}
+
+                {/* Permission granted */}
+                {pushPermission === "granted" && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
+                    <p className="text-xs text-foreground">
+                      ✅ Notificações ativas! Você receberá alertas de mensagens, menções e lembretes em tempo real.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl w-full text-xs"
+                      onClick={async () => {
+                        await sendTestNotification();
+                        setTestSent(true);
+                        setTimeout(() => setTestSent(false), 3000);
+                      }}
+                    >
+                      <Send className="h-3.5 w-3.5 mr-1.5" />
+                      {testSent ? "Notificação enviada! ✓" : "Enviar notificação de teste"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
         </motion.div>

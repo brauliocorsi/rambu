@@ -1,30 +1,43 @@
 import { useEffect, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
+import { useIOSNotificationHelper } from "@/hooks/useIOSNotificationHelper";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export function BrowserNotificationPrompt() {
-  const { isSupported, permission, requestPermission } = useBrowserNotifications();
+  const { isSupported, permission, requestPermission, sendTestNotification } = useBrowserNotifications();
+  const { isIOS, isPWA } = useIOSNotificationHelper();
+  const navigate = useNavigate();
   const [showPrompt, setShowPrompt] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Only show prompt if:
-    // 1. Notifications are supported
-    // 2. Permission is default (not yet asked)
-    // 3. User hasn't dismissed this session
-    // 4. Wait a bit before showing to not be intrusive
-    if (isSupported && permission === "default" && !dismissed) {
-      const timer = setTimeout(() => {
-        setShowPrompt(true);
-      }, 5000);
+    // Don't show if already granted/denied or dismissed
+    if (permission !== "default" || dismissed) return;
+    // On iOS without PWA, show install prompt instead
+    if (isIOS && !isPWA) {
+      const timer = setTimeout(() => setShowPrompt(true), 5000);
       return () => clearTimeout(timer);
     }
-  }, [isSupported, permission, dismissed]);
+    // Normal: show permission prompt
+    if (isSupported) {
+      const timer = setTimeout(() => setShowPrompt(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSupported, permission, dismissed, isIOS, isPWA]);
 
   const handleEnable = async () => {
-    await requestPermission();
+    if (isIOS && !isPWA) {
+      navigate("/install");
+      setShowPrompt(false);
+      return;
+    }
+    const granted = await requestPermission();
+    if (granted) {
+      sendTestNotification();
+    }
     setShowPrompt(false);
   };
 
@@ -32,6 +45,8 @@ export function BrowserNotificationPrompt() {
     setDismissed(true);
     setShowPrompt(false);
   };
+
+  const isInstallPrompt = isIOS && !isPWA;
 
   return (
     <AnimatePresence>
@@ -45,12 +60,20 @@ export function BrowserNotificationPrompt() {
           <div className="bg-card border border-border rounded-2xl shadow-lg p-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bell className="h-5 w-5 text-primary" />
+                {isInstallPrompt ? (
+                  <Download className="h-5 w-5 text-primary" />
+                ) : (
+                  <Bell className="h-5 w-5 text-primary" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm">Ativar notificações</h4>
+                <h4 className="font-semibold text-sm">
+                  {isInstallPrompt ? "Instalar o Rambu" : "Ativar notificações"}
+                </h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Receba notificações quando alguém enviar uma mensagem, mesmo quando você estiver em outra aba.
+                  {isInstallPrompt
+                    ? "Para receber notificações no iPhone, instale o Rambu na tela inicial."
+                    : "Receba notificações quando alguém enviar uma mensagem, mesmo quando você estiver em outra aba."}
                 </p>
                 <div className="flex gap-2 mt-3">
                   <Button
@@ -58,7 +81,7 @@ export function BrowserNotificationPrompt() {
                     className="rounded-xl text-xs"
                     onClick={handleEnable}
                   >
-                    Ativar
+                    {isInstallPrompt ? "Como instalar" : "Ativar"}
                   </Button>
                   <Button
                     size="sm"
