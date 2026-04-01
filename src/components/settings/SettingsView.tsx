@@ -60,7 +60,9 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const { preferences, setSlackMode, setDensity } = useLayoutPreferences();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: notifPrefs } = useNotificationPreferences();
-  const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission } = useBrowserNotifications();
+  const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, sendTestNotification } = useBrowserNotifications();
+  const { isIOS, isPWA, canRequestPermission } = useIOSNotificationHelper();
+  const navigate = useNavigate();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
   const updateNotifPrefs = useUpdateNotificationPreferences();
