@@ -108,6 +108,15 @@ export function useBrowserNotifications() {
 
     // Preload audio
     getOrCreateAudio();
+
+    // Re-check permission when app regains focus (e.g. user changed in iOS Settings)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && "Notification" in window) {
+        setPermission(Notification.permission);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
