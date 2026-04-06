@@ -11,6 +11,8 @@ interface ViewModeContextType {
 }
 
 const MOBILE_BREAKPOINT = 768;
+const VIEW_MODE_KEY = "rambu-view-mode";
+const VIEW_MODE_MANUAL_KEY = "rambu-view-mode-manual";
 
 const ViewModeContext = createContext<ViewModeContextType>({
   viewMode: "mobile",
@@ -24,21 +26,33 @@ function detectDeviceMode(): ViewMode {
   return window.innerWidth < MOBILE_BREAKPOINT ? "mobile" : "desktop";
 }
 
+function getStoredManualMode(): ViewMode | null {
+  try {
+    if (sessionStorage.getItem(VIEW_MODE_MANUAL_KEY) !== "true") return null;
+    const savedMode = sessionStorage.getItem(VIEW_MODE_KEY);
+    return savedMode === "mobile" || savedMode === "desktop" ? savedMode : null;
+  } catch {
+    return null;
+  }
+}
+
 export function ViewModeProvider({ children }: { children: ReactNode }) {
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
-    // If user manually selected a mode, use it
-    const manualOverride = localStorage.getItem("rambu-view-mode-manual");
-    if (manualOverride === "true") {
-      const saved = localStorage.getItem("rambu-view-mode");
-      if (saved === "mobile" || saved === "desktop") return saved;
-    }
-    // Otherwise auto-detect
-    return detectDeviceMode();
+    return getStoredManualMode() ?? detectDeviceMode();
   });
 
   const [isManual, setIsManual] = useState(() => {
-    return localStorage.getItem("rambu-view-mode-manual") === "true";
+    return getStoredManualMode() !== null;
   });
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem(VIEW_MODE_KEY);
+      localStorage.removeItem(VIEW_MODE_MANUAL_KEY);
+    } catch {
+      // Ignore storage cleanup issues
+    }
+  }, []);
 
   // Auto-detect on resize only if not manually overridden
   useEffect(() => {
@@ -56,8 +70,13 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
   const setViewMode = (mode: ViewMode) => {
     setViewModeState(mode);
     setIsManual(true);
-    localStorage.setItem("rambu-view-mode", mode);
-    localStorage.setItem("rambu-view-mode-manual", "true");
+
+    try {
+      sessionStorage.setItem(VIEW_MODE_KEY, mode);
+      sessionStorage.setItem(VIEW_MODE_MANUAL_KEY, "true");
+    } catch {
+      // Ignore storage errors
+    }
   };
 
   const toggleViewMode = () => {

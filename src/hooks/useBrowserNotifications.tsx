@@ -10,6 +10,7 @@ interface NotificationOptions {
   body: string;
   icon?: string;
   tag?: string;
+  url?: string;
   onClick?: () => void;
 }
 
@@ -80,6 +81,19 @@ function setupAudioUnlock() {
   events.forEach((e) => document.addEventListener(e, handler, true));
 }
 
+async function waitForServiceWorkerReady(timeout = 4000): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) return null;
+
+  try {
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), timeout)),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 export function useBrowserNotifications() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspaceContext();
@@ -120,8 +134,10 @@ export function useBrowserNotifications() {
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) return false;
+    if (!isSupported || !("Notification" in window)) return false;
+
     try {
+      await waitForServiceWorkerReady();
       const result = await Notification.requestPermission();
       setPermission(result);
       return result === "granted";
@@ -148,9 +164,10 @@ export function useBrowserNotifications() {
   }, []);
 
   const showNotification = useCallback(
-    ({ title, body, icon, tag, onClick }: NotificationOptions) => {
+    ({ title, body, icon, tag, url = "/", onClick }: NotificationOptions) => {
       // Check permission at call time
       if (permissionRef.current !== "granted") return;
+      if (notifPrefsRef.current && notifPrefsRef.current.push_notifications === false) return;
 
       const notifIcon = icon || "/icons/icon-192x192.png";
       const notifOptions = {
@@ -158,16 +175,18 @@ export function useBrowserNotifications() {
         icon: notifIcon,
         tag,
         badge: "/icons/icon-72x72.png",
+        data: { url },
+        renotify: true,
         silent: true, // We play our own sound
       };
 
       // Try Service Worker first (more reliable on macOS Safari & PWAs)
       // Safari may not have .controller on first load, so check .ready instead
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.ready
+        waitForServiceWorkerReady()
           .then((reg) => {
             // Check if showNotification is available (Safari PWA)
-            if (reg.showNotification) {
+            if (reg?.showNotification) {
               return reg.showNotification(title, notifOptions);
             }
             throw new Error("showNotification not available");
@@ -347,12 +366,13 @@ export function useBrowserNotifications() {
   const sendTestNotification = useCallback(async () => {
     if ("serviceWorker" in navigator) {
       try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg.showNotification) {
+        const reg = await waitForServiceWorkerReady();
+        if (reg?.showNotification) {
           await reg.showNotification("Rambu", {
             body: "Notificações ativadas com sucesso! 🎉",
             icon: "/icons/icon-192x192.png",
             badge: "/icons/icon-72x72.png",
+            data: { url: "/" },
           });
           return true;
         }
@@ -373,7 +393,7 @@ export function useBrowserNotifications() {
   return {
     isSupported,
     permission,
-    isEnabled: permission === "granted",
+    isEnabled: permission === "granted" && (notifPrefs?.push_notifications ?? true),
     requestPermission,
     showNotification,
     sendTestNotification,

@@ -142,6 +142,7 @@ export function useUpdateNotificationPreferences() {
       dm_notifications?: boolean;
       channel_notifications?: boolean;
       mention_notifications?: boolean;
+      push_notifications?: boolean;
       sound_enabled?: boolean;
       sound_volume?: number;
     }) => {
@@ -191,6 +192,7 @@ export function useNotificationPreferences() {
         dm_notifications: true,
         channel_notifications: true,
         mention_notifications: true,
+        push_notifications: true,
         sound_enabled: true,
         sound_volume: 0.5,
       };
