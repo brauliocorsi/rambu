@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 export function BrowserNotificationPrompt() {
   const { isSupported, permission, requestPermission, sendTestNotification } = useBrowserNotifications();
-  const { isIOS, isPWA } = useIOSNotificationHelper();
+  const { isIOS, isPWA, canRequestPermission } = useIOSNotificationHelper();
   const navigate = useNavigate();
   const [showPrompt, setShowPrompt] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -22,11 +22,11 @@ export function BrowserNotificationPrompt() {
       return () => clearTimeout(timer);
     }
     // Normal: show permission prompt
-    if (isSupported) {
+    if (isSupported && canRequestPermission) {
       const timer = setTimeout(() => setShowPrompt(true), 5000);
       return () => clearTimeout(timer);
     }
-  }, [isSupported, permission, dismissed, isIOS, isPWA]);
+  }, [isSupported, permission, dismissed, isIOS, isPWA, canRequestPermission]);
 
   const handleEnable = async () => {
     if (isIOS && !isPWA) {
@@ -34,6 +34,9 @@ export function BrowserNotificationPrompt() {
       setShowPrompt(false);
       return;
     }
+
+    if (!canRequestPermission) return;
+
     const granted = await requestPermission();
     if (granted) {
       sendTestNotification();

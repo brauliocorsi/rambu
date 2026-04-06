@@ -265,7 +265,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
 
   return (
     <div
-      className="px-2 py-2 md:px-4 md:py-3 border-t border-border bg-background"
+      className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:px-4 md:py-3"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}

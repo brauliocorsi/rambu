@@ -146,7 +146,7 @@ export function ChannelsView() {
   }, [currentChannel?.id]);
 
   if (currentChannel) {
-    return <div className="h-full"><ChannelChatView /></div>;
+    return <div className="h-full min-h-0"><ChannelChatView /></div>;
   }
 
   if (!currentWorkspace) {

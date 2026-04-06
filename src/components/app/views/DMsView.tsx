@@ -56,12 +56,12 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
 
   // Show group chat view
   if (selectedGroup) {
-    return <div className="h-full"><GroupChatView group={selectedGroup} onBack={() => setSelectedGroup(null)} /></div>;
+    return <div className="h-full min-h-0"><GroupChatView group={selectedGroup} onBack={() => setSelectedGroup(null)} /></div>;
   }
 
   // Show DM chat view
   if (selectedDM) {
-    return <div className="h-full"><DMChatView dm={selectedDM} onBack={() => onSelectDM(null)} /></div>;
+    return <div className="h-full min-h-0"><DMChatView dm={selectedDM} onBack={() => onSelectDM(null)} /></div>;
   }
 
   if (!currentWorkspace) {

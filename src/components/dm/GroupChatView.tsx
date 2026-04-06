@@ -424,7 +424,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
       </div>
 
       {/* Custom Input for Group */}
-      <div className="p-3 md:p-4 border-t border-border bg-background">
+      <div className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:p-4">
         <div className="flex items-center gap-2">
           <input
             type="text"

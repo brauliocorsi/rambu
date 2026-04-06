@@ -6,16 +6,18 @@ export function useIOSNotificationHelper() {
   const [isServiceWorkerReady, setIsServiceWorkerReady] = useState(false);
 
   useEffect(() => {
-    // Detect iOS
-    const ua = navigator.userAgent;
-    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    setIsIOS(ios);
+    const displayModeQuery = window.matchMedia("(display-mode: standalone)");
 
-    // Detect PWA (standalone mode)
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as any).standalone === true;
-    setIsPWA(standalone);
+    const syncPlatformState = () => {
+      const ua = navigator.userAgent;
+      const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const standalone = displayModeQuery.matches || (navigator as any).standalone === true;
+
+      setIsIOS(ios);
+      setIsPWA(standalone);
+    };
+
+    syncPlatformState();
 
     // Check Service Worker readiness
     if ("serviceWorker" in navigator) {
@@ -23,10 +25,18 @@ export function useIOSNotificationHelper() {
         .then(() => setIsServiceWorkerReady(true))
         .catch(() => setIsServiceWorkerReady(false));
     }
+
+    displayModeQuery.addEventListener("change", syncPlatformState);
+    document.addEventListener("visibilitychange", syncPlatformState);
+
+    return () => {
+      displayModeQuery.removeEventListener("change", syncPlatformState);
+      document.removeEventListener("visibilitychange", syncPlatformState);
+    };
   }, []);
 
   // On iOS, notifications only work inside installed PWA
-  const canRequestPermission = isIOS ? isPWA : "Notification" in window;
+  const canRequestPermission = "Notification" in window && (isIOS ? isPWA && isServiceWorkerReady : true);
 
   return {
     isIOS,
