@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "./useMessages";
+import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
 
 const PAGE_SIZE = 50;
 
@@ -52,6 +53,8 @@ export function useInfiniteMessages(channelId: string | null) {
   useEffect(() => {
     if (!channelId) return;
 
+    const syncQueryKeys = [["infinite-messages", channelId], ["messages", channelId]];
+
     channelRef.current = supabase
       .channel(`messages:${channelId}`)
       .on(
@@ -64,15 +67,11 @@ export function useInfiniteMessages(channelId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            // Fetch the new message with profile
-            const { data } = await supabase
-              .from("messages")
-              .select(`
-                *,
-                profile:profiles!messages_user_id_fkey(display_name, avatar_url)
-              `)
-              .eq("id", payload.new.id)
-              .single();
+            const profile = await fetchMessageProfile(payload.new.user_id);
+            const data = {
+              ...payload.new,
+              profile,
+            } as Message;
 
             if (data) {
               queryClient.setQueryData(
@@ -119,6 +118,8 @@ export function useInfiniteMessages(channelId: string | null) {
               );
 
             }
+
+            scheduleQuerySync(queryClient, syncQueryKeys);
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
               ["infinite-messages", channelId],
@@ -152,7 +153,11 @@ export function useInfiniteMessages(channelId: string | null) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          scheduleQuerySync(queryClient, syncQueryKeys, 150);
+        }
+      });
 
     return () => {
       if (channelRef.current) {

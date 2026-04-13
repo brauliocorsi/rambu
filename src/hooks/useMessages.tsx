@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
 
 export interface Message {
   id: string;
@@ -61,6 +62,8 @@ export function useMessages(channelId: string | null) {
   useEffect(() => {
     if (!channelId) return;
 
+    const syncQueryKeys = [["messages", channelId], ["infinite-messages", channelId]];
+
     channelRef.current = supabase
       .channel(`messages:${channelId}`)
       .on(
@@ -73,15 +76,11 @@ export function useMessages(channelId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            // Fetch the new message with profile
-            const { data } = await supabase
-              .from("messages")
-              .select(`
-                *,
-                profile:profiles!messages_user_id_fkey(display_name, avatar_url)
-              `)
-              .eq("id", payload.new.id)
-              .single();
+            const profile = await fetchMessageProfile(payload.new.user_id);
+            const data = {
+              ...payload.new,
+              profile,
+            } as Message;
             
             if (data) {
               queryClient.setQueryData(
@@ -111,6 +110,8 @@ export function useMessages(channelId: string | null) {
                 }
               );
             }
+
+            scheduleQuerySync(queryClient, syncQueryKeys);
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
               ["messages", channelId],
@@ -128,7 +129,11 @@ export function useMessages(channelId: string | null) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          scheduleQuerySync(queryClient, syncQueryKeys, 150);
+        }
+      });
 
     return () => {
       if (channelRef.current) {

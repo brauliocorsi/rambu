@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DMMessage } from "./useDirectMessages";
+import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
 
 const PAGE_SIZE = 50;
 
@@ -52,6 +53,8 @@ export function useInfiniteDMMessages(dmId: string | null) {
   useEffect(() => {
     if (!dmId) return;
 
+    const syncQueryKeys = [["infinite-dm-messages", dmId], ["dm-messages", dmId]];
+
     channelRef.current = supabase
       .channel(`dm-messages:${dmId}`)
       .on(
@@ -64,14 +67,11 @@ export function useInfiniteDMMessages(dmId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            const { data } = await supabase
-              .from("dm_messages")
-              .select(`
-                *,
-                profile:profiles!dm_messages_user_id_fkey(display_name, avatar_url)
-              `)
-              .eq("id", payload.new.id)
-              .single();
+            const profile = await fetchMessageProfile(payload.new.user_id);
+            const data = {
+              ...payload.new,
+              profile,
+            } as DMMessage;
 
             if (data) {
               queryClient.setQueryData(
@@ -122,10 +122,7 @@ export function useInfiniteDMMessages(dmId: string | null) {
               );
             }
 
-            // Safety net: invalidate after a delay to catch any missed updates
-            setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ["infinite-dm-messages", dmId] });
-            }, 1500);
+            scheduleQuerySync(queryClient, syncQueryKeys);
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
               ["infinite-dm-messages", dmId],
@@ -159,7 +156,11 @@ export function useInfiniteDMMessages(dmId: string | null) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          scheduleQuerySync(queryClient, syncQueryKeys, 150);
+        }
+      });
 
     return () => {
       if (channelRef.current) {
