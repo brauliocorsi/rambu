@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, Image, Clock, Mic, Plus, ClipboardList, BarChart3 } from "lucide-react";
+import { Send, Paperclip, Image, Clock, Mic, Plus, ClipboardList, BarChart3, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSendMessage, useMessageById } from "@/hooks/useMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
@@ -67,6 +67,8 @@ export function MessageInput({
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const [showPollDialog, setShowPollDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [ephemeralMinutes, setEphemeralMinutes] = useState<number | null>(null);
+  const [showEphemeralMenu, setShowEphemeralMenu] = useState(false);
 
   // Insert markdown formatting around selection or at cursor
   const handleInsertMarkdown = useCallback((prefix: string, suffix: string, placeholder?: string) => {
@@ -119,6 +121,7 @@ export function MessageInput({
       fileUrl: firstFile?.url,
       fileType: firstFile?.type,
       fileName: firstFile?.name,
+      expiresAt: ephemeralMinutes ? new Date(Date.now() + ephemeralMinutes * 60_000) : null,
     });
 
     // Send additional files as separate messages
@@ -130,6 +133,7 @@ export function MessageInput({
         fileUrl: file.url,
         fileType: file.type,
         fileName: file.name,
+        expiresAt: ephemeralMinutes ? new Date(Date.now() + ephemeralMinutes * 60_000) : null,
       });
     }
 
@@ -464,6 +468,47 @@ export function MessageInput({
           >
             <Mic className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
+
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`rounded-lg shrink-0 h-9 w-9 ${ephemeralMinutes ? "text-primary" : ""}`}
+              onClick={() => setShowEphemeralMenu((s) => !s)}
+              title={ephemeralMinutes ? `Expira em ${ephemeralMinutes}min` : "Mensagem efêmera"}
+            >
+              <Timer className="h-4.5 w-4.5" />
+            </Button>
+            <AnimatePresence>
+              {showEphemeralMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowEphemeralMenu(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute bottom-full left-0 mb-2 min-w-[180px] bg-popover border border-border rounded-xl shadow-xl p-1 z-50"
+                  >
+                    {[
+                      { label: "Sem expiração", v: null },
+                      { label: "5 minutos", v: 5 },
+                      { label: "1 hora", v: 60 },
+                      { label: "24 horas", v: 60 * 24 },
+                      { label: "7 dias", v: 60 * 24 * 7 },
+                    ].map((opt) => (
+                      <button
+                        key={String(opt.v)}
+                        onClick={() => { setEphemeralMinutes(opt.v); setShowEphemeralMenu(false); }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/80 ${ephemeralMinutes === opt.v ? "text-primary font-medium" : ""}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Mobile action button - dropdown */}
