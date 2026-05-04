@@ -380,3 +380,12 @@
   min-height: 44px;
   min-width: 44px;
 }
+
+/* Focus mode: hide notification badges and reduce visual noise */
+.focus-mode [data-unread-badge],
+.focus-mode [data-notification-badge] {
+  display: none !important;
+}
+.focus-mode .focus-dim {
+  opacity: 0.6;
+}
