@@ -17,6 +17,7 @@ import { BrowserNotificationPrompt } from "@/components/notifications/BrowserNot
 import { OnboardingTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
+import { ConnectionBanner } from "@/components/layout/ConnectionBanner";
 import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
 import ResetPassword from "./pages/ResetPassword";
@@ -82,6 +83,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <UpdatePrompt />
+          <ConnectionBanner />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<RootContent />} />
