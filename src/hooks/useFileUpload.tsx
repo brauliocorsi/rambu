@@ -11,21 +11,35 @@ export interface UploadedFile {
 }
 
 const MAX_FILES = 5;
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
+  "image/svg+xml",
+  "image/heic",
+  "image/heif",
   "application/pdf",
   "text/plain",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "audio/mpeg",
   "audio/wav",
   "audio/webm",
   "audio/ogg",
+  "audio/mp4",
+  "audio/aac",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/x-matroska",
+  "video/3gpp",
+  "video/ogg",
 ];
 
 export function useFileUpload() {
@@ -40,11 +54,11 @@ export function useFileUpload() {
     }
 
     if (file.size > MAX_SIZE) {
-      toast.error(`Arquivo "${file.name}" muito grande. Máximo: 10MB`);
+      toast.error(`Arquivo "${file.name}" muito grande. Máximo: 100MB`);
       return null;
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (file.type && !ALLOWED_TYPES.includes(file.type)) {
       toast.error(`Tipo de arquivo "${file.name}" não suportado`);
       return null;
     }
