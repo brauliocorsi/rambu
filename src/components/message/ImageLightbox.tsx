@@ -3,6 +3,9 @@ import { X, Download, ArrowLeft, ZoomIn, ZoomOut, RotateCw, Maximize } from "luc
 import { Button } from "@/components/ui/button";
 import { useEffect, useCallback, useState, useRef } from "react";
 
+const MIN_SCALE = 1;
+const MAX_SCALE = 6;
+
 interface ImageLightboxProps {
   url: string;
   name: string;
@@ -14,7 +17,23 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  // Active pointers (id -> last position) for multi-touch gestures
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  // Pan baseline (single pointer)
+  const panStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  // Pinch baseline (two pointers)
+  const pinchStart = useRef<{
+    distance: number;
+    scale: number;
+    centerX: number;
+    centerY: number;
+    ox: number;
+    oy: number;
+  } | null>(null);
+  // Double-tap detection
+  const lastTapAt = useRef<number>(0);
+  const [isInteracting, setIsInteracting] = useState(false);
 
   const reset = useCallback(() => {
     setScale(1);
@@ -22,8 +41,14 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
     setOffset({ x: 0, y: 0 });
   }, []);
 
-  const zoomIn = useCallback(() => setScale((s) => Math.min(s + 0.5, 6)), []);
-  const zoomOut = useCallback(() => setScale((s) => Math.max(s - 0.5, 1)), []);
+  const zoomIn = useCallback(() => setScale((s) => Math.min(s + 0.5, MAX_SCALE)), []);
+  const zoomOut = useCallback(() =>
+    setScale((s) => {
+      const next = Math.max(s - 0.5, MIN_SCALE);
+      if (next === MIN_SCALE) setOffset({ x: 0, y: 0 });
+      return next;
+    }),
+  []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -49,7 +74,6 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
   }, [open, handleKeyDown, reset]);
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
     if (e.deltaY < 0) zoomIn();
     else zoomOut();
   };
@@ -59,20 +83,92 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
     else setScale(2.5);
   };
 
+  const distanceBetween = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y);
+
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (scale <= 1) return;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    dragStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    setIsInteracting(true);
+
+    if (pointers.current.size === 2) {
+      const [p1, p2] = Array.from(pointers.current.values());
+      pinchStart.current = {
+        distance: distanceBetween(p1, p2),
+        scale,
+        centerX: (p1.x + p2.x) / 2,
+        centerY: (p1.y + p2.y) / 2,
+        ox: offset.x,
+        oy: offset.y,
+      };
+      panStart.current = null;
+    } else if (pointers.current.size === 1) {
+      // Double-tap detection (touch only)
+      if (e.pointerType === "touch") {
+        const now = Date.now();
+        if (now - lastTapAt.current < 300) {
+          handleDoubleClick();
+          lastTapAt.current = 0;
+        } else {
+          lastTapAt.current = now;
+        }
+      }
+      if (scale > 1) {
+        panStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+      }
+    }
   };
+
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragStart.current) return;
-    setOffset({
-      x: dragStart.current.ox + (e.clientX - dragStart.current.x),
-      y: dragStart.current.oy + (e.clientY - dragStart.current.y),
-    });
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Pinch (two pointers)
+    if (pointers.current.size >= 2 && pinchStart.current) {
+      const [p1, p2] = Array.from(pointers.current.values());
+      const newDistance = distanceBetween(p1, p2);
+      const ratio = newDistance / pinchStart.current.distance;
+      const newScale = Math.min(
+        Math.max(pinchStart.current.scale * ratio, MIN_SCALE),
+        MAX_SCALE,
+      );
+      const newCenterX = (p1.x + p2.x) / 2;
+      const newCenterY = (p1.y + p2.y) / 2;
+      // Pan along with the pinch center movement so the image follows fingers
+      const dx = newCenterX - pinchStart.current.centerX;
+      const dy = newCenterY - pinchStart.current.centerY;
+
+      setScale(newScale);
+      setOffset({ x: pinchStart.current.ox + dx, y: pinchStart.current.oy + dy });
+      return;
+    }
+
+    // Pan (single pointer, only when zoomed in)
+    if (panStart.current && scale > 1) {
+      setOffset({
+        x: panStart.current.ox + (e.clientX - panStart.current.x),
+        y: panStart.current.oy + (e.clientY - panStart.current.y),
+      });
+    }
   };
-  const handlePointerUp = () => {
-    dragStart.current = null;
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+
+    if (pointers.current.size < 2) {
+      pinchStart.current = null;
+      // If one finger remains, restart pan baseline from it
+      if (pointers.current.size === 1 && scale > 1) {
+        const [remaining] = Array.from(pointers.current.values());
+        panStart.current = { x: remaining.x, y: remaining.y, ox: offset.x, oy: offset.y };
+      }
+    }
+    if (pointers.current.size === 0) {
+      panStart.current = null;
+      setIsInteracting(false);
+      // Snap back if zoomed out below 1 (safety)
+      if (scale <= MIN_SCALE) setOffset({ x: 0, y: 0 });
+    }
   };
 
   const handleDownload = async () => {
@@ -158,9 +254,15 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
 
           {/* Image */}
           <div
-            className="flex-1 flex items-center justify-center p-4 overflow-hidden touch-none"
+            className="flex-1 flex items-center justify-center p-4 overflow-hidden touch-none select-none"
             onWheel={handleWheel}
             onClick={(e) => e.stopPropagation()}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            style={{ touchAction: "none" }}
           >
             <motion.img
               initial={{ opacity: 0 }}
@@ -169,16 +271,14 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
               src={url}
               alt={name}
               onDoubleClick={handleDoubleClick}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
               style={{
                 transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotation}deg)`,
-                cursor: scale > 1 ? (dragStart.current ? "grabbing" : "grab") : "zoom-in",
-                transition: dragStart.current ? "none" : "transform 0.15s ease-out",
+                cursor: scale > 1 ? (panStart.current ? "grabbing" : "grab") : "zoom-in",
+                transition: isInteracting ? "none" : "transform 0.18s ease-out",
+                touchAction: "none",
+                willChange: "transform",
               }}
-              className="max-w-full max-h-full object-contain rounded-lg select-none"
+              className="max-w-full max-h-full object-contain rounded-lg select-none pointer-events-none"
               draggable={false}
             />
           </div>
