@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AudioPlayer } from "./AudioPlayer";
 import { ImageLightbox } from "./ImageLightbox";
+import { VideoPlayer } from "./VideoPlayer";
 
 interface FilePreviewProps {
   url: string;
@@ -18,6 +19,7 @@ export function FilePreview({ url, name, type, onRemove, compact = false }: File
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isImage = type.startsWith("image/");
   const isAudio = type.startsWith("audio/");
+  const isVideo = type.startsWith("video/");
   const isPDF = type === "application/pdf";
 
   const handleDownload = async (e: React.MouseEvent) => {
@@ -58,6 +60,24 @@ export function FilePreview({ url, name, type, onRemove, compact = false }: File
           </Button>
         )}
       </motion.div>
+    );
+  }
+
+  if (isVideo) {
+    return (
+      <div className="relative">
+        <VideoPlayer url={url} name={name} type={type} compact={compact} />
+        {onRemove && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute -top-1 -right-1 h-5 w-5 bg-destructive hover:bg-destructive/90 text-white rounded-full z-10"
+            onClick={onRemove}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
     );
   }
 
