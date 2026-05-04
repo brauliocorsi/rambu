@@ -38,6 +38,7 @@ import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateD
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
 import { useSnoozeChannel, SNOOZE_OPTIONS } from "@/hooks/useSnoozeChannel";
 import { useChannelNotificationPreference } from "@/hooks/useChannelNotificationPreferences";
+import { LabelPicker } from "@/components/labels/LabelPicker";
 
 // Channel Chat View
 function ChannelChatView() {
@@ -83,6 +84,9 @@ function ChannelChatView() {
           {currentChannel.description && (
             <p className="text-xs text-muted-foreground truncate">{currentChannel.description}</p>
           )}
+          <div className="mt-1">
+            <LabelPicker channelId={currentChannel.id} />
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <ChannelMembersPopover channelId={currentChannel.id} />
