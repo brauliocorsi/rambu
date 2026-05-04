@@ -137,6 +137,19 @@ function ChannelChatView() {
         onTyping={handleTyping}
         onStopTyping={sendTypingStop}
       />
+      <PinnedMessagesPanel
+        open={showPinned}
+        onOpenChange={setShowPinned}
+        scope={{ type: "channel", id: currentChannel.id }}
+        onJump={(id) => {
+          const el = document.querySelector(`[data-message-id="${id}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("bg-primary/10");
+            setTimeout(() => el.classList.remove("bg-primary/10"), 2000);
+          }
+        }}
+      />
     </div>
   );
 }
