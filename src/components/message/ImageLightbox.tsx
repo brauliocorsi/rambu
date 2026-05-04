@@ -5,6 +5,7 @@ import { useEffect, useCallback, useState, useRef } from "react";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
+const OVERPAN = 60; // px allowed beyond the natural bounds before clamping
 
 interface ImageLightboxProps {
   url: string;
@@ -20,6 +21,8 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
 
   // Active pointers (id -> last position) for multi-touch gestures
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   // Pan baseline (single pointer)
   const panStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   // Pinch baseline (two pointers)
@@ -34,6 +37,30 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
   // Double-tap detection
   const lastTapAt = useRef<number>(0);
   const [isInteracting, setIsInteracting] = useState(false);
+
+  const clampOffset = useCallback(
+    (x: number, y: number, s: number) => {
+      const container = containerRef.current;
+      const img = imgRef.current;
+      if (!container || !img) return { x, y };
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      // Rendered (unscaled) image size
+      const iw = img.clientWidth;
+      const ih = img.clientHeight;
+      // Effective scaled size
+      const sw = iw * s;
+      const sh = ih * s;
+      // Max distance the center can travel before an edge crosses container edge
+      const maxX = Math.max(0, (sw - cw) / 2) + OVERPAN;
+      const maxY = Math.max(0, (sh - ch) / 2) + OVERPAN;
+      return {
+        x: Math.min(maxX, Math.max(-maxX, x)),
+        y: Math.min(maxY, Math.max(-maxY, y)),
+      };
+    },
+    [],
+  );
 
   const reset = useCallback(() => {
     setScale(1);
@@ -139,16 +166,19 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
       const dy = newCenterY - pinchStart.current.centerY;
 
       setScale(newScale);
-      setOffset({ x: pinchStart.current.ox + dx, y: pinchStart.current.oy + dy });
+      setOffset(clampOffset(pinchStart.current.ox + dx, pinchStart.current.oy + dy, newScale));
       return;
     }
 
     // Pan (single pointer, only when zoomed in)
     if (panStart.current && scale > 1) {
-      setOffset({
-        x: panStart.current.ox + (e.clientX - panStart.current.x),
-        y: panStart.current.oy + (e.clientY - panStart.current.y),
-      });
+      setOffset(
+        clampOffset(
+          panStart.current.ox + (e.clientX - panStart.current.x),
+          panStart.current.oy + (e.clientY - panStart.current.y),
+          scale,
+        ),
+      );
     }
   };
 
@@ -168,6 +198,7 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
       setIsInteracting(false);
       // Snap back if zoomed out below 1 (safety)
       if (scale <= MIN_SCALE) setOffset({ x: 0, y: 0 });
+      else setOffset((o) => clampOffset(o.x, o.y, scale));
     }
   };
 
@@ -254,6 +285,7 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
 
           {/* Image */}
           <div
+            ref={containerRef}
             className="flex-1 flex items-center justify-center p-4 overflow-hidden touch-none select-none"
             onWheel={handleWheel}
             onClick={(e) => e.stopPropagation()}
@@ -265,6 +297,7 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
             style={{ touchAction: "none" }}
           >
             <motion.img
+              ref={imgRef}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}
