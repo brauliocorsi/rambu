@@ -149,6 +149,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
     setMessage("");
     setAttachedFiles([]);
     onCancelReply?.();
+    clearDraft();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -226,6 +227,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
 
     setMessage("");
     setShowSchedule(false);
+    clearDraft();
     setSelectedDate(undefined);
   };
 
