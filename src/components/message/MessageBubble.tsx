@@ -290,3 +290,35 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
 }
 
 export const MessageBubble = memo(MessageBubbleInner);
+
+function EditedTooltip({ messageId, scope }: { messageId: string; scope: "channel" | "dm" | "group" }) {
+  const [open, setOpen] = useState(false);
+  const { data: history } = useMessageEditHistory(messageId, scope, open);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+        >
+          (editado)
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3 text-xs space-y-2">
+        <div className="font-semibold">Histórico de edições</div>
+        {!history || history.length === 0 ? (
+          <div className="text-muted-foreground">Sem versões anteriores.</div>
+        ) : (
+          history.map((h) => (
+            <div key={h.id} className="border-l-2 border-primary/40 pl-2">
+              <div className="text-muted-foreground mb-0.5">
+                {format(new Date(h.edited_at), "dd/MM HH:mm", { locale: ptBR })}
+              </div>
+              <div className="whitespace-pre-wrap break-words">{h.previous_content}</div>
+            </div>
+          ))
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
