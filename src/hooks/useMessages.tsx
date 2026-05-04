@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
+import { enqueueMessage } from "@/lib/offlineQueue";
 
 export interface Message {
   id: string;
@@ -191,6 +192,25 @@ export function useSendMessage() {
       expiresAt?: Date | null;
     }) => {
       if (!user) throw new Error("Not authenticated");
+
+      // If offline, persist to IndexedDB queue and return early (optimistic stays).
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await enqueueMessage({
+          scope: "channel",
+          conversationId: channelId,
+          userId: user.id,
+          payload: {
+            content,
+            replyTo: replyTo || null,
+            fileUrl: fileUrl || null,
+            fileType: fileType || null,
+            fileName: fileName || null,
+            expiresAt: expiresAt ? expiresAt.toISOString() : null,
+          },
+        });
+        toast.success("Mensagem na fila — será enviada ao reconectar");
+        return null as any;
+      }
 
       // Insert the message
       const { data, error } = await supabase
