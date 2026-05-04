@@ -120,13 +120,19 @@ export function SavedMessagesPanel({ open, onOpenChange }: Props) {
                   variant="ghost"
                   size="sm"
                   className="h-7 text-xs"
-                  onClick={() =>
-                    toggle.mutate(
-                      r.origin === "channel"
-                        ? { message_id: undefined } /* handled below */ as any
-                        : ({} as any),
-                    )
-                  }
+                  onClick={() => {
+                    if (r.origin === "channel") {
+                      // we don't store the underlying message id separately; saved entry was matched by id
+                      // direct delete via supabase
+                      void supabase.from("saved_messages").delete().eq("id", r.saveId).then(() => {
+                        setResolved((prev) => prev.filter((p) => p.saveId !== r.saveId));
+                      });
+                    } else {
+                      void supabase.from("saved_messages").delete().eq("id", r.saveId).then(() => {
+                        setResolved((prev) => prev.filter((p) => p.saveId !== r.saveId));
+                      });
+                    }
+                  }}
                 >
                   Remover
                 </Button>
