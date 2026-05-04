@@ -708,6 +708,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
 
       {/* Shortcuts Dialog */}
       <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
+      <LabelsManager open={showLabels} onOpenChange={setShowLabels} />
     </div>
   );
 }
