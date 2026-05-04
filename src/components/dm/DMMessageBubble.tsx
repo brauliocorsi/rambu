@@ -10,6 +10,9 @@ import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "@/components/message/MessageContent";
 import { FilePreview } from "@/components/message/FilePreview";
 import { MessageActionsMenu } from "@/components/message/MessageActionsMenu";
+import { LinkPreviewCard } from "@/components/message/LinkPreviewCard";
+import { useSwipeToReply } from "@/hooks/useSwipeToReply";
+import { CornerUpLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -110,11 +113,27 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
   // In Slack mode, all messages are left-aligned
   const useSlackLayout = slackMode;
   const styles = densityStyles[density];
+  const { offset, triggered, bind } = useSwipeToReply(
+    onReply ? () => onReply(message.id) : undefined,
+  );
 
   return (
     <>
-      <div
+      <div className="relative" {...bind}>
+        {offset > 8 && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-y-0 left-2 flex items-center transition-opacity",
+              triggered ? "text-primary" : "text-muted-foreground",
+            )}
+            style={{ opacity: Math.min(1, offset / 70) }}
+          >
+            <CornerUpLeft className="h-5 w-5" />
+          </div>
+        )}
+        <div
         data-message-id={message.id}
+        style={{ transform: offset ? `translateX(${offset}px)` : undefined, transition: "transform 200ms ease" }}
         className={cn(
           "group relative flex gap-3 px-4 hover:bg-secondary/50 transition-colors",
           styles.container,
@@ -220,18 +239,24 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
             /* Message bubble - display mode */
             message.content && !message.content.startsWith("📎 ") && (
               useSlackLayout ? (
-                <MessageContent content={message.content} className="text-sm" />
-              ) : (
-                <div
-                  className={cn(
-                    "px-4 py-2 rounded-2xl inline-block max-w-[85%]",
-                    isOwn
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-secondary text-secondary-foreground rounded-bl-md"
-                  )}
-                >
+                <>
                   <MessageContent content={message.content} className="text-sm" />
-                </div>
+                  <LinkPreviewCard content={message.content} />
+                </>
+              ) : (
+                <>
+                  <div
+                    className={cn(
+                      "px-4 py-2 rounded-2xl inline-block max-w-[85%]",
+                      isOwn
+                        ? "bg-primary text-primary-foreground rounded-br-md"
+                        : "bg-secondary text-secondary-foreground rounded-bl-md"
+                    )}
+                  >
+                    <MessageContent content={message.content} className="text-sm" />
+                  </div>
+                  <LinkPreviewCard content={message.content} />
+                </>
               )
             )
           )}
@@ -270,6 +295,7 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
             />
           </div>
         )}
+        </div>
       </div>
 
       {/* Delete confirmation dialog */}
