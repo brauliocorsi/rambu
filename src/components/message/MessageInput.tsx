@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
 import { useDraft } from "@/hooks/useDrafts";
+import { consumePendingShare } from "@/pages/SharedContent";
 import { EmojiPicker } from "./EmojiPicker";
 import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
 import { MentionInput, MentionInputRef } from "./MentionInput";
@@ -237,6 +238,13 @@ export function MessageInput({
   useEffect(() => {
     inputRef.current?.focus();
   }, [channelId]);
+
+  // Pre-fill from PWA Share Target (consumed once on mount)
+  useEffect(() => {
+    const shared = consumePendingShare();
+    if (shared) setMessage((prev) => (prev ? `${prev}\n${shared}` : shared));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Restore persisted draft when switching channels
   useEffect(() => {
