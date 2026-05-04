@@ -11,6 +11,7 @@ import { FilePreview } from "./FilePreview";
 import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
+import { useDraft } from "@/hooks/useDrafts";
 import { EmojiPicker } from "./EmojiPicker";
 import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
 import { MentionInput, MentionInputRef } from "./MentionInput";
@@ -43,7 +44,15 @@ export function MessageInput({
   onTyping,
   onStopTyping,
 }: MessageInputProps) {
-  const [message, setMessage] = useState("");
+  const { draft, setDraft, clearDraft } = useDraft(channelId);
+  const [message, setMessageState] = useState("");
+  const setMessage = (val: string | ((prev: string) => string)) => {
+    setMessageState((prev) => {
+      const next = typeof val === "function" ? (val as (p: string) => string)(prev) : val;
+      setDraft(next);
+      return next;
+    });
+  };
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
@@ -222,6 +231,12 @@ export function MessageInput({
   useEffect(() => {
     inputRef.current?.focus();
   }, [channelId]);
+
+  // Restore persisted draft when switching channels
+  useEffect(() => {
+    setMessageState(draft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, draft]);
 
   // Fetch message being replied to
   const { data: replyMessage } = useMessageById(replyTo || null);
