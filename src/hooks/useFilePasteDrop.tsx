@@ -8,7 +8,7 @@ interface UseFilePasteDropOptions {
 }
 
 export function useFilePasteDrop({ attachedFiles, onFilesAdded }: UseFilePasteDropOptions) {
-  const { uploadFiles, isUploading, progress, maxFiles } = useFileUpload();
+  const { uploadFiles, isUploading, progress, maxFiles, currentFileIndex, totalFiles, currentFileName } = useFileUpload();
 
   const processFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
@@ -59,5 +59,5 @@ export function useFilePasteDrop({ attachedFiles, onFilesAdded }: UseFilePasteDr
     }
   }, [processFiles]);
 
-  return { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles };
+  return { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles, currentFileIndex, totalFiles, currentFileName };
 }
