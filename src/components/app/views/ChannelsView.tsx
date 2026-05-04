@@ -126,6 +126,27 @@ function ChannelChatView() {
           >
             <Pin className="h-4.5 w-4.5" />
           </Button>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 touch-target" title="Exportar">
+                <Download className="h-4.5 w-4.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]">
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer"
+                onSelect={() => exportAsText({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+              >
+                <FileText className="h-4 w-4 mr-2" /> Exportar texto
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer"
+                onSelect={() => exportAsJSON({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+              >
+                <FileJson className="h-4 w-4 mr-2" /> Exportar JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {(channelRole === 'owner' || channelRole === 'admin') && (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
@@ -134,18 +155,6 @@ function ChannelChatView() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]" sideOffset={4}>
-                <DropdownMenuItem
-                  className="rounded-lg cursor-pointer"
-                  onSelect={() => exportAsText({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
-                >
-                  <FileText className="h-4 w-4 mr-2" /> Exportar como texto
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="rounded-lg cursor-pointer"
-                  onSelect={() => exportAsJSON({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
-                >
-                  <FileJson className="h-4 w-4 mr-2" /> Exportar como JSON
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
                   onSelect={() => {
