@@ -12,6 +12,9 @@ import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { PollCard } from "@/components/poll/PollCard";
+import { Pin } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useMessageEditHistory } from "@/hooks/useMessageEditHistory";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -65,6 +68,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   const threadCount = (message as any).thread_count || 0;
   const isTaskMessage = message.content.startsWith("📋 ");
   const isPollMessage = message.content.startsWith("📊 ");
+  const isPinned = !!(message as any).pinned_at;
 
   const groupedReactions = reactions.reduce((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] || 0) + 1;
@@ -129,7 +133,14 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
           <div className={cn("flex items-baseline gap-2 mb-0.5", !useSlackLayout && isOwn && "flex-row-reverse")}>
             <span className="font-semibold text-sm">{displayName}</span>
             <span className="text-xs text-muted-foreground">{time}</span>
-            {message.is_edited && <span className="text-xs text-muted-foreground">(editado)</span>}
+            {message.is_edited && (
+              <EditedTooltip messageId={message.id} scope="channel" />
+            )}
+            {isPinned && (
+              <span className="inline-flex items-center gap-0.5 text-xs text-primary" title="Mensagem fixada">
+                <Pin className="h-3 w-3 fill-current" />
+              </span>
+            )}
           </div>
 
           {originalMessage && (
@@ -246,6 +257,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
               messageType="channel"
               contextId={channelId}
               senderName={displayName}
+              isPinned={isPinned}
               onMarkAsUnread={handleMarkAsUnread}
               onReply={() => onReply?.(message.id)}
               onOpenThread={() => onOpenThread?.(message)}
@@ -278,3 +290,35 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
 }
 
 export const MessageBubble = memo(MessageBubbleInner);
+
+function EditedTooltip({ messageId, scope }: { messageId: string; scope: "channel" | "dm" | "group" }) {
+  const [open, setOpen] = useState(false);
+  const { data: history } = useMessageEditHistory(messageId, scope, open);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+        >
+          (editado)
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3 text-xs space-y-2">
+        <div className="font-semibold">Histórico de edições</div>
+        {!history || history.length === 0 ? (
+          <div className="text-muted-foreground">Sem versões anteriores.</div>
+        ) : (
+          history.map((h) => (
+            <div key={h.id} className="border-l-2 border-primary/40 pl-2">
+              <div className="text-muted-foreground mb-0.5">
+                {format(new Date(h.edited_at), "dd/MM HH:mm", { locale: ptBR })}
+              </div>
+              <div className="whitespace-pre-wrap break-words">{h.previous_content}</div>
+            </div>
+          ))
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}

@@ -10,6 +10,7 @@ import { useCreateScheduledMessage } from "@/hooks/useScheduledMessages";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload";
 import { useFilePasteDrop } from "@/hooks/useFilePasteDrop";
 import { useQuickReplies } from "@/hooks/useQuickReplies";
+import { useDraft } from "@/hooks/useDrafts";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { TaskPicker } from "@/components/tasks/TaskPicker";
@@ -57,7 +58,20 @@ const QUICK_SCHEDULE_OPTIONS = [
 ];
 
 export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, onTyping, onStopTyping }: DMMessageInputProps) {
-  const [message, setMessage] = useState("");
+  const { draft, setDraft, clearDraft } = useDraft(dmId ? `dm:${dmId}` : null);
+  const [message, setMessageState] = useState("");
+  const setMessage = (val: string | ((prev: string) => string)) => {
+    setMessageState((prev) => {
+      const next = typeof val === "function" ? (val as (p: string) => string)(prev) : val;
+      setDraft(next);
+      return next;
+    });
+  };
+  // restore draft when changing dm
+  useEffect(() => {
+    setMessageState(draft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dmId, draft]);
   const [showEmojis, setShowEmojis] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
@@ -135,6 +149,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
     setMessage("");
     setAttachedFiles([]);
     onCancelReply?.();
+    clearDraft();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -212,6 +227,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
 
     setMessage("");
     setShowSchedule(false);
+    clearDraft();
     setSelectedDate(undefined);
   };
 

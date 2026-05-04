@@ -13,6 +13,7 @@ import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
+import { PinnedMessagesPanel } from "@/components/message/PinnedMessagesPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ import {
   MoreVertical,
   Trash2,
   ClipboardList,
+  Pin,
 } from "lucide-react";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
@@ -39,6 +41,7 @@ function ChannelChatView() {
   const { currentWorkspace } = useWorkspaceContext();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteMessages(currentChannel?.id || null);
   const [replyTo, setReplyTo] = useState<string | undefined>();
+  const [showPinned, setShowPinned] = useState(false);
   const { data: profile } = useProfile();
   const { data: channelRole } = useCurrentChannelRole(currentChannel?.id || null);
   const deleteChannel = useDeleteChannel();
@@ -75,6 +78,15 @@ function ChannelChatView() {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <ChannelMembersPopover channelId={currentChannel.id} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl h-9 w-9 touch-target"
+            onClick={() => setShowPinned(true)}
+            title="Mensagens fixadas"
+          >
+            <Pin className="h-4.5 w-4.5" />
+          </Button>
           {(channelRole === 'owner' || channelRole === 'admin') && (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
@@ -124,6 +136,19 @@ function ChannelChatView() {
         onCancelReply={() => setReplyTo(undefined)}
         onTyping={handleTyping}
         onStopTyping={sendTypingStop}
+      />
+      <PinnedMessagesPanel
+        open={showPinned}
+        onOpenChange={setShowPinned}
+        scope={{ type: "channel", id: currentChannel.id }}
+        onJump={(id) => {
+          const el = document.querySelector(`[data-message-id="${id}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("bg-primary/10");
+            setTimeout(() => el.classList.remove("bg-primary/10"), 2000);
+          }
+        }}
       />
     </div>
   );

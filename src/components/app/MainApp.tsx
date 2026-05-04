@@ -19,11 +19,15 @@ import { RemindersView } from "@/components/app/views/RemindersView";
 import { FlowsView } from "@/components/app/views/FlowsView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { SearchDialog } from "@/components/search/SearchDialog";
+import { SavedMessagesPanel } from "@/components/message/SavedMessagesPanel";
+import { Button } from "@/components/ui/button";
+import { Bookmark } from "lucide-react";
 
 export function MainApp() {
   const [activeTab, setActiveTab] = useState("channels");
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   
   const { currentWorkspace } = useWorkspaceContext();
@@ -121,6 +125,11 @@ export function MainApp() {
         title={getTitle()} 
         onSearchClick={() => setShowSearch(true)}
       />
+      <div className="absolute top-2 right-14 z-50 hidden md:block">
+        <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8" onClick={() => setShowSaved(true)} title="Mensagens salvas">
+          <Bookmark className="h-4 w-4" />
+        </Button>
+      </div>
       <main className="flex-1 min-h-0 overflow-hidden">
         <div className="h-full animate-fade-in" key={activeTab + (showSettings ? "s" : "")}>
           {content}
@@ -142,6 +151,7 @@ export function MainApp() {
         onClose={() => setShowSearch(false)}
         onSelectChannel={handleSelectChannel}
       />
+      <SavedMessagesPanel open={showSaved} onOpenChange={setShowSaved} />
     </div>
   );
 }

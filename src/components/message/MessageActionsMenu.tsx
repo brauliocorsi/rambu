@@ -10,12 +10,17 @@ import {
   Pencil,
   Trash2,
   MessageCircle,
+  Bookmark,
+  Pin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { RemindMeDialog } from "./RemindMeDialog";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
+import { useToggleSavedMessage, useIsMessageSaved } from "@/hooks/useSavedMessages";
+import { useTogglePin } from "@/hooks/usePinnedMessages";
+import { cn } from "@/lib/utils";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎉"];
 
@@ -27,6 +32,8 @@ interface MessageActionsMenuProps {
   messageType: "channel" | "dm" | "group";
   contextId: string; // channelId, dmId, or groupId
   senderName?: string;
+  isPinned?: boolean;
+  canPin?: boolean;
   onMarkAsUnread?: () => void;
   onReply?: () => void;
   onOpenThread?: () => void;
@@ -45,6 +52,8 @@ export function MessageActionsMenu({
   messageType,
   contextId,
   senderName,
+  isPinned = false,
+  canPin = true,
   onMarkAsUnread,
   onReply,
   onOpenThread,
@@ -57,6 +66,22 @@ export function MessageActionsMenu({
   const [showReactions, setShowReactions] = useState(false);
   const [showRemindDialog, setShowRemindDialog] = useState(false);
   const [showForwardDialog, setShowForwardDialog] = useState(false);
+
+  const savedTarget =
+    messageType === "channel"
+      ? { message_id: messageId }
+      : messageType === "dm"
+      ? { dm_message_id: messageId }
+      : { group_message_id: messageId };
+  const isSaved = useIsMessageSaved(savedTarget);
+  const toggleSaved = useToggleSavedMessage();
+  const togglePin = useTogglePin(
+    messageType === "channel"
+      ? { type: "channel", id: contextId }
+      : messageType === "dm"
+      ? { type: "dm", id: contextId }
+      : { type: "group", id: contextId },
+  );
 
   const handleCopy = async () => {
     try {
@@ -175,6 +200,30 @@ export function MessageActionsMenu({
         >
           <Copy className="h-3.5 w-3.5" />
         </Button>
+
+        {/* Save (bookmark) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("h-6 w-6 rounded-md", isSaved && "text-primary")}
+          onClick={() => toggleSaved.mutate(savedTarget)}
+          title={isSaved ? "Remover dos salvos" : "Salvar mensagem"}
+        >
+          <Bookmark className={cn("h-3.5 w-3.5", isSaved && "fill-current")} />
+        </Button>
+
+        {/* Pin */}
+        {canPin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("h-6 w-6 rounded-md", isPinned && "text-primary")}
+            onClick={() => togglePin.mutate({ messageId, currentlyPinned: isPinned })}
+            title={isPinned ? "Desafixar" : "Fixar mensagem"}
+          >
+            <Pin className={cn("h-3.5 w-3.5", isPinned && "fill-current")} />
+          </Button>
+        )}
 
         {/* Forward */}
         <Button
