@@ -10,6 +10,9 @@ import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "./MessageContent";
 import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
+import { LinkPreviewCard } from "./LinkPreviewCard";
+import { useSwipeToReply } from "@/hooks/useSwipeToReply";
+import { CornerUpLeft } from "lucide-react";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { PollCard } from "@/components/poll/PollCard";
 import { Pin } from "lucide-react";
@@ -110,10 +113,28 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   const useSlackLayout = slackMode;
   const styles = densityStyles[density];
 
+  const { offset, triggered, bind } = useSwipeToReply(
+    onReply ? () => onReply(message.id) : undefined,
+  );
+
   return (
     <>
-      <div
+      <div className="relative" {...bind}>
+        {/* Reply hint while swiping */}
+        {offset > 8 && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-y-0 left-2 flex items-center transition-opacity",
+              triggered ? "text-primary" : "text-muted-foreground",
+            )}
+            style={{ opacity: Math.min(1, offset / 70) }}
+          >
+            <CornerUpLeft className="h-5 w-5" />
+          </div>
+        )}
+        <div
         data-message-id={message.id}
+        style={offset ? { transform: `translateX(${offset}px)`, transition: offset === 0 ? "transform 200ms ease" : undefined } : { transition: "transform 200ms ease" }}
         className={cn(
           "group relative flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
           styles.container,
@@ -194,14 +215,20 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
           ) : (
             message.content && !message.content.startsWith("📎 ") && (
                 useSlackLayout ? (
-                <MessageContent content={message.content} className="text-sm" />
-              ) : (
-                <div className={cn(
-                  "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
-                  isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
-                )}>
+                <>
                   <MessageContent content={message.content} className="text-sm" />
-                </div>
+                  <LinkPreviewCard content={message.content} />
+                </>
+              ) : (
+                <>
+                  <div className={cn(
+                    "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
+                    isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
+                  )}>
+                    <MessageContent content={message.content} className="text-sm" />
+                  </div>
+                  <LinkPreviewCard content={message.content} />
+                </>
               )
             )
           )}
@@ -269,6 +296,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
             />
           </div>
         )}
+        </div>
       </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
