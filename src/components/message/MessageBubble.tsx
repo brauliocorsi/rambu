@@ -277,6 +277,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
               type="channel"
               viewerCount={viewData?.count || 0}
               viewers={viewData?.viewers || []}
+              isPending={message.id.startsWith("temp-")}
               className={!useSlackLayout && isOwn ? "justify-end" : ""}
             />
           )}
