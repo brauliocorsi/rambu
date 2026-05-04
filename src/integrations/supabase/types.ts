@@ -215,6 +215,7 @@ export type Database = {
           created_at: string
           id: string
           notification_level: string
+          snoozed_until: string | null
           updated_at: string
           user_id: string
         }
@@ -223,6 +224,7 @@ export type Database = {
           created_at?: string
           id?: string
           notification_level?: string
+          snoozed_until?: string | null
           updated_at?: string
           user_id: string
         }
@@ -231,6 +233,7 @@ export type Database = {
           created_at?: string
           id?: string
           notification_level?: string
+          snoozed_until?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -751,6 +754,44 @@ export type Database = {
           previous_content?: string
         }
         Relationships: []
+      }
+      label_assignments: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          dm_id: string | null
+          group_id: string | null
+          id: string
+          label_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          dm_id?: string | null
+          group_id?: string | null
+          id?: string
+          label_id: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          dm_id?: string | null
+          group_id?: string | null
+          id?: string
+          label_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "label_assignments_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "user_labels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       link_previews: {
         Row: {
@@ -1966,6 +2007,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_onboarding: {
         Row: {
