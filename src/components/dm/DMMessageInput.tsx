@@ -403,7 +403,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.pdf,.doc,.docx,.txt"
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
             multiple
             onChange={handleFileSelect}
             className="hidden"
@@ -453,7 +453,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.pdf,.doc,.docx,.txt"
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
             multiple
             onChange={handleFileSelect}
             className="hidden"
