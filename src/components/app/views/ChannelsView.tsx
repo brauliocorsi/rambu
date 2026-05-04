@@ -52,7 +52,8 @@ function ChannelChatView() {
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(currentChannel?.id || null, false);
   const snooze = useSnoozeChannel();
   const { data: notifPref } = useChannelNotificationPreference(currentChannel?.id || null);
-  const isSnoozed = !!(notifPref?.snoozed_until && new Date(notifPref.snoozed_until as any) > new Date());
+  const snoozedUntil = (notifPref as any)?.snoozed_until as string | null | undefined;
+  const isSnoozed = !!(snoozedUntil && new Date(snoozedUntil) > new Date());
 
   if (!currentChannel) return null;
 
