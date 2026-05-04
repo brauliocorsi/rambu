@@ -78,6 +78,15 @@ function ChannelChatView() {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <ChannelMembersPopover channelId={currentChannel.id} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl h-9 w-9 touch-target"
+            onClick={() => setShowPinned(true)}
+            title="Mensagens fixadas"
+          >
+            <Pin className="h-4.5 w-4.5" />
+          </Button>
           {(channelRole === 'owner' || channelRole === 'admin') && (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
