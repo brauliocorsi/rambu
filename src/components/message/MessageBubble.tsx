@@ -16,6 +16,7 @@ import { CornerUpLeft } from "lucide-react";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { PollCard } from "@/components/poll/PollCard";
 import { Pin } from "lucide-react";
+import { Timer } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMessageEditHistory } from "@/hooks/useMessageEditHistory";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,8 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   const isTaskMessage = message.content.startsWith("📋 ");
   const isPollMessage = message.content.startsWith("📊 ");
   const isPinned = !!(message as any).pinned_at;
+  const expiresAt = (message as any).expires_at as string | null | undefined;
+  const expiresLabel = expiresAt ? formatRelativeExpiry(expiresAt) : null;
 
   const groupedReactions = reactions.reduce((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] || 0) + 1;
@@ -160,6 +163,12 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
             {isPinned && (
               <span className="inline-flex items-center gap-0.5 text-xs text-primary" title="Mensagem fixada">
                 <Pin className="h-3 w-3 fill-current" />
+              </span>
+            )}
+            {expiresLabel && (
+              <span className="inline-flex items-center gap-0.5 text-xs text-amber-500" title={`Expira ${expiresLabel}`}>
+                <Timer className="h-3 w-3" />
+                <span>{expiresLabel}</span>
               </span>
             )}
           </div>
