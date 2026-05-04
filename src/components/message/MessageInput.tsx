@@ -76,7 +76,7 @@ export function MessageInput({
     setAttachedFiles((prev) => [...prev, ...files]);
   }, []);
 
-  const { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles } = useFilePasteDrop({
+  const { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles, currentFileIndex, totalFiles, currentFileName } = useFilePasteDrop({
     attachedFiles,
     onFilesAdded: handleFilesAdded,
   });
@@ -281,15 +281,26 @@ export function MessageInput({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-3 bg-secondary/50 rounded-xl p-3"
+            className="mb-3 bg-secondary/60 border border-border rounded-xl p-3"
           >
-            <div className="flex items-center gap-2 text-sm text-foreground mb-2">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
-              />
-              <span className="font-medium">Enviando arquivo... {progress}%</span>
+            <div className="flex items-center justify-between gap-2 text-sm mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full shrink-0"
+                />
+                <span className="font-medium shrink-0">Enviando</span>
+                {totalFiles > 1 && (
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    ({currentFileIndex}/{totalFiles})
+                  </span>
+                )}
+                {currentFileName && (
+                  <span className="text-xs text-muted-foreground truncate">— {currentFileName}</span>
+                )}
+              </div>
+              <span className="text-xs font-semibold text-primary tabular-nums shrink-0">{progress}%</span>
             </div>
             <Progress value={progress} className="h-2" />
           </motion.div>
