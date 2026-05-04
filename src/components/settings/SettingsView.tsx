@@ -45,11 +45,13 @@ import {
   XCircle,
   Send,
   Tag,
+  BarChart3,
 } from "lucide-react";
 import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
 import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 import { LabelsManager } from "@/components/labels/LabelsManager";
+import { UserStatsPanel } from "@/components/stats/UserStatsPanel";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsViewProps {
@@ -76,6 +78,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const [statusText, setStatusText] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'quick-replies'>('profile');
   const [hasChanges, setHasChanges] = useState(false);
   const [testSent, setTestSent] = useState(false);
@@ -197,6 +200,15 @@ export function SettingsView({ onBack }: SettingsViewProps) {
           <span className="flex items-center gap-2">
             <Tag className="h-4 w-4" />
             Etiquetas
+          </span>
+        </button>
+        <button
+          onClick={() => setShowStats(true)}
+          className="py-3 px-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Estatísticas
           </span>
         </button>
       </div>
