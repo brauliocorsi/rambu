@@ -328,6 +328,17 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
 
 export const MessageBubble = memo(MessageBubbleInner);
 
+function formatRelativeExpiry(iso: string): string | null {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const m = Math.round(ms / 60000);
+  if (m < 60) return `em ${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `em ${h}h`;
+  const d = Math.round(h / 24);
+  return `em ${d}d`;
+}
+
 function EditedTooltip({ messageId, scope }: { messageId: string; scope: "channel" | "dm" | "group" }) {
   const [open, setOpen] = useState(false);
   const { data: history } = useMessageEditHistory(messageId, scope, open);
