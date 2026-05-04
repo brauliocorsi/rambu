@@ -33,12 +33,16 @@ import {
   Pin,
   BellOff,
   Bell,
+  Download,
+  FileJson,
+  FileText,
 } from "lucide-react";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
 import { useSnoozeChannel, SNOOZE_OPTIONS } from "@/hooks/useSnoozeChannel";
 import { useChannelNotificationPreference } from "@/hooks/useChannelNotificationPreferences";
 import { LabelPicker } from "@/components/labels/LabelPicker";
+import { exportAsJSON, exportAsText } from "@/lib/exportConversation";
 
 // Channel Chat View
 function ChannelChatView() {
@@ -130,6 +134,18 @@ function ChannelChatView() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]" sideOffset={4}>
+                <DropdownMenuItem
+                  className="rounded-lg cursor-pointer"
+                  onSelect={() => exportAsText({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+                >
+                  <FileText className="h-4 w-4 mr-2" /> Exportar como texto
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="rounded-lg cursor-pointer"
+                  onSelect={() => exportAsJSON({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+                >
+                  <FileJson className="h-4 w-4 mr-2" /> Exportar como JSON
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
                   onSelect={() => {
