@@ -136,6 +136,7 @@ export function MessageInput({
     setMessage("");
     setAttachedFiles([]);
     onCancelReply?.();
+    clearDraft();
     inputRef.current?.focus();
   };
 
