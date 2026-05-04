@@ -22,6 +22,7 @@ import { SearchDialog } from "@/components/search/SearchDialog";
 import { SavedMessagesPanel } from "@/components/message/SavedMessagesPanel";
 import { Button } from "@/components/ui/button";
 import { Bookmark } from "lucide-react";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 export function MainApp() {
   const [activeTab, setActiveTab] = useState("channels");
@@ -36,6 +37,11 @@ export function MainApp() {
   const totalUnread = useFeedUnreadCount();
   const { data: pendingReminders = [] } = useReminders();
   const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
+
+  useKeyboardShortcuts([
+    { key: "k", ctrl: true, action: () => setShowSearch(true), description: "Busca global" },
+    { key: "Escape", action: () => { setShowSearch(false); setShowSaved(false); }, description: "Fechar" },
+  ]);
 
   const getTitle = useCallback(() => {
     if (showSettings) return "Configurações";

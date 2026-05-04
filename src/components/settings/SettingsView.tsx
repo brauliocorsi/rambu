@@ -44,10 +44,12 @@ import {
   CheckCircle2,
   XCircle,
   Send,
+  Tag,
 } from "lucide-react";
 import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
 import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
+import { LabelsManager } from "@/components/labels/LabelsManager";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsViewProps {
@@ -73,6 +75,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const [bio, setBio] = useState("");
   const [statusText, setStatusText] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'quick-replies'>('profile');
   const [hasChanges, setHasChanges] = useState(false);
   const [testSent, setTestSent] = useState(false);
@@ -185,6 +188,15 @@ export function SettingsView({ onBack }: SettingsViewProps) {
           <span className="flex items-center gap-2">
             <Keyboard className="h-4 w-4" />
             Atalhos
+          </span>
+        </button>
+        <button
+          onClick={() => setShowLabels(true)}
+          className="py-3 px-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            Etiquetas
           </span>
         </button>
       </div>
@@ -696,6 +708,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
 
       {/* Shortcuts Dialog */}
       <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
+      <LabelsManager open={showLabels} onOpenChange={setShowLabels} />
     </div>
   );
 }

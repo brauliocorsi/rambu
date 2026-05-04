@@ -31,9 +31,14 @@ import {
   Trash2,
   ClipboardList,
   Pin,
+  BellOff,
+  Bell,
 } from "lucide-react";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
+import { useSnoozeChannel, SNOOZE_OPTIONS } from "@/hooks/useSnoozeChannel";
+import { useChannelNotificationPreference } from "@/hooks/useChannelNotificationPreferences";
+import { LabelPicker } from "@/components/labels/LabelPicker";
 
 // Channel Chat View
 function ChannelChatView() {
@@ -46,6 +51,10 @@ function ChannelChatView() {
   const { data: channelRole } = useCurrentChannelRole(currentChannel?.id || null);
   const deleteChannel = useDeleteChannel();
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(currentChannel?.id || null, false);
+  const snooze = useSnoozeChannel();
+  const { data: notifPref } = useChannelNotificationPreference(currentChannel?.id || null);
+  const snoozedUntil = (notifPref as any)?.snoozed_until as string | null | undefined;
+  const isSnoozed = !!(snoozedUntil && new Date(snoozedUntil) > new Date());
 
   if (!currentChannel) return null;
 
@@ -75,9 +84,35 @@ function ChannelChatView() {
           {currentChannel.description && (
             <p className="text-xs text-muted-foreground truncate">{currentChannel.description}</p>
           )}
+          <div className="mt-1">
+            <LabelPicker channelId={currentChannel.id} />
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <ChannelMembersPopover channelId={currentChannel.id} />
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl h-9 w-9 touch-target"
+                title={isSnoozed ? "Silenciado" : "Silenciar canal"}
+              >
+                {isSnoozed ? <BellOff className="h-4.5 w-4.5 text-muted-foreground" /> : <Bell className="h-4.5 w-4.5" />}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-52 z-[60]">
+              {SNOOZE_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  className="rounded-lg cursor-pointer"
+                  onSelect={() => snooze.mutate({ channelId: currentChannel.id, duration: opt.value })}
+                >
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="icon"
