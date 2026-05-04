@@ -13,6 +13,7 @@ import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
+import { PinnedMessagesPanel } from "@/components/message/PinnedMessagesPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ import {
   MoreVertical,
   Trash2,
   ClipboardList,
+  Pin,
 } from "lucide-react";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
@@ -39,6 +41,7 @@ function ChannelChatView() {
   const { currentWorkspace } = useWorkspaceContext();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteMessages(currentChannel?.id || null);
   const [replyTo, setReplyTo] = useState<string | undefined>();
+  const [showPinned, setShowPinned] = useState(false);
   const { data: profile } = useProfile();
   const { data: channelRole } = useCurrentChannelRole(currentChannel?.id || null);
   const deleteChannel = useDeleteChannel();
