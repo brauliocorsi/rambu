@@ -201,6 +201,7 @@ export function MessageInput({
 
     setMessage("");
     setAttachedFiles([]);
+    clearDraft();
     inputRef.current?.focus();
   };
 
