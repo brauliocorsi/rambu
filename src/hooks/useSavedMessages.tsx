@@ -63,12 +63,14 @@ export function useToggleSavedMessage() {
       const value =
         target.message_id || target.dm_message_id || target.group_message_id!;
 
-      const { data: existing } = await supabase
+      let q = supabase
         .from("saved_messages")
         .select("id")
-        .eq("user_id", user.id)
-        .eq(col as any, value)
-        .maybeSingle();
+        .eq("user_id", user.id);
+      if (col === "message_id") q = q.eq("message_id", value);
+      else if (col === "dm_message_id") q = q.eq("dm_message_id", value);
+      else q = q.eq("group_message_id", value);
+      const { data: existing } = await q.maybeSingle();
 
       if (existing) {
         const { error } = await supabase
