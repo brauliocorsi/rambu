@@ -433,12 +433,17 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          delivered_at: string | null
+          edited_at: string | null
+          expires_at: string | null
           file_name: string | null
           file_type: string | null
           file_url: string | null
           group_id: string
           id: string
           is_edited: boolean
+          pinned_at: string | null
+          pinned_by: string | null
           reply_to: string | null
           updated_at: string
           user_id: string
@@ -446,12 +451,17 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          delivered_at?: string | null
+          edited_at?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string | null
           group_id: string
           id?: string
           is_edited?: boolean
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to?: string | null
           updated_at?: string
           user_id: string
@@ -459,12 +469,17 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          delivered_at?: string | null
+          edited_at?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string | null
           group_id?: string
           id?: string
           is_edited?: boolean
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to?: string | null
           updated_at?: string
           user_id?: string
@@ -538,6 +553,30 @@ export type Database = {
           },
         ]
       }
+      dm_message_edits: {
+        Row: {
+          dm_message_id: string
+          edited_at: string
+          edited_by: string
+          id: string
+          previous_content: string
+        }
+        Insert: {
+          dm_message_id: string
+          edited_at?: string
+          edited_by: string
+          id?: string
+          previous_content: string
+        }
+        Update: {
+          dm_message_id?: string
+          edited_at?: string
+          edited_by?: string
+          id?: string
+          previous_content?: string
+        }
+        Relationships: []
+      }
       dm_message_views: {
         Row: {
           dm_message_id: string
@@ -578,12 +617,17 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          delivered_at: string | null
           dm_id: string
+          edited_at: string | null
+          expires_at: string | null
           file_name: string | null
           file_type: string | null
           file_url: string | null
           id: string
           is_edited: boolean
+          pinned_at: string | null
+          pinned_by: string | null
           reply_to: string | null
           updated_at: string
           user_id: string
@@ -591,12 +635,17 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          delivered_at?: string | null
           dm_id: string
+          edited_at?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string | null
           id?: string
           is_edited?: boolean
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to?: string | null
           updated_at?: string
           user_id: string
@@ -604,12 +653,17 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          delivered_at?: string | null
           dm_id?: string
+          edited_at?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string | null
           id?: string
           is_edited?: boolean
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to?: string | null
           updated_at?: string
           user_id?: string
@@ -673,6 +727,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      group_message_edits: {
+        Row: {
+          edited_at: string
+          edited_by: string
+          group_message_id: string
+          id: string
+          previous_content: string
+        }
+        Insert: {
+          edited_at?: string
+          edited_by: string
+          group_message_id: string
+          id?: string
+          previous_content: string
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string
+          group_message_id?: string
+          id?: string
+          previous_content?: string
+        }
+        Relationships: []
+      }
+      link_previews: {
+        Row: {
+          description: string | null
+          fetched_at: string
+          image_url: string | null
+          site_name: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          description?: string | null
+          fetched_at?: string
+          image_url?: string | null
+          site_name?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          description?: string | null
+          fetched_at?: string
+          image_url?: string | null
+          site_name?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
+      message_edits: {
+        Row: {
+          edited_at: string
+          edited_by: string
+          id: string
+          message_id: string
+          previous_content: string
+        }
+        Insert: {
+          edited_at?: string
+          edited_by: string
+          id?: string
+          message_id: string
+          previous_content: string
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string
+          id?: string
+          message_id?: string
+          previous_content?: string
+        }
+        Relationships: []
       }
       message_mentions: {
         Row: {
@@ -872,11 +1001,16 @@ export type Database = {
           channel_id: string
           content: string
           created_at: string
+          delivered_at: string | null
+          edited_at: string | null
+          expires_at: string | null
           file_name: string | null
           file_type: string | null
           file_url: string | null
           id: string
           is_edited: boolean
+          pinned_at: string | null
+          pinned_by: string | null
           reply_to: string | null
           thread_count: number
           updated_at: string
@@ -886,11 +1020,16 @@ export type Database = {
           channel_id: string
           content: string
           created_at?: string
+          delivered_at?: string | null
+          edited_at?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string | null
           id?: string
           is_edited?: boolean
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to?: string | null
           thread_count?: number
           updated_at?: string
@@ -900,11 +1039,16 @@ export type Database = {
           channel_id?: string
           content?: string
           created_at?: string
+          delivered_at?: string | null
+          edited_at?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string | null
           id?: string
           is_edited?: boolean
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to?: string | null
           thread_count?: number
           updated_at?: string
@@ -1225,6 +1369,33 @@ export type Database = {
           id?: string
           shortcut?: string
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_messages: {
+        Row: {
+          dm_message_id: string | null
+          group_message_id: string | null
+          id: string
+          message_id: string | null
+          saved_at: string
+          user_id: string
+        }
+        Insert: {
+          dm_message_id?: string | null
+          group_message_id?: string | null
+          id?: string
+          message_id?: string | null
+          saved_at?: string
+          user_id: string
+        }
+        Update: {
+          dm_message_id?: string | null
+          group_message_id?: string | null
+          id?: string
+          message_id?: string | null
+          saved_at?: string
           user_id?: string
         }
         Relationships: []
