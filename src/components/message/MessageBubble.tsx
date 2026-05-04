@@ -10,9 +10,13 @@ import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "./MessageContent";
 import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
+import { LinkPreviewCard } from "./LinkPreviewCard";
+import { useSwipeToReply } from "@/hooks/useSwipeToReply";
+import { CornerUpLeft } from "lucide-react";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { PollCard } from "@/components/poll/PollCard";
 import { Pin } from "lucide-react";
+import { Timer } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMessageEditHistory } from "@/hooks/useMessageEditHistory";
 import { cn } from "@/lib/utils";
@@ -69,6 +73,8 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   const isTaskMessage = message.content.startsWith("📋 ");
   const isPollMessage = message.content.startsWith("📊 ");
   const isPinned = !!(message as any).pinned_at;
+  const expiresAt = (message as any).expires_at as string | null | undefined;
+  const expiresLabel = expiresAt ? formatRelativeExpiry(expiresAt) : null;
 
   const groupedReactions = reactions.reduce((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] || 0) + 1;
@@ -110,10 +116,28 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   const useSlackLayout = slackMode;
   const styles = densityStyles[density];
 
+  const { offset, triggered, bind } = useSwipeToReply(
+    onReply ? () => onReply(message.id) : undefined,
+  );
+
   return (
     <>
-      <div
+      <div className="relative" {...bind}>
+        {/* Reply hint while swiping */}
+        {offset > 8 && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-y-0 left-2 flex items-center transition-opacity",
+              triggered ? "text-primary" : "text-muted-foreground",
+            )}
+            style={{ opacity: Math.min(1, offset / 70) }}
+          >
+            <CornerUpLeft className="h-5 w-5" />
+          </div>
+        )}
+        <div
         data-message-id={message.id}
+        style={offset ? { transform: `translateX(${offset}px)`, transition: offset === 0 ? "transform 200ms ease" : undefined } : { transition: "transform 200ms ease" }}
         className={cn(
           "group relative flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
           styles.container,
@@ -139,6 +163,12 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
             {isPinned && (
               <span className="inline-flex items-center gap-0.5 text-xs text-primary" title="Mensagem fixada">
                 <Pin className="h-3 w-3 fill-current" />
+              </span>
+            )}
+            {expiresLabel && (
+              <span className="inline-flex items-center gap-0.5 text-xs text-amber-500" title={`Expira ${expiresLabel}`}>
+                <Timer className="h-3 w-3" />
+                <span>{expiresLabel}</span>
               </span>
             )}
           </div>
@@ -194,14 +224,20 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
           ) : (
             message.content && !message.content.startsWith("📎 ") && (
                 useSlackLayout ? (
-                <MessageContent content={message.content} className="text-sm" />
-              ) : (
-                <div className={cn(
-                  "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
-                  isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
-                )}>
+                <>
                   <MessageContent content={message.content} className="text-sm" />
-                </div>
+                  <LinkPreviewCard content={message.content} />
+                </>
+              ) : (
+                <>
+                  <div className={cn(
+                    "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
+                    isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
+                  )}>
+                    <MessageContent content={message.content} className="text-sm" />
+                  </div>
+                  <LinkPreviewCard content={message.content} />
+                </>
               )
             )
           )}
@@ -241,6 +277,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
               type="channel"
               viewerCount={viewData?.count || 0}
               viewers={viewData?.viewers || []}
+              isPending={message.id.startsWith("temp-")}
               className={!useSlackLayout && isOwn ? "justify-end" : ""}
             />
           )}
@@ -269,6 +306,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
             />
           </div>
         )}
+        </div>
       </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -290,6 +328,17 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
 }
 
 export const MessageBubble = memo(MessageBubbleInner);
+
+function formatRelativeExpiry(iso: string): string | null {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const m = Math.round(ms / 60000);
+  if (m < 60) return `em ${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `em ${h}h`;
+  const d = Math.round(h / 24);
+  return `em ${d}d`;
+}
 
 function EditedTooltip({ messageId, scope }: { messageId: string; scope: "channel" | "dm" | "group" }) {
   const [open, setOpen] = useState(false);

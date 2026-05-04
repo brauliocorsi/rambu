@@ -180,6 +180,7 @@ export function useSendMessage() {
       fileUrl,
       fileType,
       fileName,
+      expiresAt,
     }: { 
       channelId: string; 
       content: string;
@@ -187,6 +188,7 @@ export function useSendMessage() {
       fileUrl?: string;
       fileType?: string;
       fileName?: string;
+      expiresAt?: Date | null;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -201,6 +203,7 @@ export function useSendMessage() {
           file_url: fileUrl || null,
           file_type: fileType || null,
           file_name: fileName || null,
+          expires_at: expiresAt ? expiresAt.toISOString() : null,
         })
         .select()
         .single();

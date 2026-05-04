@@ -25,6 +25,8 @@ interface ReadReceiptIndicatorProps {
   viewerCount?: number;
   viewers?: ViewerInfo[];
   className?: string;
+  /** True if message has not yet been confirmed by server (optimistic). Renders single ✓ in muted color. */
+  isPending?: boolean;
 }
 
 export function ReadReceiptIndicator({ 
@@ -33,7 +35,8 @@ export function ReadReceiptIndicator({
   type, 
   viewerCount = 0, 
   viewers = [],
-  className 
+  className,
+  isPending = false,
 }: ReadReceiptIndicatorProps) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -45,17 +48,31 @@ export function ReadReceiptIndicator({
   const displayViewers = viewers.slice(0, 3);
   const extraCount = viewerCount - 3;
 
+  // 3-state delivery:
+  // - pending (no server id yet) -> single ✓ muted
+  // - delivered (has id, no viewers) -> double ✓✓ muted
+  // - read (viewers > 0) -> double ✓✓ primary
+  const renderIcon = () => {
+    if (isPending) return <Check className="h-3.5 w-3.5" />;
+    if (hasViewers) return <CheckCheck className="h-3.5 w-3.5" />;
+    return <CheckCheck className="h-3.5 w-3.5" />;
+  };
+
   return (
     <Popover open={showDetails} onOpenChange={setShowDetails}>
       <PopoverTrigger asChild>
         <button
           className={cn(
             "flex items-center gap-1 mt-0.5 text-xs transition-colors",
-            hasViewers ? "text-primary/70 hover:text-primary" : "text-muted-foreground/50",
+            hasViewers && !isPending ? "text-primary/70 hover:text-primary" : "text-muted-foreground/50",
             className
           )}
+          title={isPending ? "Enviando..." : hasViewers ? "Visualizada" : "Entregue"}
+          disabled={isPending}
         >
-          {hasViewers ? (
+          {isPending ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : hasViewers ? (
             <>
               <CheckCheck className="h-3.5 w-3.5" />
               {displayViewers.length > 0 && (
@@ -75,7 +92,7 @@ export function ReadReceiptIndicator({
               )}
             </>
           ) : (
-            <Check className="h-3.5 w-3.5" />
+            <CheckCheck className="h-3.5 w-3.5" />
           )}
         </button>
       </PopoverTrigger>
