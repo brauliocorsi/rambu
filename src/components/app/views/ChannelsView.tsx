@@ -33,12 +33,16 @@ import {
   Pin,
   BellOff,
   Bell,
+  Download,
+  FileJson,
+  FileText,
 } from "lucide-react";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { TaskTemplateList } from "@/components/tasks/TaskTemplateList";
 import { useSnoozeChannel, SNOOZE_OPTIONS } from "@/hooks/useSnoozeChannel";
 import { useChannelNotificationPreference } from "@/hooks/useChannelNotificationPreferences";
 import { LabelPicker } from "@/components/labels/LabelPicker";
+import { exportAsJSON, exportAsText } from "@/lib/exportConversation";
 
 // Channel Chat View
 function ChannelChatView() {
@@ -122,6 +126,27 @@ function ChannelChatView() {
           >
             <Pin className="h-4.5 w-4.5" />
           </Button>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 touch-target" title="Exportar">
+                <Download className="h-4.5 w-4.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]">
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer"
+                onSelect={() => exportAsText({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+              >
+                <FileText className="h-4 w-4 mr-2" /> Exportar texto
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer"
+                onSelect={() => exportAsJSON({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+              >
+                <FileJson className="h-4 w-4 mr-2" /> Exportar JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {(channelRole === 'owner' || channelRole === 'admin') && (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
