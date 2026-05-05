@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DMMessage } from "./useDirectMessages";
-import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
+import { getProfileCached, scheduleQuerySync } from "@/lib/realtimeSync";
 
 const PAGE_SIZE = 50;
 
