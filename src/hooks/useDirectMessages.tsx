@@ -301,9 +301,17 @@ export function useSendDMMessage() {
       // Get cached profile from queryClient
       const cachedProfile = queryClient.getQueryData<{ display_name: string | null; avatar_url: string | null }>(["profile", user.id]);
 
-      // Create optimistic message with temp ID
+      const clientMsgId =
+        variables.clientMsgId ||
+        (typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
+      (variables as any).clientMsgId = clientMsgId;
+      const tempId = `temp-${clientMsgId}`;
+
       const optimisticMessage: DMMessage = {
-        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: tempId,
+        client_msg_id: clientMsgId,
         dm_id: variables.dmId,
         user_id: user.id,
         content: variables.content,
@@ -342,7 +350,7 @@ export function useSendDMMessage() {
         (old: DMMessage[] | undefined) => [...(old || []), optimisticMessage]
       );
 
-      return { previousMessages, optimisticId: optimisticMessage.id };
+      return { previousMessages, optimisticId: tempId };
     },
     onError: (error: any, variables, context) => {
       // Rollback on error
