@@ -234,6 +234,7 @@ export function useSendDMMessage() {
       fileUrl,
       fileType,
       fileName,
+      clientMsgId,
     }: { 
       dmId: string; 
       content: string;
@@ -241,6 +242,7 @@ export function useSendDMMessage() {
       fileUrl?: string;
       fileType?: string;
       fileName?: string;
+      clientMsgId?: string;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -254,7 +256,7 @@ export function useSendDMMessage() {
           file_url: fileUrl || null,
           file_type: fileType || null,
           file_name: fileName || null,
-          client_msg_id: (variables as any).clientMsgId || null,
+          client_msg_id: clientMsgId || null,
         })
         .select()
         .single();
