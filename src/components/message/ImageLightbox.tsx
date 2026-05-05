@@ -233,24 +233,27 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex items-center justify-between p-3 md:p-4 bg-black/50 backdrop-blur-sm"
+            className="flex items-center justify-between gap-2 p-3 md:p-4 bg-black/70 backdrop-blur-sm safe-top"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20 h-10 w-10 rounded-xl"
+                className="text-white hover:bg-white/20 h-11 w-11 rounded-xl shrink-0"
                 onClick={onClose}
+                title="Voltar"
+                aria-label="Voltar"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-6 w-6" />
               </Button>
-              <span className="text-white text-sm font-medium truncate max-w-[200px] md:max-w-none">
+              <span className="text-white text-sm font-medium truncate">
                 {name}
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Desktop full toolbar */}
+            <div className="hidden md:flex items-center gap-2">
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-xl" onClick={zoomOut} title="Diminuir zoom">
                 <ZoomOut className="h-5 w-5" />
               </Button>
@@ -264,23 +267,25 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-xl" onClick={reset} title="Tamanho original">
                 <Maximize className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/20 h-10 w-10 rounded-xl"
-                onClick={handleDownload}
-              >
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-xl" onClick={handleDownload} title="Baixar">
                 <Download className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/20 h-10 w-10 rounded-xl"
-                onClick={onClose}
-              >
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-xl" onClick={onClose} title="Fechar">
                 <X className="h-5 w-5" />
               </Button>
             </div>
+
+            {/* Mobile: only close (X) on the right; rest goes to bottom bar */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-white hover:bg-white/20 h-11 w-11 rounded-xl shrink-0"
+              onClick={onClose}
+              title="Fechar"
+              aria-label="Fechar"
+            >
+              <X className="h-6 w-6" />
+            </Button>
           </motion.div>
 
           {/* Image */}
@@ -315,6 +320,31 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
               draggable={false}
             />
           </div>
+
+          {/* Mobile bottom action bar */}
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="md:hidden flex items-center justify-around gap-1 p-2 bg-black/70 backdrop-blur-sm safe-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-11 w-11 rounded-xl" onClick={zoomOut} title="Diminuir zoom" aria-label="Diminuir zoom">
+              <ZoomOut className="h-5 w-5" />
+            </Button>
+            <span className="text-white text-xs w-12 text-center tabular-nums">{Math.round(scale * 100)}%</span>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-11 w-11 rounded-xl" onClick={zoomIn} title="Aumentar zoom" aria-label="Aumentar zoom">
+              <ZoomIn className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-11 w-11 rounded-xl" onClick={() => setRotation((r) => r + 90)} title="Girar" aria-label="Girar">
+              <RotateCw className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-11 w-11 rounded-xl" onClick={reset} title="Tamanho original" aria-label="Tamanho original">
+              <Maximize className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-11 w-11 rounded-xl" onClick={handleDownload} title="Baixar" aria-label="Baixar">
+              <Download className="h-5 w-5" />
+            </Button>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
