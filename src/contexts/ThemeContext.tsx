@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 
 type Theme = "light" | "dark" | "system";
 
@@ -70,9 +71,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
+      <AccentColorApplier />
       {children}
     </ThemeContext.Provider>
   );
 }
 
 export const useTheme = () => useContext(ThemeContext);
+
+// Applies workspace accent color as CSS variable when current workspace has one
+function AccentColorApplier() {
+  const { currentWorkspace } = useWorkspaceContext();
+  const accent = (currentWorkspace as any)?.accent_color as string | undefined;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (accent && /^\d{1,3}\s+\d{1,3}%\s+\d{1,3}%$/.test(accent.trim())) {
+      root.style.setProperty("--primary", accent);
+    } else {
+      root.style.removeProperty("--primary");
+    }
+  }, [accent]);
+
+  return null;
+}

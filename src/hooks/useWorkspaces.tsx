@@ -150,12 +150,16 @@ export function useUpdateWorkspace() {
       description, 
       icon_url,
       allow_member_channels,
+      retention_days,
+      accent_color,
     }: { 
       id: string; 
       name: string; 
       description?: string | null; 
       icon_url?: string | null;
       allow_member_channels?: boolean;
+      retention_days?: number | null;
+      accent_color?: string | null;
     }) => {
       const updateData: Record<string, any> = {
         name,
@@ -166,6 +170,8 @@ export function useUpdateWorkspace() {
       if (allow_member_channels !== undefined) {
         updateData.allow_member_channels = allow_member_channels;
       }
+      if (retention_days !== undefined) updateData.retention_days = retention_days;
+      if (accent_color !== undefined) updateData.accent_color = accent_color;
 
       const { error } = await supabase
         .from("workspaces")

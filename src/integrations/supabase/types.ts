@@ -50,6 +50,47 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_categories: {
         Row: {
           created_at: string
@@ -2187,6 +2228,7 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          accent_color: string | null
           allow_member_channels: boolean
           created_at: string
           created_by: string
@@ -2194,9 +2236,11 @@ export type Database = {
           icon_url: string | null
           id: string
           name: string
+          retention_days: number | null
           updated_at: string
         }
         Insert: {
+          accent_color?: string | null
           allow_member_channels?: boolean
           created_at?: string
           created_by: string
@@ -2204,9 +2248,11 @@ export type Database = {
           icon_url?: string | null
           id?: string
           name: string
+          retention_days?: number | null
           updated_at?: string
         }
         Update: {
+          accent_color?: string | null
           allow_member_channels?: boolean
           created_at?: string
           created_by?: string
@@ -2214,6 +2260,7 @@ export type Database = {
           icon_url?: string | null
           id?: string
           name?: string
+          retention_days?: number | null
           updated_at?: string
         }
         Relationships: [

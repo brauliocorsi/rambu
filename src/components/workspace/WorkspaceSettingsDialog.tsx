@@ -27,9 +27,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Camera, Loader2, Trash2, LogOut } from 'lucide-react';
+import { Shield, Palette, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { AuditLogsDialog } from './AuditLogsDialog';
+import { useLogAction } from '@/hooks/useAuditLogs';
 
 interface WorkspaceSettingsDialogProps {
   open: boolean;
@@ -47,9 +50,17 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
   const [description, setDescription] = useState(currentWorkspace?.description || '');
   const [iconUrl, setIconUrl] = useState(currentWorkspace?.icon_url || '');
   const [allowMemberChannels, setAllowMemberChannels] = useState(currentWorkspace?.allow_member_channels ?? true);
+  const [retentionDays, setRetentionDays] = useState<string>(
+    String((currentWorkspace as any)?.retention_days ?? '')
+  );
+  const [accentColor, setAccentColor] = useState<string>(
+    (currentWorkspace as any)?.accent_color ?? ''
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
+  const logAction = useLogAction();
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -57,6 +68,8 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
       setDescription(currentWorkspace.description || '');
       setIconUrl(currentWorkspace.icon_url || '');
       setAllowMemberChannels(currentWorkspace.allow_member_channels ?? true);
+      setRetentionDays(String((currentWorkspace as any).retention_days ?? ''));
+      setAccentColor((currentWorkspace as any).accent_color ?? '');
     }
   }, [currentWorkspace]);
 
@@ -93,14 +106,20 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
   const handleSave = () => {
     if (!currentWorkspace || !name.trim()) return;
 
+    const retentionParsed = retentionDays.trim() === '' ? null : parseInt(retentionDays, 10);
+    const accentParsed = accentColor.trim() === '' ? null : accentColor.trim();
+
     updateWorkspaceMutation.mutate({
       id: currentWorkspace.id,
       name: name.trim(),
       description: description.trim() || null,
       icon_url: iconUrl || null,
       allow_member_channels: allowMemberChannels,
-    }, {
+      retention_days: retentionParsed,
+      accent_color: accentParsed,
+    } as any, {
       onSuccess: () => {
+        logAction.mutate({ workspaceId: currentWorkspace.id, action: 'workspace_updated' });
         toast.success('Workspace atualizado!');
         onClose();
       },
@@ -216,6 +235,53 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
                 />
               </div>
             )}
+
+            {isOwner && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="retention" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" /> Retenção de mensagens (dias)
+                  </Label>
+                  <Input
+                    id="retention"
+                    type="number"
+                    min={1}
+                    value={retentionDays}
+                    onChange={(e) => setRetentionDays(e.target.value)}
+                    placeholder="Sem limite"
+                    className="rounded-xl"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Mensagens mais antigas que isso serão deletadas automaticamente. Deixe em branco para manter para sempre.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="accent" className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" /> Cor de destaque (HSL)
+                  </Label>
+                  <Input
+                    id="accent"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    placeholder="ex: 217 91% 60%"
+                    className="rounded-xl font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Formato HSL sem o prefixo (matiz saturação% luminosidade%). Vazio = cor padrão.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full rounded-xl"
+                  onClick={() => setShowAuditLogs(true)}
+                >
+                  <Shield className="h-4 w-4 mr-2" /> Ver logs de auditoria
+                </Button>
+              </>
+            )}
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -258,6 +324,12 @@ export function WorkspaceSettingsDialog({ open, onClose }: WorkspaceSettingsDial
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AuditLogsDialog
+        open={showAuditLogs}
+        onClose={() => setShowAuditLogs(false)}
+        workspaceId={currentWorkspace.id}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
