@@ -475,6 +475,7 @@ export type Database = {
       }
       dm_group_messages: {
         Row: {
+          client_msg_id: string | null
           content: string
           created_at: string
           delivered_at: string | null
@@ -493,6 +494,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_msg_id?: string | null
           content: string
           created_at?: string
           delivered_at?: string | null
@@ -511,6 +513,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_msg_id?: string | null
           content?: string
           created_at?: string
           delivered_at?: string | null
@@ -659,6 +662,7 @@ export type Database = {
       }
       dm_messages: {
         Row: {
+          client_msg_id: string | null
           content: string
           created_at: string
           delivered_at: string | null
@@ -677,6 +681,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_msg_id?: string | null
           content: string
           created_at?: string
           delivered_at?: string | null
@@ -695,6 +700,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_msg_id?: string | null
           content?: string
           created_at?: string
           delivered_at?: string | null
@@ -1081,6 +1087,7 @@ export type Database = {
       messages: {
         Row: {
           channel_id: string
+          client_msg_id: string | null
           content: string
           created_at: string
           delivered_at: string | null
@@ -1100,6 +1107,7 @@ export type Database = {
         }
         Insert: {
           channel_id: string
+          client_msg_id?: string | null
           content: string
           created_at?: string
           delivered_at?: string | null
@@ -1119,6 +1127,7 @@ export type Database = {
         }
         Update: {
           channel_id?: string
+          client_msg_id?: string | null
           content?: string
           created_at?: string
           delivered_at?: string | null

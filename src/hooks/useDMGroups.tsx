@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { getProfileCached } from "@/lib/realtimeSync";
 
 export interface DMGroup {
   id: string;
@@ -316,34 +317,42 @@ export function useDMGroupMessages(groupId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            const { data } = await supabase
-              .from("dm_group_messages")
-              .select(`
-                *,
-                profile:profiles!dm_group_messages_user_id_fkey(display_name, avatar_url)
-              `)
-              .eq("id", payload.new.id)
-              .single();
-
-            if (data) {
-              queryClient.setQueryData(
-                ["dm-group-messages", groupId],
-                (old: any) => {
-                  if (!old) return old;
-                  const lastPage = old.pages[old.pages.length - 1];
-                  return {
-                    ...old,
-                    pages: [
-                      ...old.pages.slice(0, -1),
-                      {
-                        ...lastPage,
-                        messages: [...lastPage.messages, data as unknown as DMGroupMessage],
-                      },
-                    ],
-                  };
+            const profile = await getProfileCached(payload.new.user_id, queryClient);
+            const data = { ...payload.new, profile } as unknown as DMGroupMessage;
+            queryClient.setQueryData(
+              ["dm-group-messages", groupId],
+              (old: any) => {
+                if (!old) return old;
+                const allMsgs = old.pages.flatMap((p: any) => p.messages);
+                if (allMsgs.some((m: any) => m.id === data.id)) return old;
+                const cid = (data as any).client_msg_id;
+                if (cid) {
+                  const idx = allMsgs.findIndex((m: any) => m.client_msg_id === cid);
+                  if (idx >= 0) {
+                    return {
+                      ...old,
+                      pages: old.pages.map((p: any) => ({
+                        ...p,
+                        messages: p.messages.map((m: any) =>
+                          m.client_msg_id === cid ? { ...m, ...data } : m
+                        ),
+                      })),
+                    };
+                  }
                 }
-              );
-            }
+                const lastPage = old.pages[old.pages.length - 1];
+                return {
+                  ...old,
+                  pages: [
+                    ...old.pages.slice(0, -1),
+                    {
+                      ...lastPage,
+                      messages: [...lastPage.messages, data],
+                    },
+                  ],
+                };
+              }
+            );
           }
         }
       )

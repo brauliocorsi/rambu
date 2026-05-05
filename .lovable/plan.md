@@ -1,74 +1,65 @@
-# Plano de Melhorias Rambu (sem IA)
+# Melhorias no Realtime de Mensagens
 
-São ~30 melhorias. Para evitar uma única entrega monstruosa (alto risco de regressão), proponho dividir em **5 fases incrementais**. Cada fase é entregue, testada e só então passamos à seguinte.
+## Problemas identificados
 
-## Fase 1 — UX de mensagens (alto impacto, baixo risco)
-1. **Edição inline + histórico** — coluna `edited_at` + tabela `message_edits`; tooltip "(editado)" mostra versão anterior
-2. **Status de entrega 3 estados** — ✓ enviado / ✓✓ entregue / ✓✓ azul lido (já temos read receipts, falta diferenciar "entregue")
-3. **Swipe-to-reply mobile** — gesto horizontal na bolha de mensagem
-4. **Pré-visualização de links (OG)** — edge function `fetch-og-metadata`; cache em `link_previews`; card abaixo da mensagem
-5. **Mensagens fixadas (pinned)** — coluna `pinned_at` + painel lateral por canal/DM
-6. **Bookmarks (mensagens salvas)** — tabela `saved_messages`; nova view "Salvas"
-7. **Drafts persistentes por canal** — `localStorage` keyed por `channelId`/`dmId`
-8. **Mensagens efêmeras** — `expires_at`; cron edge function deleta expiradas; toggle no input
+1. **Canais Realtime duplicados**: `useMessages` e `useInfiniteMessages` se inscrevem no MESMO nome de canal (`messages:${channelId}`). Quando ambos montam (ou só um), há colisão/conflito de subscribers no Supabase Realtime, causando entregas perdidas e reconexões silenciosas. O mesmo pode acontecer entre `useInfiniteDMMessages` e `useDirectMessages`.
 
-## Fase 2 — Mobile / PWA / Offline
-9. **Modo offline-first com fila de envio** — IndexedDB (Dexie) guarda mensagens pendentes, retry com backoff
-10. **Indicador de conexão** — banner topo: "Offline" / "Reconectando..." / "Online"
-11. **Background sync** — service worker pré-carrega últimas mensagens ao receber push
-12. **Share Target API** — manifest + handler `/share` para receber texto/imagens de outros apps
+2. **Fetch extra de profile a cada INSERT**: cada nova mensagem dispara `fetchMessageProfile()` (1 round-trip ao banco) antes de renderizar. Em conversas ativas isso adiciona 100–400ms de latência percebida e carga extra no DB.
 
-## Fase 3 — Organização & produtividade
-13. **Quick switcher Cmd+K / Ctrl+K** — modal fuzzy-search sobre canais, DMs, membros (já existe SearchDialog, expandir)
-14. **Filtros avançados de busca** — chips: autor, data, tipo de anexo, canal
-15. **Snooze de canais** — `snooze_until` em `channel_notification_preferences`; opções rápidas (1h, amanhã, segunda)
-16. **Marcadores/labels em mensagens** — tabela `message_labels` (importante, decisão, ação)
-17. **Reactions com long-press picker (mobile)** — seletor radial estilo iMessage
-18. **Confirmação de leitura expandida** — popover lista quem leu + quando
+3. **Revalidação agressiva (`scheduleQuerySync` 1200ms)** após cada INSERT — refaz todo o SELECT de mensagens, podendo sobrescrever estados otimistas e causar "piscadas" / reordenações na UI.
 
-## Fase 4 — Performance & arquitetura
-19. **Virtualização da lista** — `@tanstack/react-virtual` em `MessageList`
-20. **Compressão de vídeo client-side** — `@ffmpeg/ffmpeg` WASM antes do upload (vídeos > 5MB)
-21. **Service Worker cache de avatares/mídia** — estratégia stale-while-revalidate
-22. **Métricas de saúde realtime** — heartbeat + auto-reconnect visual
+4. **Sem `REPLICA IDENTITY FULL`** nas tabelas de mensagens — `UPDATE`/`DELETE` em realtime entregam apenas a PK, dificultando merges incrementais (ex.: edição de mensagem chega sem `content`).
 
-## Fase 5 — Segurança & polimento
-23. **2FA via TOTP** — Supabase Auth MFA + UI de setup com QR
-24. **Logs de auditoria do workspace** — tabela `audit_logs` + view admin
-25. **Permissões granulares por canal** — expandir `channel_role` (viewer, poster, admin)
-26. **Retenção configurável de mensagens** — config por workspace + cron de limpeza
-27. **Temas customizáveis** — accent color por workspace (CSS vars dinâmicas)
-28. **Acessibilidade total por teclado** — focus rings, navegação setas, ARIA labels
+5. **Dedup frágil em mensagens otimistas**: a comparação por `content + user_id + 5s` falha quando o usuário envia 2 mensagens iguais rapidamente, gerando duplicatas visuais.
 
----
+6. **Mutation onSuccess não atualiza `profile`**: se o usuário edita o display_name, mensagens recém-enviadas mostram o nome antigo até refresh.
 
-## Detalhes técnicos (resumo por fase)
+## Mudanças propostas
 
-**Fase 1** — migrações:
+### 1. Unificar subscriptions (sem mais canais duplicados)
+- Criar um hook único `useMessagesRealtime(channelId)` que mantém UMA subscription Supabase por `channelId`, atualiza ambos os caches `["messages", id]` e `["infinite-messages", id]` em uma única callback.
+- `useMessages` e `useInfiniteMessages` deixam de criar subscriptions próprias e apenas chamam o novo hook compartilhado (idempotente via ref count global).
+- Mesmo padrão para DMs (`useDMMessagesRealtime`) e grupos.
+
+### 2. Cache local de profile (evita round-trip por mensagem)
+- Substituir `fetchMessageProfile` por `getProfileCached(userId)` que:
+  - Lê primeiro `queryClient.getQueryData(["profile", userId])` e do cache de membros (`workspace-members`, `channel-members`).
+  - Só busca no DB em fallback, e armazena no QueryClient com `staleTime: 5min`.
+- Resultado: INSERT renderiza imediato com avatar/nome, sem await DB.
+
+### 3. Remover revalidação após INSERT/UPDATE/DELETE
+- Tirar `scheduleQuerySync` dos handlers de evento — o `setQueryData` já produz o estado correto. Manter apenas a chamada uma vez ao SUBSCRIBED inicial (catch-up de mensagens perdidas durante reconexão).
+
+### 4. Migração SQL: `REPLICA IDENTITY FULL`
 ```sql
-ALTER TABLE messages ADD edited_at timestamptz, pinned_at timestamptz, expires_at timestamptz, delivered_at timestamptz;
-CREATE TABLE message_edits (id, message_id, previous_content, edited_at);
-CREATE TABLE saved_messages (user_id, message_id, dm_message_id, saved_at);
-CREATE TABLE link_previews (url PK, title, description, image_url, fetched_at);
+ALTER TABLE public.messages REPLICA IDENTITY FULL;
+ALTER TABLE public.dm_messages REPLICA IDENTITY FULL;
+ALTER TABLE public.dm_group_messages REPLICA IDENTITY FULL;
+ALTER TABLE public.thread_messages REPLICA IDENTITY FULL;
+ALTER TABLE public.message_reactions REPLICA IDENTITY FULL;
 ```
-Edge functions: `fetch-og-metadata`, `delete-expired-messages` (cron 5min).
+Garante que payloads de UPDATE/DELETE tragam a linha inteira.
 
-**Fase 2** — bibliotecas: `dexie`, `workbox-background-sync`. Estrutura: hook `useOfflineQueue` intercepta `useSendMessage` quando `!navigator.onLine`.
+### 5. Dedup robusto via `client_msg_id`
+- Adicionar coluna `client_msg_id uuid` (nullable) em `messages`, `dm_messages`, `dm_group_messages` (índice único parcial por canal).
+- Ao enviar: gerar UUID no cliente, usar como `optimisticId` e enviar no INSERT.
+- Realtime INSERT compara por `client_msg_id` → dedup determinístico, sem heurística de tempo/conteúdo.
 
-**Fase 3** — `cmdk` (já em shadcn). Migração: `ALTER TABLE channel_notification_preferences ADD snooze_until timestamptz;`
+### 6. onSuccess preserva profile correto
+- Em `useSendMessage.onSuccess`, manter o `profile` do cache local em vez de copiar do retorno (que vem sem profile).
 
-**Fase 4** — `@tanstack/react-virtual`, `@ffmpeg/ffmpeg`, `@ffmpeg/util`. Estimar +2MB no bundle (lazy-loaded).
+### 7. Conexão Realtime mais resiliente
+- No `supabase/client.ts` (se permitido) ou via `supabase.realtime.setAuth()` — garantir reconexão automática e `heartbeatIntervalMs: 15000` para detectar quedas mais cedo. (Apenas se o client gerado permitir; caso contrário, pular.)
 
-**Fase 5** — Supabase Auth MFA já suportado; UI custom. Migrações: `audit_logs`, expansão de `channel_role` enum.
+## Ganho esperado
+- Latência percebida do envio: de ~500ms → instantânea (otimismo + sem fetch profile).
+- Sem mais "piscadas" ou mensagens duplicadas em rajadas.
+- Edições/deleções refletem corretamente sem refetch full.
+- Sem subscriptions colidindo → entregas estáveis em background.
 
----
-
-## Estratégia de entrega
-- **Esta resposta entrega apenas a Fase 1** (8 melhorias) para garantir qualidade.
-- Após validação, prossigo automaticamente Fase 2 → 5 em mensagens seguintes, sem nova aprovação (a menos que peça pausa).
-- Cada fase termina com nota explicando o que foi feito e como testar.
-
-## Sem incluir
-- Itens 10, 11, 12 e 32–34 da lista original (transcrição, tradução, resumo IA, smart replies, detecção de tarefas, reescrever tom) — todos dependem de IA, conforme pedido.
-
-Posso começar pela Fase 1?
+## Arquivos a editar/criar
+- `src/lib/realtimeSync.ts` — adicionar `getProfileCached`, manter helpers.
+- `src/hooks/useMessagesRealtime.tsx` (novo) — subscription unificada de canais.
+- `src/hooks/useDMMessagesRealtime.tsx` (novo) — idem para DMs.
+- `src/hooks/useMessages.tsx`, `useInfiniteMessages.tsx`, `useDirectMessages.tsx`, `useInfiniteDMMessages.tsx`, `useDMGroups.tsx` — usar hooks unificados, adicionar `client_msg_id` no envio, dedup determinístico.
+- Nova migration SQL: `REPLICA IDENTITY FULL` + coluna `client_msg_id` + índice único.

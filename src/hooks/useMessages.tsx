@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
-import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
+import { getProfileCached, scheduleQuerySync } from "@/lib/realtimeSync";
 import { enqueueMessage } from "@/lib/offlineQueue";
 
 export interface Message {
@@ -18,6 +18,7 @@ export interface Message {
   file_name: string | null;
   created_at: string;
   updated_at: string;
+  client_msg_id?: string | null;
   profile?: {
     display_name: string | null;
     avatar_url: string | null;
@@ -77,7 +78,7 @@ export function useMessages(channelId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            const profile = await fetchMessageProfile(payload.new.user_id);
+            const profile = await getProfileCached(payload.new.user_id, queryClient);
             const data = {
               ...payload.new,
               profile,
@@ -88,31 +89,21 @@ export function useMessages(channelId: string | null) {
                 ["messages", channelId],
                 (old: Message[] | undefined) => {
                   if (!old) return [data as unknown as Message];
-                  // Deduplicate: check if message already exists (real or optimistic)
-                  const exists = old.some(
-                    (msg) =>
-                      msg.id === data.id ||
-                      (msg.id.startsWith("temp-") &&
-                        msg.user_id === data.user_id &&
-                        msg.content === data.content &&
-                        Math.abs(new Date(msg.created_at).getTime() - new Date(data.created_at).getTime()) < 5000)
-                  );
-                  if (exists) {
-                    // Replace optimistic message with real one
-                    return old.map((msg) =>
-                      (msg.id.startsWith("temp-") &&
-                        msg.user_id === data.user_id &&
-                        msg.content === data.content)
-                        ? (data as unknown as Message)
-                        : msg.id === data.id ? (data as unknown as Message) : msg
-                    );
+                  const cid = (data as any).client_msg_id as string | null | undefined;
+                  // Deterministic dedup via client_msg_id.
+                  const optimisticIdx = cid
+                    ? old.findIndex((m) => m.client_msg_id === cid)
+                    : -1;
+                  if (optimisticIdx >= 0) {
+                    const next = old.slice();
+                    next[optimisticIdx] = { ...next[optimisticIdx], ...(data as unknown as Message) };
+                    return next;
                   }
+                  if (old.some((m) => m.id === data.id)) return old;
                   return [...old, data as unknown as Message];
                 }
               );
             }
-
-            scheduleQuerySync(queryClient, syncQueryKeys);
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
               ["messages", channelId],
@@ -182,6 +173,7 @@ export function useSendMessage() {
       fileType,
       fileName,
       expiresAt,
+      clientMsgId,
     }: { 
       channelId: string; 
       content: string;
@@ -190,6 +182,7 @@ export function useSendMessage() {
       fileType?: string;
       fileName?: string;
       expiresAt?: Date | null;
+      clientMsgId?: string;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -224,6 +217,7 @@ export function useSendMessage() {
           file_type: fileType || null,
           file_name: fileName || null,
           expires_at: expiresAt ? expiresAt.toISOString() : null,
+          client_msg_id: clientMsgId || null,
         })
         .select()
         .single();
@@ -262,9 +256,19 @@ export function useSendMessage() {
       // Get cached profile from queryClient
       const cachedProfile = queryClient.getQueryData<{ display_name: string | null; avatar_url: string | null }>(["profile", user.id]);
 
-      // Create optimistic message with temp ID
+      // UUID sent to DB so realtime can dedup precisely; the on-screen id keeps
+      // the `temp-` prefix so MessageBubble keeps showing pending state.
+      const clientMsgId =
+        variables.clientMsgId ||
+        (typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
+      (variables as any).clientMsgId = clientMsgId;
+      const tempId = `temp-${clientMsgId}`;
+
       const optimisticMessage: Message = {
-        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: tempId,
+        client_msg_id: clientMsgId,
         channel_id: variables.channelId,
         user_id: user.id,
         content: variables.content,
@@ -303,7 +307,7 @@ export function useSendMessage() {
         (old: Message[] | undefined) => [...(old || []), optimisticMessage]
       );
 
-      return { previousMessages, optimisticId: optimisticMessage.id };
+      return { previousMessages, optimisticId: clientMsgId };
     },
     onError: (error: any, variables, context) => {
       // Rollback on error

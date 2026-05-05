@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "./useMessages";
-import { fetchMessageProfile, scheduleQuerySync } from "@/lib/realtimeSync";
+import { getProfileCached, scheduleQuerySync } from "@/lib/realtimeSync";
 
 const PAGE_SIZE = 50;
 
@@ -67,7 +67,7 @@ export function useInfiniteMessages(channelId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            const profile = await fetchMessageProfile(payload.new.user_id);
+            const profile = await getProfileCached(payload.new.user_id, queryClient);
             const data = {
               ...payload.new,
               profile,
@@ -79,14 +79,12 @@ export function useInfiniteMessages(channelId: string | null) {
                 (oldData: any) => {
                   if (!oldData) return oldData;
 
+                  const cid = (data as any).client_msg_id as string | null | undefined;
                   const allExistingMessages = oldData.pages.flatMap((p: any) => p.messages);
                   const existingMessage = allExistingMessages.find(
-                    (msg: Message) => 
-                      msg.id === data.id || 
-                      (msg.id.startsWith("temp-") && 
-                       msg.user_id === data.user_id && 
-                       msg.content === data.content &&
-                       Math.abs(new Date(msg.created_at).getTime() - new Date(data.created_at).getTime()) < 5000)
+                    (msg: Message) =>
+                      msg.id === data.id ||
+                      (cid && (msg as any).client_msg_id === cid)
                   );
 
                   if (existingMessage) {
@@ -118,8 +116,6 @@ export function useInfiniteMessages(channelId: string | null) {
               );
 
             }
-
-            scheduleQuerySync(queryClient, syncQueryKeys);
           } else if (payload.eventType === "UPDATE") {
             queryClient.setQueryData(
               ["infinite-messages", channelId],
