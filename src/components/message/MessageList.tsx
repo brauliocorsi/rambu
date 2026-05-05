@@ -182,13 +182,8 @@ export function MessageList({
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length, scrollToBottom, isMobile]);
 
-  // Group messages by day when in Slack mode (must be before any returns)
-  const messageGroups = useMemo(() => {
-    if (preferences.slackMode) {
-      return groupMessagesByDay(messages);
-    }
-    return null;
-  }, [messages, preferences.slackMode]);
+  // Always group messages by day so date separators are visible in any mode
+  const messageGroups = useMemo(() => groupMessagesByDay(messages), [messages]);
 
   // Record views for visible messages
   const visibleMessageIds = useMemo(() => messages.map(m => m.id).filter(id => !id.startsWith("temp-")), [messages]);
@@ -252,14 +247,13 @@ export function MessageList({
           </div>
         )}
 
-        {/* Messages - Slack mode with day separators */}
-        {preferences.slackMode && messageGroups ? (
-          messageGroups.map((group, groupIndex) => (
+        {/* Messages with day separators */}
+        {messageGroups.map((group, groupIndex) => (
             <div key={group.date.toISOString()}>
               {/* Day separator */}
-              <div className="flex items-center gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="flex-1 h-px bg-border" />
-                <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-secondary rounded-full">
+                <span className="text-xs font-semibold text-foreground/80 px-3 py-1 bg-secondary rounded-full shadow-sm">
                   {formatDaySeparator(group.date)}
                 </span>
                 <div className="flex-1 h-px bg-border" />
@@ -273,27 +267,13 @@ export function MessageList({
                   channelId={channelId}
                   onReply={onReply}
                   onOpenThread={onOpenThread}
-                  slackMode
+                  slackMode={preferences.slackMode}
                   density={preferences.density}
                   viewData={viewCounts[message.id]}
                 />
               ))}
             </div>
-          ))
-        ) : (
-          /* Standard mode - messages without day separators */
-          messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              channelId={channelId}
-              onReply={onReply}
-              onOpenThread={onOpenThread}
-              density={preferences.density}
-              viewData={viewCounts[message.id]}
-            />
-          ))
-        )}
+        ))}
 
         {/* Typing Indicator */}
         {typingUsers.length > 0 && (

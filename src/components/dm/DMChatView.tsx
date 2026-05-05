@@ -159,10 +159,8 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
     return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
   };
 
-  // Group messages by day when in Slack mode
+  // Always group messages by day for date separators
   const messageGroups = useMemo(() => {
-    if (!preferences.slackMode) return null;
-    
     const groups: { date: Date; messages: DMMessage[] }[] = [];
     messages.forEach((message) => {
       const messageDate = new Date(message.created_at);
@@ -175,7 +173,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
       }
     });
     return groups;
-  }, [messages, preferences.slackMode]);
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -246,14 +244,13 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
               </div>
             )}
 
-            {/* Messages - Slack mode with day separators */}
-            {preferences.slackMode && messageGroups ? (
-              messageGroups.map((group, groupIndex) => (
+            {/* Messages with day separators */}
+            {messageGroups.map((group, groupIndex) => (
                 <div key={`${group.date.toISOString()}-${group.messages[0]?.id ?? groupIndex}-${groupIndex}`}>
                   {/* Day separator */}
-                  <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                     <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-secondary rounded-full">
+                    <span className="text-xs font-semibold text-foreground/80 px-3 py-1 bg-secondary rounded-full shadow-sm">
                       {formatDaySeparator(group.date)}
                     </span>
                     <div className="flex-1 h-px bg-border" />
@@ -266,26 +263,13 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
                       message={msg} 
                       dmId={dm.id}
                       onReply={setReplyTo}
-                      slackMode
+                      slackMode={preferences.slackMode}
                       density={preferences.density}
                       viewData={dmViewCounts[msg.id]}
                     />
                   ))}
                 </div>
-              ))
-            ) : (
-              /* Standard mode */
-              messages.map((msg) => (
-                <DMMessageBubble 
-                  key={msg.id} 
-                  message={msg} 
-                  dmId={dm.id}
-                  onReply={setReplyTo}
-                  density={preferences.density}
-                  viewData={dmViewCounts[msg.id]}
-                />
-              ))
-            )}
+            ))}
 
             {/* Typing Indicator */}
             {typingUsers.length > 0 && (
