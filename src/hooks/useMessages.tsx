@@ -256,17 +256,18 @@ export function useSendMessage() {
       // Get cached profile from queryClient
       const cachedProfile = queryClient.getQueryData<{ display_name: string | null; avatar_url: string | null }>(["profile", user.id]);
 
-      // Use a deterministic UUID so realtime can dedup the echo precisely.
+      // UUID sent to DB so realtime can dedup precisely; the on-screen id keeps
+      // the `temp-` prefix so MessageBubble keeps showing pending state.
       const clientMsgId =
         variables.clientMsgId ||
         (typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
-          : `temp-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
-      // Mutate the variables so mutationFn sees the same id we optimistically render.
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
       (variables as any).clientMsgId = clientMsgId;
+      const tempId = `temp-${clientMsgId}`;
 
       const optimisticMessage: Message = {
-        id: clientMsgId,
+        id: tempId,
         client_msg_id: clientMsgId,
         channel_id: variables.channelId,
         user_id: user.id,
