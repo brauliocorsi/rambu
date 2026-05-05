@@ -734,6 +734,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
       <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
       <LabelsManager open={showLabels} onOpenChange={setShowLabels} />
       <UserStatsPanel open={showStats} onOpenChange={setShowStats} />
+      <TwoFactorSetup open={show2FA} onClose={() => setShow2FA(false)} />
     </div>
   );
 }
