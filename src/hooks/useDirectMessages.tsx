@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { getProfileCached } from "@/lib/realtimeSync";
 
 export interface DirectMessage {
   id: string;
@@ -36,6 +37,7 @@ export interface DMMessage {
   file_name: string | null;
   created_at: string;
   updated_at: string;
+  client_msg_id?: string | null;
   profile?: {
     display_name: string | null;
     avatar_url: string | null;
@@ -147,32 +149,23 @@ export function useDMMessages(dmId: string | null) {
         },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            const { data } = await supabase
-              .from("dm_messages")
-              .select(`
-                *,
-                profile:profiles!dm_messages_user_id_fkey(display_name, avatar_url)
-              `)
-              .eq("id", payload.new.id)
-              .single();
-
-            if (data) {
-              queryClient.setQueryData(
-                ["dm-messages", dmId],
-                (old: DMMessage[] | undefined) => {
-                  // Deduplicate: check if message already exists (from optimistic update)
-                  if (old?.some((msg) => msg.id === data.id || 
-                    (msg.id.startsWith("temp-") && msg.user_id === data.user_id && msg.content === data.content))) {
-                    return old.map((msg) =>
-                      (msg.id.startsWith("temp-") && msg.user_id === data.user_id && msg.content === data.content)
-                        ? data as unknown as DMMessage
-                        : msg
-                    );
-                  }
-                  return [...(old || []), data as unknown as DMMessage];
+            const profile = await getProfileCached(payload.new.user_id, queryClient);
+            const data = { ...payload.new, profile } as unknown as DMMessage;
+            queryClient.setQueryData(
+              ["dm-messages", dmId],
+              (old: DMMessage[] | undefined) => {
+                if (!old) return [data];
+                const cid = data.client_msg_id;
+                const idx = cid ? old.findIndex((m) => m.client_msg_id === cid) : -1;
+                if (idx >= 0) {
+                  const next = old.slice();
+                  next[idx] = { ...next[idx], ...data };
+                  return next;
                 }
-              );
-            }
+                if (old.some((m) => m.id === data.id)) return old;
+                return [...old, data];
+              }
+            );
           }
         }
       )
@@ -261,6 +254,7 @@ export function useSendDMMessage() {
           file_url: fileUrl || null,
           file_type: fileType || null,
           file_name: fileName || null,
+          client_msg_id: (variables as any).clientMsgId || null,
         })
         .select()
         .single();
