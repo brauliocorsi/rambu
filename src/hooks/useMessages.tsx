@@ -89,10 +89,10 @@ export function useMessages(channelId: string | null) {
                 ["messages", channelId],
                 (old: Message[] | undefined) => {
                   if (!old) return [data as unknown as Message];
-                  const cid = (data as any).client_msg_id;
-                  // Deterministic dedup: client_msg_id beats every heuristic.
+                  const cid = (data as any).client_msg_id as string | null | undefined;
+                  // Deterministic dedup via client_msg_id.
                   const optimisticIdx = cid
-                    ? old.findIndex((m) => m.id === cid || m.client_msg_id === cid)
+                    ? old.findIndex((m) => m.client_msg_id === cid)
                     : -1;
                   if (optimisticIdx >= 0) {
                     const next = old.slice();
