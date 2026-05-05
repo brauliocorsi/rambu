@@ -192,10 +192,8 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
     return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
   };
 
-  // Group messages by day when in Slack mode
+  // Always group messages by day so date separators are visible
   const messageGroups = useMemo(() => {
-    if (!preferences.slackMode) return null;
-    
     const groups: { date: Date; messages: DMGroupMessage[] }[] = [];
     messages.forEach((message) => {
       const messageDate = new Date(message.created_at);
@@ -208,7 +206,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
       }
     });
     return groups;
-  }, [messages, preferences.slackMode]);
+  }, [messages]);
 
   const handleSendMessage = async (content: string, replyToId?: string) => {
     await sendMessage.mutateAsync({
@@ -308,21 +306,20 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
               </div>
             )}
 
-            {/* Messages - Slack mode with day separators */}
-            {preferences.slackMode && messageGroups ? (
-              messageGroups.map((group) => (
-                <div key={group.date.toISOString()}>
+            {/* Messages with day separators */}
+            {messageGroups.map((group) => (
+              <div key={group.date.toISOString()}>
                   {/* Day separator */}
-                  <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                     <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-secondary rounded-full">
+                    <span className="text-xs font-semibold text-foreground/80 px-3 py-1 bg-secondary rounded-full shadow-sm">
                       {formatDaySeparator(group.date)}
                     </span>
                     <div className="flex-1 h-px bg-border" />
                   </div>
                   
-                  {/* Messages for this day - Slack style */}
-                  {group.messages.map((msg) => {
+                {/* Messages for this day */}
+                {preferences.slackMode ? group.messages.map((msg) => {
                     const displayName = msg.profile?.display_name || "Usuário";
                     const time = format(new Date(msg.created_at), "HH:mm", { locale: ptBR });
                     const styles = densityStyles[preferences.density];
@@ -354,12 +351,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                         </div>
                       </motion.div>
                     );
-                  })}
-                </div>
-              ))
-            ) : (
-              /* Standard mode */
-              messages.map((msg) => {
+                }) : group.messages.map((msg) => {
                 const isOwn = msg.user_id === user?.id;
                 const styles = densityStyles[preferences.density];
                 return (
@@ -404,8 +396,9 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                     </div>
                   </motion.div>
                 );
-              })
-            )}
+                })}
+              </div>
+            ))}
 
             {/* Typing Indicator */}
             {typingUsers.length > 0 && (

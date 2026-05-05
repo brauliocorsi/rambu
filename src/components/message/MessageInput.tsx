@@ -111,38 +111,46 @@ export function MessageInput({
 
   const handleSend = async () => {
     if (!message.trim() && attachedFiles.length === 0) return;
+    if (sendMessage.isPending) return;
+    if (isUploading) {
+      toast.error("Aguarde o upload terminar");
+      return;
+    }
 
     // Send message with first file, then additional files as separate messages
     const firstFile = attachedFiles[0];
     
-    await sendMessage.mutateAsync({
-      channelId,
-      content: message.trim() || (firstFile ? `📎 ${firstFile.name}` : ""),
-      replyTo,
-      fileUrl: firstFile?.url,
-      fileType: firstFile?.type,
-      fileName: firstFile?.name,
-      expiresAt: ephemeralMinutes ? new Date(Date.now() + ephemeralMinutes * 60_000) : null,
-    });
-
-    // Send additional files as separate messages
-    for (let i = 1; i < attachedFiles.length; i++) {
-      const file = attachedFiles[i];
+    try {
       await sendMessage.mutateAsync({
         channelId,
-        content: `📎 ${file.name}`,
-        fileUrl: file.url,
-        fileType: file.type,
-        fileName: file.name,
+        content: message.trim() || (firstFile ? `📎 ${firstFile.name}` : ""),
+        replyTo,
+        fileUrl: firstFile?.url,
+        fileType: firstFile?.type,
+        fileName: firstFile?.name,
         expiresAt: ephemeralMinutes ? new Date(Date.now() + ephemeralMinutes * 60_000) : null,
       });
-    }
 
-    setMessage("");
-    setAttachedFiles([]);
-    onCancelReply?.();
-    clearDraft();
-    inputRef.current?.focus();
+      for (let i = 1; i < attachedFiles.length; i++) {
+        const file = attachedFiles[i];
+        await sendMessage.mutateAsync({
+          channelId,
+          content: `📎 ${file.name}`,
+          fileUrl: file.url,
+          fileType: file.type,
+          fileName: file.name,
+          expiresAt: ephemeralMinutes ? new Date(Date.now() + ephemeralMinutes * 60_000) : null,
+        });
+      }
+
+      setMessage("");
+      setAttachedFiles([]);
+      onCancelReply?.();
+      clearDraft();
+      inputRef.current?.focus();
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível enviar a mensagem. Tente novamente.");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -119,37 +119,45 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
 
   const handleSend = async () => {
     if ((!message.trim() && attachedFiles.length === 0) || sendMessage.isPending) return;
+    if (isUploading) {
+      toast.error("Aguarde o upload terminar");
+      return;
+    }
 
     const firstFile = attachedFiles[0];
     const content = firstFile 
       ? message.trim() || `📎 ${firstFile.name}` 
       : message.trim();
 
-    await sendMessage.mutateAsync({
-      dmId,
-      content,
-      replyTo,
-      fileUrl: firstFile?.url,
-      fileType: firstFile?.type,
-      fileName: firstFile?.name,
-    });
-
-    // Send additional files as separate messages
-    for (let i = 1; i < attachedFiles.length; i++) {
-      const file = attachedFiles[i];
+    try {
       await sendMessage.mutateAsync({
         dmId,
-        content: `📎 ${file.name}`,
-        fileUrl: file.url,
-        fileType: file.type,
-        fileName: file.name,
+        content,
+        replyTo,
+        fileUrl: firstFile?.url,
+        fileType: firstFile?.type,
+        fileName: firstFile?.name,
       });
-    }
 
-    setMessage("");
-    setAttachedFiles([]);
-    onCancelReply?.();
-    clearDraft();
+      // Send additional files as separate messages
+      for (let i = 1; i < attachedFiles.length; i++) {
+        const file = attachedFiles[i];
+        await sendMessage.mutateAsync({
+          dmId,
+          content: `📎 ${file.name}`,
+          fileUrl: file.url,
+          fileType: file.type,
+          fileName: file.name,
+        });
+      }
+
+      setMessage("");
+      setAttachedFiles([]);
+      onCancelReply?.();
+      clearDraft();
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível enviar a mensagem. Tente novamente.");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
