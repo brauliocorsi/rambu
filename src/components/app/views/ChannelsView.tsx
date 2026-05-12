@@ -13,6 +13,7 @@ import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
+import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
 import { PinnedMessagesPanel } from "@/components/message/PinnedMessagesPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ import { exportAsJSON, exportAsText } from "@/lib/exportConversation";
 function ChannelChatView() {
   const { currentChannel, setCurrentChannel } = useChannelContext();
   const { currentWorkspace } = useWorkspaceContext();
-  const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useInfiniteMessages(currentChannel?.id || null);
+  const { messages, isLoading, isFetchingMore, hasMore, loadMore, jumpToDate, isJumping } = useInfiniteMessages(currentChannel?.id || null);
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const [showPinned, setShowPinned] = useState(false);
   const { data: profile } = useProfile();
@@ -94,6 +95,7 @@ function ChannelChatView() {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <ChannelMembersPopover channelId={currentChannel.id} />
+          <JumpToDateButton jumpToDate={jumpToDate} isJumping={isJumping} />
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button

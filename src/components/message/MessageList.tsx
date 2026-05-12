@@ -254,7 +254,7 @@ export function MessageList({
 
         {/* Messages with day separators */}
         {messageGroups.map((group, groupIndex) => (
-            <div key={`day-${format(group.date, "yyyy-MM-dd")}-${groupIndex}`}>
+            <div key={`day-${format(group.date, "yyyy-MM-dd")}-${groupIndex}`} data-day={format(group.date, "yyyy-MM-dd")}>
               {/* Day separator */}
               <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="flex-1 h-px bg-border" />
