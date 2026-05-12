@@ -28,6 +28,7 @@ import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
 import { MemberManagementDialog } from "@/components/workspace/MemberManagementDialog";
 import { ChannelList } from "@/components/channel/ChannelList";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
+import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
 import { MessageList } from "@/components/message/MessageList";
 import { MessageInput } from "@/components/message/MessageInput";
 import { EmojiPicker } from "@/components/message/EmojiPicker";
@@ -112,6 +113,8 @@ export function DesktopApp() {
     isFetchingMore: isFetchingMoreMessages,
     hasMore: hasMoreMessages,
     loadMore: loadMoreMessages,
+    jumpToDate: jumpToDateMessages,
+    isJumping: isJumpingMessages,
   } = useInfiniteMessages(currentChannel?.id || null);
   const { data: unreadChannelCounts = {} } = useUnreadChannelCounts(currentWorkspace?.id || null);
   const { data: unreadDMCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
@@ -632,6 +635,7 @@ export function DesktopApp() {
                 </div>
                 <div className="flex items-center gap-2">
                   <ChannelMembersPopover channelId={currentChannel.id} />
+                  <JumpToDateButton jumpToDate={jumpToDateMessages} isJumping={isJumpingMessages} />
                   <Button 
                     variant="ghost" 
                     size="icon" 
