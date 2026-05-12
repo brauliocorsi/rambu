@@ -40,8 +40,13 @@ function formatDaySeparator(date: Date): string {
 // Group messages by day
 function groupMessagesByDay(messages: Message[]): { date: Date; messages: Message[] }[] {
   const groups: { date: Date; messages: Message[] }[] = [];
-  
+  const seen = new Set<string>();
+
   messages.forEach((message) => {
+    // Dedupe messages by id to avoid React duplicate-key warnings
+    if (seen.has(message.id)) return;
+    seen.add(message.id);
+
     const messageDate = new Date(message.created_at);
     const lastGroup = groups[groups.length - 1];
     
@@ -249,7 +254,7 @@ export function MessageList({
 
         {/* Messages with day separators */}
         {messageGroups.map((group, groupIndex) => (
-            <div key={group.date.toISOString()}>
+            <div key={`day-${format(group.date, "yyyy-MM-dd")}-${groupIndex}`}>
               {/* Day separator */}
               <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="flex-1 h-px bg-border" />
