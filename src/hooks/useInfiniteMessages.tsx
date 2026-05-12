@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "./useMessages";
 import { getProfileCached, scheduleQuerySync } from "@/lib/realtimeSync";
@@ -168,11 +168,39 @@ export function useInfiniteMessages(channelId: string | null) {
     }
   }, [query]);
 
+  // Jump to a specific date — keeps fetching older pages until messages from
+  // that day are loaded into the cache.
+  const [isJumping, setIsJumping] = useState(false);
+  const jumpToDate = useCallback(
+    async (date: Date) => {
+      if (!channelId) return;
+      setIsJumping(true);
+      const target = new Date(date);
+      target.setHours(0, 0, 0, 0);
+      try {
+        // Safety cap to avoid infinite loops
+        for (let i = 0; i < 60; i++) {
+          const data = queryClient.getQueryData<any>(["infinite-messages", channelId]);
+          const oldestPage = data?.pages?.[data.pages.length - 1];
+          const oldest = oldestPage?.messages?.[0];
+          if (oldest && new Date(oldest.created_at).getTime() <= target.getTime()) break;
+          if (!query.hasNextPage) break;
+          await query.fetchNextPage();
+        }
+      } finally {
+        setIsJumping(false);
+      }
+    },
+    [channelId, queryClient, query]
+  );
+
   return {
     messages: allMessages,
     isLoading: query.isLoading,
     isFetchingMore: query.isFetchingNextPage,
     hasMore: query.hasNextPage,
     loadMore,
+    jumpToDate,
+    isJumping,
   };
 }
