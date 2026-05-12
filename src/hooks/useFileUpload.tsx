@@ -42,6 +42,13 @@ const ALLOWED_TYPES = [
   "video/ogg",
 ];
 
+const ALLOWED_EXTENSIONS = [
+  "jpg","jpeg","png","gif","webp","heic","heif","svg",
+  "pdf","txt","doc","docx","xls","xlsx",
+  "mp3","wav","ogg","m4a","aac","weba",
+  "mp4","mov","webm","mkv","avi","3gp","ogv",
+];
+
 export function useFileUpload() {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
@@ -64,7 +71,12 @@ export function useFileUpload() {
       return null;
     }
 
-    if (file.type && !ALLOWED_TYPES.includes(file.type)) {
+    // Some mobile browsers (Android/iOS câmera) entregam file.type vazio
+    // ou genérico — usamos a extensão como fallback antes de bloquear.
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const typeOk = file.type ? ALLOWED_TYPES.includes(file.type) : false;
+    const extOk = ext ? ALLOWED_EXTENSIONS.includes(ext) : false;
+    if (!typeOk && !extOk) {
       toast.error(`Tipo de arquivo "${file.name}" não suportado`);
       return null;
     }
