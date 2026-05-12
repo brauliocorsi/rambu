@@ -7,6 +7,7 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useMessages } from "@/hooks/useMessages";
+import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { usePresence } from "@/hooks/usePresence";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -105,7 +106,13 @@ export function DesktopApp() {
   
   const { data: channels = [], isLoading: loadingChannels } = useChannels(currentWorkspace?.id || null);
   const { data: dms = [], isLoading: loadingDMs } = useDirectMessages(currentWorkspace?.id || null);
-  const { data: messages = [], isLoading: loadingMessages } = useMessages(currentChannel?.id || null);
+  const {
+    messages,
+    isLoading: loadingMessages,
+    isFetchingMore: isFetchingMoreMessages,
+    hasMore: hasMoreMessages,
+    loadMore: loadMoreMessages,
+  } = useInfiniteMessages(currentChannel?.id || null);
   const { data: unreadChannelCounts = {} } = useUnreadChannelCounts(currentWorkspace?.id || null);
   const { data: unreadDMCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
   const { channels: totalUnreadChannels, dms: totalUnreadDMs } = useTotalUnreadCount(currentWorkspace?.id || null);
@@ -676,6 +683,9 @@ export function DesktopApp() {
                   channelId={currentChannel.id}
                   channelName={currentChannel.name}
                   isLoading={loadingMessages}
+                  isFetchingMore={isFetchingMoreMessages}
+                  hasMore={hasMoreMessages}
+                  onLoadMore={loadMoreMessages}
                   onReply={setReplyTo}
                   onOpenThread={setThreadMessage}
                 />
