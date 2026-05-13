@@ -17,6 +17,7 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
   const [duration, setDuration] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -73,6 +74,13 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
       audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const cycleSpeed = () => {
+    const order = [1, 1.5, 2];
+    const next = order[(order.indexOf(speed) + 1) % order.length] ?? 1;
+    setSpeed(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
   };
 
   const handleSeek = (value: number[]) => {
@@ -161,9 +169,20 @@ export function AudioPlayer({ url, compact = false, className }: AudioPlayerProp
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{formatTime(currentTime)}</span>
-          <div className="flex items-center gap-1">
-            <Volume2 className="h-3 w-3" />
-            <span>{formatTime(duration)}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={cycleSpeed}
+              disabled={!isLoaded}
+              className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium tabular-nums hover:bg-primary/20 transition-colors disabled:opacity-50"
+              title="Velocidade de reprodução"
+            >
+              {speed}x
+            </button>
+            <div className="flex items-center gap-1">
+              <Volume2 className="h-3 w-3" />
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
         </div>
       </div>
