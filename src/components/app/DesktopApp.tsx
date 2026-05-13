@@ -804,6 +804,12 @@ export function DesktopApp() {
       <MemberManagementDialog open={showMembers} onClose={() => setShowMembers(false)} />
       <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
       <WorkspaceSettingsDialog open={showWorkspaceSettings} onClose={() => setShowWorkspaceSettings(false)} />
+      <MediaGalleryDialog
+        channelId={currentChannel?.id || null}
+        channelName={currentChannel?.name}
+        open={showMediaGallery}
+        onOpenChange={setShowMediaGallery}
+      />
       {currentChannel && (
         <ChannelDetailsDialog 
           open={showChannelDetails} 
