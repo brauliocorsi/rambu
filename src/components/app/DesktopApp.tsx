@@ -629,12 +629,14 @@ export function DesktopApp() {
             />
           ) : currentChannel ? (
             <>
-              <div className="h-14 border-b border-border flex items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                  <Hash className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="font-semibold">{currentChannel.name}</h2>
+              <div className="h-14 border-b border-border glass flex items-center justify-between px-4 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-7 w-7 rounded-lg bg-channel-soft flex items-center justify-center shrink-0">
+                    <Hash className="h-4 w-4 text-channel" />
+                  </div>
+                  <h2 className="font-semibold tracking-tight truncate">{currentChannel.name}</h2>
                   {currentChannel.description && (
-                    <span className="text-sm text-muted-foreground">| {currentChannel.description}</span>
+                    <span className="text-xs text-muted-foreground truncate hidden md:inline">· {currentChannel.description}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
