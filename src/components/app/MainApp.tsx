@@ -20,6 +20,7 @@ import { FlowsView } from "@/components/app/views/FlowsView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { SavedMessagesPanel } from "@/components/message/SavedMessagesPanel";
+import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 import { Button } from "@/components/ui/button";
 import { Bookmark } from "lucide-react";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -29,6 +30,7 @@ export function MainApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   
   const { currentWorkspace } = useWorkspaceContext();
@@ -40,7 +42,8 @@ export function MainApp() {
 
   useKeyboardShortcuts([
     { key: "k", ctrl: true, action: () => setShowSearch(true), description: "Busca global" },
-    { key: "Escape", action: () => { setShowSearch(false); setShowSaved(false); }, description: "Fechar" },
+    { key: "/", ctrl: true, action: () => setShowShortcuts(true), description: "Mostrar atalhos" },
+    { key: "Escape", action: () => { setShowSearch(false); setShowSaved(false); setShowShortcuts(false); }, description: "Fechar" },
   ]);
 
   const getTitle = useCallback(() => {
@@ -158,6 +161,7 @@ export function MainApp() {
         onSelectChannel={handleSelectChannel}
       />
       <SavedMessagesPanel open={showSaved} onOpenChange={setShowSaved} />
+      <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
   );
 }
