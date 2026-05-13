@@ -23,6 +23,7 @@ import { useReminders } from "@/hooks/useMessageReminders";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelDetailsDialog } from "@/components/channel/ChannelDetailsDialog";
 import { MediaGalleryDialog } from "@/components/channel/MediaGalleryDialog";
+import { GlobalDropOverlay } from "@/components/chat/GlobalDropOverlay";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 import { WorkspaceSettingsDialog } from "@/components/workspace/WorkspaceSettingsDialog";
 import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
@@ -810,6 +811,7 @@ export function DesktopApp() {
         open={showMediaGallery}
         onOpenChange={setShowMediaGallery}
       />
+      <GlobalDropOverlay enabled={!!currentChannel || !!selectedDM} />
       {currentChannel && (
         <ChannelDetailsDialog 
           open={showChannelDetails} 
