@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Maximize2, Download } from "lucide-react";
+import { Maximize2, Download, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useVideoThumbnail } from "@/hooks/useVideoThumbnail";
 
 interface VideoPlayerProps {
   url: string;
@@ -15,6 +16,8 @@ interface VideoPlayerProps {
 export function VideoPlayer({ url, name, type, compact = false, onExpand }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState(false);
+  const [started, setStarted] = useState(false);
+  const thumbnail = useVideoThumbnail(started ? null : url);
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -55,18 +58,53 @@ export function VideoPlayer({ url, name, type, compact = false, onExpand }: Vide
         compact ? "max-w-[240px]" : "max-w-[420px]"
       )}
     >
-      <video
-        ref={videoRef}
-        src={url}
-        controls
-        playsInline
-        preload="metadata"
-        onError={() => setError(true)}
-        className="w-full h-auto rounded-xl"
-        style={{ maxHeight: compact ? "180px" : "320px" }}
-      >
-        <source src={url} type={type} />
-      </video>
+      {!started ? (
+        // Lightweight placeholder: only loads the actual video on user click,
+        // so a channel with many videos doesn't trigger N parallel network requests.
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setStarted(true);
+            // Wait next tick for <video> to mount, then start playback
+            setTimeout(() => videoRef.current?.play().catch(() => {}), 50);
+          }}
+          className="relative w-full block group/play"
+          style={{ aspectRatio: "16 / 9", maxHeight: compact ? "180px" : "320px" }}
+          aria-label={`Reproduzir vídeo ${name}`}
+        >
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt={name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900" />
+          )}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/play:bg-black/30 transition-colors">
+            <div className="h-14 w-14 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-lg ring-2 ring-white/30">
+              <Play className="h-6 w-6 text-black ml-0.5" fill="currentColor" />
+            </div>
+          </div>
+        </button>
+      ) : (
+        <video
+          ref={videoRef}
+          src={url}
+          controls
+          playsInline
+          preload="metadata"
+          poster={thumbnail || undefined}
+          onError={() => setError(true)}
+          className="w-full h-auto rounded-xl"
+          style={{ maxHeight: compact ? "180px" : "320px" }}
+        >
+          <source src={url} type={type} />
+        </video>
+      )}
 
       <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {onExpand && (
