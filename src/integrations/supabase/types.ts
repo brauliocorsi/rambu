@@ -2362,6 +2362,7 @@ export type Database = {
         Args: { p_channel_id: string; p_user_id?: string }
         Returns: Database["public"]["Enums"]["channel_role"]
       }
+      get_unread_feed: { Args: { p_workspace_id: string }; Returns: Json }
       get_workspace_role: {
         Args: { p_workspace_id: string }
         Returns: Database["public"]["Enums"]["workspace_role"]
