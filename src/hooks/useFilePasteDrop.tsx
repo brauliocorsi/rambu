@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useFileUpload, UploadedFile } from "./useFileUpload";
 import { toast } from "sonner";
 
@@ -57,6 +57,18 @@ export function useFilePasteDrop({ attachedFiles, onFilesAdded }: UseFilePasteDr
     if (files.length > 0) {
       processFiles(files);
     }
+  }, [processFiles]);
+
+  // Listen for global drop events dispatched by the chat-wide drop overlay.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<File[]>).detail;
+      if (Array.isArray(detail) && detail.length > 0) {
+        processFiles(detail);
+      }
+    };
+    window.addEventListener("rambu:drop-files", handler as EventListener);
+    return () => window.removeEventListener("rambu:drop-files", handler as EventListener);
   }, [processFiles]);
 
   return { handlePaste, handleDragOver, handleDrop, isUploading, progress, maxFiles, currentFileIndex, totalFiles, currentFileName };
