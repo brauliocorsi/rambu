@@ -24,7 +24,7 @@ export const UnreadBadge = React.forwardRef<HTMLSpanElement, UnreadBadgeProps>(
       <span
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground font-bold animate-scale-in",
+          "inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground font-mono font-semibold tabular-nums animate-scale-in shadow-[0_0_0_2px_hsl(var(--background))]",
           sizeClasses[size],
           pulse && "animate-pulse",
           className

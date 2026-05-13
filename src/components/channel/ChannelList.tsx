@@ -52,19 +52,19 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
         <button
           onClick={() => onSelectChannel(channel)}
           className={cn(
-            "w-full flex items-center gap-2 px-2.5 py-2 rounded-xl transition-colors",
+            "group/item w-full flex items-center gap-2 px-2.5 h-9 rounded-lg transition-all duration-150 relative",
             selectedChannel?.id === channel.id
-              ? "bg-primary/10 text-primary"
-              : "hover:bg-secondary",
-            unreadCount > 0 && "font-semibold"
+              ? "bg-channel-soft text-foreground before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-[hsl(var(--channel))]"
+              : "hover:bg-muted/60 text-foreground/80",
+            unreadCount > 0 && "font-medium text-foreground"
           )}
         >
           {isPrivate ? (
-            <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Lock className={cn("h-4 w-4 shrink-0", selectedChannel?.id === channel.id ? "text-channel" : "text-muted-foreground")} />
           ) : (
-            <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Hash className={cn("h-4 w-4 shrink-0", selectedChannel?.id === channel.id ? "text-channel" : "text-muted-foreground")} />
           )}
-          <span className={cn("font-medium flex-1 text-left truncate text-sm min-w-0", unreadCount > 0 && "text-primary font-bold")}>{channel.name}</span>
+          <span className={cn("flex-1 text-left truncate text-sm min-w-0 tracking-tight", unreadCount > 0 && "font-semibold")}>{channel.name}</span>
           
           <div className="flex items-center gap-1 shrink-0">
             {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
@@ -91,7 +91,7 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
       {/* Favorite Channels */}
       {favoriteChannels.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 flex items-center gap-1">
+          <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-[0.08em] px-2 mb-1 flex items-center gap-1">
             <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
             Favoritos
           </p>
@@ -102,7 +102,7 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
       {/* Public Channels */}
       {publicChannels.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">
+          <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-[0.08em] px-2 mb-1">
             Canais
           </p>
           {publicChannels.map((channel, i) => renderChannel(channel, i))}
@@ -112,7 +112,7 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
       {/* Private Channels */}
       {privateChannels.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">
+          <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-[0.08em] px-2 mb-1">
             Canais Privados
           </p>
           {privateChannels.map((channel, i) => renderChannel(channel, i))}

@@ -63,6 +63,18 @@ export default {
         busy: "hsl(var(--busy))",
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
+        channel: {
+          DEFAULT: "hsl(var(--channel))",
+          foreground: "hsl(var(--channel-foreground))",
+        },
+        dm: {
+          DEFAULT: "hsl(var(--dm))",
+          foreground: "hsl(var(--dm-foreground))",
+        },
+        group: {
+          DEFAULT: "hsl(var(--group))",
+          foreground: "hsl(var(--group-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -70,9 +82,12 @@ export default {
         sm: "calc(var(--radius) - 4px)",
         "2xl": "1.25rem",
         "3xl": "1.5rem",
+        bubble: "var(--radius-bubble)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ['"Inter Tight"', "Inter", "system-ui", "-apple-system", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        display: ['"Inter Tight"', "Inter", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
@@ -132,6 +147,11 @@ export default {
       boxShadow: {
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
         glow: "0 0 20px -5px hsl(var(--primary) / 0.3)",
+        xs: "var(--shadow-xs)",
+        "token-sm": "var(--shadow-sm)",
+        "token-md": "var(--shadow-md)",
+        "token-lg": "var(--shadow-lg)",
+        "token-xl": "var(--shadow-xl)",
       },
     },
   },

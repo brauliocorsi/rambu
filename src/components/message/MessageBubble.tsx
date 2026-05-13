@@ -139,24 +139,24 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
         data-message-id={message.id}
         style={offset ? { transform: `translateX(${offset}px)`, transition: offset === 0 ? "transform 200ms ease" : undefined } : { transition: "transform 200ms ease" }}
         className={cn(
-          "group relative flex gap-3 px-4 hover:bg-secondary/30 transition-colors",
+          "group relative flex gap-3 px-4 hover:bg-muted/40 transition-colors duration-150",
           styles.container,
           !useSlackLayout && isOwn && "flex-row-reverse"
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
+        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5 ring-1 ring-border/60")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
-          <AvatarFallback className="text-sm gradient-primary text-primary-foreground">
+          <AvatarFallback className="text-sm gradient-primary text-primary-foreground font-medium">
             {displayName.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
 
         <div className={cn("flex-1 min-w-0", !useSlackLayout && isOwn && "flex flex-col items-end")}>
           <div className={cn("flex items-baseline gap-2 mb-0.5", !useSlackLayout && isOwn && "flex-row-reverse")}>
-            <span className="font-semibold text-sm">{displayName}</span>
-            <span className="text-xs text-muted-foreground">{time}</span>
+            <span className="font-semibold text-sm tracking-tight">{displayName}</span>
+            <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{time}</span>
             {message.is_edited && (
               <EditedTooltip messageId={message.id} scope="channel" />
             )}
@@ -184,8 +184,8 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
                 }
               }}
               className={cn(
-                "flex items-start gap-2 mb-2 p-2 rounded-lg bg-secondary/50 border-l-2 border-primary/50 cursor-pointer hover:bg-secondary/80 transition-colors text-left",
-                !useSlackLayout && isOwn && "border-r-2 border-l-0"
+                "flex items-start gap-2 mb-2 p-2 rounded-lg bg-muted/60 border-l-[3px] border-primary cursor-pointer hover:bg-muted transition-colors text-left",
+                !useSlackLayout && isOwn && "border-r-[3px] border-l-0"
               )}
             >
               <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
@@ -231,8 +231,10 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
               ) : (
                 <>
                   <div className={cn(
-                    "px-3.5 py-2 rounded-2xl inline-block max-w-[85%]",
-                    isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-secondary-foreground rounded-bl-md"
+                    "px-3.5 py-2 rounded-bubble inline-block max-w-[85%] transition-shadow",
+                    isOwn
+                      ? "bg-primary text-primary-foreground rounded-br-md shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.35)]"
+                      : "bg-card text-card-foreground border border-border/60 rounded-bl-md shadow-xs-token"
                   )}>
                     <MessageContent content={message.content} className="text-sm" />
                   </div>
@@ -259,11 +261,13 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
                   key={emoji}
                   onClick={() => handleReaction(emoji)}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors active:scale-95",
-                    userReactions.includes(emoji) ? "bg-primary/20 text-primary" : "bg-secondary hover:bg-secondary/80"
+                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150 hover:scale-105 active:scale-95",
+                    userReactions.includes(emoji)
+                      ? "bg-primary/15 text-primary border-primary/30"
+                      : "bg-muted/60 hover:bg-muted border-border/60 text-foreground"
                   )}
                 >
-                  <span>{emoji}</span><span>{count}</span>
+                  <span>{emoji}</span><span className="font-mono tabular-nums">{count}</span>
                 </button>
               ))}
             </div>
