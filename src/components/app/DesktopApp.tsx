@@ -22,6 +22,7 @@ import {
 import { useReminders } from "@/hooks/useMessageReminders";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelDetailsDialog } from "@/components/channel/ChannelDetailsDialog";
+import { MediaGalleryDialog } from "@/components/channel/MediaGalleryDialog";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 import { WorkspaceSettingsDialog } from "@/components/workspace/WorkspaceSettingsDialog";
 import { InviteLinkDialog } from "@/components/workspace/InviteLinkDialog";
@@ -90,6 +91,7 @@ import {
   MoreVertical,
   Trash2,
   ClipboardList,
+  Image as ImageIcon,
 } from "lucide-react";
 import { ScheduledMessagesList } from "@/components/message/ScheduledMessagesList";
 import { useScheduledMessages } from "@/hooks/useScheduledMessages";
@@ -147,6 +149,7 @@ export function DesktopApp() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const [showChannelDetails, setShowChannelDetails] = useState(false);
+  const [showMediaGallery, setShowMediaGallery] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
   const [showUnreadFeed, setShowUnreadFeed] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
@@ -636,6 +639,15 @@ export function DesktopApp() {
                 <div className="flex items-center gap-2">
                   <ChannelMembersPopover channelId={currentChannel.id} />
                   <JumpToDateButton jumpToDate={jumpToDateMessages} isJumping={isJumpingMessages} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-lg"
+                    onClick={() => setShowMediaGallery(true)}
+                    title="Mídia compartilhada"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -792,6 +804,12 @@ export function DesktopApp() {
       <MemberManagementDialog open={showMembers} onClose={() => setShowMembers(false)} />
       <ShortcutsDialog open={showShortcuts} onOpenChange={setShowShortcuts} />
       <WorkspaceSettingsDialog open={showWorkspaceSettings} onClose={() => setShowWorkspaceSettings(false)} />
+      <MediaGalleryDialog
+        channelId={currentChannel?.id || null}
+        channelName={currentChannel?.name}
+        open={showMediaGallery}
+        onOpenChange={setShowMediaGallery}
+      />
       {currentChannel && (
         <ChannelDetailsDialog 
           open={showChannelDetails} 
