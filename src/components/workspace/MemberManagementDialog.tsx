@@ -9,6 +9,12 @@ import {
   useCurrentUserRole,
 } from "@/hooks/useWorkspaceMembers";
 import {
+  useWorkspaceBans,
+  useBanUser,
+  useUnbanUser,
+  useDeleteUserAccount,
+} from "@/hooks/useWorkspaceBans";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -28,10 +34,14 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -42,6 +52,9 @@ import {
   UserMinus,
   Crown,
   Loader2,
+  Ban,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 
 interface MemberManagementDialogProps {
@@ -54,10 +67,18 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
   const { currentWorkspace } = useWorkspaceContext();
   const { data: members = [], isLoading } = useWorkspaceMembers(currentWorkspace?.id || null);
   const { data: currentUserRole } = useCurrentUserRole(currentWorkspace?.id || null);
+  const { data: bans = [], isLoading: bansLoading } = useWorkspaceBans(currentWorkspace?.id || null);
   const updateRole = useUpdateMemberRole();
   const removeMember = useRemoveMember();
+  const banUser = useBanUser();
+  const unbanUser = useUnbanUser();
+  const deleteAccount = useDeleteUserAccount();
 
-  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; user_id: string; name: string } | null>(null);
+  const [memberToBan, setMemberToBan] = useState<{ user_id: string; name: string } | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<{ user_id: string; name: string } | null>(null);
+  const [banReason, setBanReason] = useState("");
+  const [confirmName, setConfirmName] = useState("");
 
   const isAdmin = currentUserRole === "admin";
   const isCreator = currentWorkspace?.created_by === user?.id;
@@ -70,8 +91,35 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
   const handleRemoveMember = () => {
     if (!memberToRemove || !currentWorkspace?.id) return;
     removeMember.mutate(
-      { memberId: memberToRemove, workspaceId: currentWorkspace.id },
+      { memberId: memberToRemove.id, workspaceId: currentWorkspace.id },
       { onSuccess: () => setMemberToRemove(null) }
+    );
+  };
+
+  const handleBan = () => {
+    if (!memberToBan || !currentWorkspace?.id) return;
+    banUser.mutate(
+      { workspaceId: currentWorkspace.id, targetUserId: memberToBan.user_id, reason: banReason || undefined },
+      {
+        onSuccess: () => {
+          setMemberToBan(null);
+          setBanReason("");
+        },
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (!memberToDelete) return;
+    if (confirmName.trim() !== memberToDelete.name) return;
+    deleteAccount.mutate(
+      { targetUserId: memberToDelete.user_id },
+      {
+        onSuccess: () => {
+          setMemberToDelete(null);
+          setConfirmName("");
+        },
+      }
     );
   };
 
@@ -102,7 +150,7 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
   return (
     <>
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DialogContent className="sm:max-w-lg rounded-2xl">
+        <DialogContent className="sm:max-w-lg rounded-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -110,12 +158,14 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {members.length} membro{members.length !== 1 ? "s" : ""} em {currentWorkspace?.name}
-            </p>
+          <Tabs defaultValue="members" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="members">Membros ({members.length})</TabsTrigger>
+              <TabsTrigger value="bans">Banidos ({bans.length})</TabsTrigger>
+            </TabsList>
 
-            {isLoading ? (
+            <TabsContent value="members" className="flex-1 min-h-0 mt-4">
+              {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
@@ -181,11 +231,26 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
-                                onClick={() => setMemberToRemove(member.id)}
+                                onClick={() => setMemberToRemove({ id: member.id, user_id: member.user_id, name: member.profile?.display_name || "Usuário" })}
                                 className="rounded-lg text-destructive focus:text-destructive"
                               >
                                 <UserMinus className="h-4 w-4 mr-2" />
                                 Remover
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setMemberToBan({ user_id: member.user_id, name: member.profile?.display_name || "Usuário" })}
+                                className="rounded-lg text-destructive focus:text-destructive"
+                              >
+                                <Ban className="h-4 w-4 mr-2" />
+                                Banir do workspace
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setMemberToDelete({ user_id: member.user_id, name: member.profile?.display_name || "Usuário" })}
+                                className="rounded-lg text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir conta (irreversível)
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -196,7 +261,55 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
                 </div>
               </ScrollArea>
             )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="bans" className="flex-1 min-h-0 mt-4">
+              {bansLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : bans.length === 0 ? (
+                <div className="text-center py-12 text-sm text-muted-foreground">
+                  Nenhum usuário banido.
+                </div>
+              ) : (
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-2">
+                    {bans.map((ban) => (
+                      <div key={ban.id} className="flex items-center justify-between p-3 rounded-xl bg-destructive/5">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={ban.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-destructive/10 text-destructive">
+                              {(ban.profile?.display_name || "?").charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{ban.profile?.display_name || "Usuário"}</p>
+                            {ban.reason && (
+                              <p className="text-xs text-muted-foreground truncate">Motivo: {ban.reason}</p>
+                            )}
+                          </div>
+                        </div>
+                        {(isAdmin || isCreator) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-lg"
+                            onClick={() => currentWorkspace?.id && unbanUser.mutate({ workspaceId: currentWorkspace.id, targetUserId: ban.user_id })}
+                            disabled={unbanUser.isPending}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Desbanir
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
@@ -205,7 +318,7 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
           <AlertDialogHeader>
             <AlertDialogTitle>Remover membro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O membro precisará de um novo convite para entrar novamente.
+              {memberToRemove?.name} perderá acesso a todos os canais e DMs do workspace. Poderá entrar de novo via convite.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -219,6 +332,54 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
               ) : (
                 "Remover"
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* BAN dialog */}
+      <AlertDialog open={!!memberToBan} onOpenChange={(o) => { if (!o) { setMemberToBan(null); setBanReason(""); } }}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Banir {memberToBan?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário será removido do workspace e <strong>não poderá entrar novamente</strong>, mesmo via convite, até ser desbanido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="ban-reason">Motivo (opcional)</Label>
+            <Input id="ban-reason" value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Ex: spam, comportamento abusivo" className="rounded-xl" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBan} disabled={banUser.isPending} className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {banUser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Banir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* DELETE ACCOUNT dialog */}
+      <AlertDialog open={!!memberToDelete} onOpenChange={(o) => { if (!o) { setMemberToDelete(null); setConfirmName(""); } }}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta de {memberToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ação <strong>irreversível</strong>. A conta será apagada permanentemente; o histórico de mensagens permanece como "Usuário removido". Requer privilégio de super-administrador.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-name">Digite "{memberToDelete?.name}" para confirmar</Label>
+            <Input id="confirm-name" value={confirmName} onChange={(e) => setConfirmName(e.target.value)} className="rounded-xl" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteAccount.isPending || confirmName.trim() !== memberToDelete?.name}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir definitivamente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

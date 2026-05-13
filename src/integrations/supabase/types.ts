@@ -1385,10 +1385,12 @@ export type Database = {
           away_notification_level: string | null
           bio: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           dnd_until: string | null
           do_not_disturb: boolean | null
           id: string
+          is_deleted: boolean
           last_seen: string | null
           scheduled_away_end: string | null
           scheduled_away_start: string | null
@@ -1404,10 +1406,12 @@ export type Database = {
           away_notification_level?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           dnd_until?: string | null
           do_not_disturb?: boolean | null
           id: string
+          is_deleted?: boolean
           last_seen?: string | null
           scheduled_away_end?: string | null
           scheduled_away_start?: string | null
@@ -1423,10 +1427,12 @@ export type Database = {
           away_notification_level?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           dnd_until?: string | null
           do_not_disturb?: boolean | null
           id?: string
+          is_deleted?: boolean
           last_seen?: string | null
           scheduled_away_end?: string | null
           scheduled_away_start?: string | null
@@ -1560,6 +1566,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      super_admins: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       task_approvals: {
         Row: {
@@ -2106,6 +2133,41 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_bans: {
+        Row: {
+          banned_at: string
+          banned_by: string
+          id: string
+          reason: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          banned_at?: string
+          banned_by: string
+          id?: string
+          reason?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          banned_at?: string
+          banned_by?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_favorites: {
         Row: {
           created_at: string
@@ -2309,6 +2371,11 @@ export type Database = {
       is_channel_owner: { Args: { p_channel_id: string }; Returns: boolean }
       is_dm_group_member: { Args: { p_group_id: string }; Returns: boolean }
       is_dm_participant: { Args: { p_dm_id: string }; Returns: boolean }
+      is_super_admin: { Args: { p_user_id?: string }; Returns: boolean }
+      is_user_banned: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
       is_workspace_admin: { Args: { p_workspace_id: string }; Returns: boolean }
       is_workspace_member: {
         Args: { p_workspace_id: string }

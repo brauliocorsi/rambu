@@ -55,6 +55,18 @@ import { LabelsManager } from "@/components/labels/LabelsManager";
 import { UserStatsPanel } from "@/components/stats/UserStatsPanel";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { useNavigate } from "react-router-dom";
+import { useDeleteUserAccount } from "@/hooks/useWorkspaceBans";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -72,6 +84,9 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
   const updateNotifPrefs = useUpdateNotificationPreferences();
+  const deleteAccount = useDeleteUserAccount();
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -723,6 +738,15 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair da conta
               </Button>
+
+              <Button
+                variant="outline"
+                className="w-full rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10"
+                onClick={() => setShowDeleteAccount(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir minha conta
+              </Button>
             </div>
           </Card>
         </motion.div>
@@ -735,6 +759,31 @@ export function SettingsView({ onBack }: SettingsViewProps) {
       <LabelsManager open={showLabels} onOpenChange={setShowLabels} />
       <UserStatsPanel open={showStats} onOpenChange={setShowStats} />
       <TwoFactorSetup open={show2FA} onClose={() => setShow2FA(false)} />
+
+      <AlertDialog open={showDeleteAccount} onOpenChange={(o) => { if (!o) { setShowDeleteAccount(false); setConfirmDelete(""); } }}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua conta será removida e não poderá ser recuperada. Suas mensagens permanecerão visíveis como "Usuário removido". Digite <strong>EXCLUIR</strong> para confirmar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input value={confirmDelete} onChange={(e) => setConfirmDelete(e.target.value)} placeholder="EXCLUIR" className="rounded-xl" />
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmDelete !== "EXCLUIR" || deleteAccount.isPending}
+              onClick={async () => {
+                await deleteAccount.mutateAsync({});
+                await signOut();
+              }}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir definitivamente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

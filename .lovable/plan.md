@@ -1,65 +1,113 @@
-# Melhorias no Realtime de Mensagens
+# Plano de melhoria massiva — Rambu
 
-## Problemas identificados
+Vou trabalhar em **5 fases sequenciais**. Cada fase é entregue completa antes da próxima, com validação no preview. Você aprova fase a fase ou tudo de uma vez no final.
 
-1. **Canais Realtime duplicados**: `useMessages` e `useInfiniteMessages` se inscrevem no MESMO nome de canal (`messages:${channelId}`). Quando ambos montam (ou só um), há colisão/conflito de subscribers no Supabase Realtime, causando entregas perdidas e reconexões silenciosas. O mesmo pode acontecer entre `useInfiniteDMMessages` e `useDirectMessages`.
+---
 
-2. **Fetch extra de profile a cada INSERT**: cada nova mensagem dispara `fetchMessageProfile()` (1 round-trip ao banco) antes de renderizar. Em conversas ativas isso adiciona 100–400ms de latência percebida e carga extra no DB.
+## Fase 1 — Performance & Realtime (base de tudo)
 
-3. **Revalidação agressiva (`scheduleQuerySync` 1200ms)** após cada INSERT — refaz todo o SELECT de mensagens, podendo sobrescrever estados otimistas e causar "piscadas" / reordenações na UI.
+**Objetivo:** app fluido, mensagens instantâneas, zero travas.
 
-4. **Sem `REPLICA IDENTITY FULL`** nas tabelas de mensagens — `UPDATE`/`DELETE` em realtime entregam apenas a PK, dificultando merges incrementais (ex.: edição de mensagem chega sem `content`).
+- Unificar `useMessages`/`useInfiniteMessages`/`useInfiniteDMMessages` em hook genérico com cache compartilhado.
+- Memoizar agressivamente `MessageBubble`, `DMMessageBubble`, `ChannelList`, `DMList` (React.memo + comparators custom).
+- Virtualização da lista de mensagens com `@tanstack/react-virtual` para canais com 1000+ msgs (mantém scroll suave).
+- Debounce/throttle em: typing indicator, presence, scroll handlers, search.
+- Reduzir queries: prefetch profiles em batch, eliminar N+1 nos channel/DM lists.
+- **Realtime resiliente**: reconexão automática com backoff, "channel suspended" recovery, fila offline (`offlineQueue.ts`) com retry exponencial.
+- Otimistic updates universais: enviar mensagem aparece em <50ms, com indicador "enviando → enviado → entregue → lido".
+- Índices SQL faltantes em `messages(channel_id, created_at DESC)`, `dm_messages(dm_id, created_at DESC)`, `notifications(user_id, is_read)`, etc.
 
-5. **Dedup frágil em mensagens otimistas**: a comparação por `content + user_id + 5s` falha quando o usuário envia 2 mensagens iguais rapidamente, gerando duplicatas visuais.
+## Fase 2 — Mídia & Uploads
 
-6. **Mutation onSuccess não atualiza `profile`**: se o usuário edita o display_name, mensagens recém-enviadas mostram o nome antigo até refresh.
+**Objetivo:** envio de qualquer arquivo, rápido e bonito.
 
-## Mudanças propostas
+- **Vídeo**: thumbnail automático (canvas frame extraction), preview inline, player com controles, compressão opcional (ffmpeg.wasm para vídeos >20MB).
+- **Imagem**: lightbox com swipe entre múltiplas, zoom pinch, download, botão fechar SEMPRE visível mobile, navegação por teclado.
+- **Áudio**: waveform visual, velocidade 1x/1.5x/2x, scrubbing, transcrição opcional via Lovable AI.
+- **Upload progress**: barra real por arquivo + agregada, cancelar upload, retry em falha de rede.
+- **Drag & drop universal** em qualquer área de chat.
+- **Galeria do canal**: aba "Mídia" lista todas imagens/vídeos/arquivos do canal.
 
-### 1. Unificar subscriptions (sem mais canais duplicados)
-- Criar um hook único `useMessagesRealtime(channelId)` que mantém UMA subscription Supabase por `channelId`, atualiza ambos os caches `["messages", id]` e `["infinite-messages", id]` em uma única callback.
-- `useMessages` e `useInfiniteMessages` deixam de criar subscriptions próprias e apenas chamam o novo hook compartilhado (idempotente via ref count global).
-- Mesmo padrão para DMs (`useDMMessagesRealtime`) e grupos.
+## Fase 3 — Gestão de Usuários & Admin (o pedido principal)
 
-### 2. Cache local de profile (evita round-trip por mensagem)
-- Substituir `fetchMessageProfile` por `getProfileCached(userId)` que:
-  - Lê primeiro `queryClient.getQueryData(["profile", userId])` e do cache de membros (`workspace-members`, `channel-members`).
-  - Só busca no DB em fallback, e armazena no QueryClient com `staleTime: 5min`.
-- Resultado: INSERT renderiza imediato com avatar/nome, sem await DB.
+**Objetivo:** controle total sobre quem está e quem sai.
 
-### 3. Remover revalidação após INSERT/UPDATE/DELETE
-- Tirar `scheduleQuerySync` dos handlers de evento — o `setQueryData` já produz o estado correto. Manter apenas a chamada uma vez ao SUBSCRIBED inicial (catch-up de mensagens perdidas durante reconexão).
+### Backend (migrations + edge functions)
+- Nova tabela `workspace_bans` (user_id, workspace_id, banned_by, reason, banned_at).
+- Nova tabela `user_roles` (escopo global: super_admin) — separada de profiles, com `has_role()` security definer.
+- Coluna `is_deleted` em profiles + trigger que substitui display_name por "Usuário removido" e anonimiza nas mensagens.
+- Edge function `admin-delete-user`: usa service_role para deletar de `auth.users` em cascata (irreversível).
+- Edge function `admin-ban-user`: insere em workspace_bans + remove acessos + revoga sessões via `auth.admin.signOut`.
+- RLS bloqueia reentrada em workspace se user está em `workspace_bans`.
 
-### 4. Migração SQL: `REPLICA IDENTITY FULL`
-```sql
-ALTER TABLE public.messages REPLICA IDENTITY FULL;
-ALTER TABLE public.dm_messages REPLICA IDENTITY FULL;
-ALTER TABLE public.dm_group_messages REPLICA IDENTITY FULL;
-ALTER TABLE public.thread_messages REPLICA IDENTITY FULL;
-ALTER TABLE public.message_reactions REPLICA IDENTITY FULL;
+### UI (MemberManagementDialog)
+- Menu de ação por membro: **Remover** / **Banir** / **Excluir conta**.
+- Modal de confirmação com input "digite o nome para confirmar" para ações destrutivas.
+- Aba "Banidos" mostra lista, permite desbanir.
+- Atribuição em massa a canais: selecionar membros + selecionar canais + 1 click.
+- Audit log expandido com todas ações admin.
+
+### Cadastro de usuários
+- Validação de força de senha (zxcvbn), HIBP check ativado.
+- Avatar gerado automaticamente (initials + cor) se não fornecer.
+- Onboarding pós-signup: nome, foto, fuso horário.
+- Convite por link com expiração e limite de usos (já existe — refinar UI).
+
+## Fase 4 — Notificações em Tempo Real (3 problemas)
+
+- **Atraso**: subscription pré-conectada no app boot (não apenas ao abrir chat), heartbeat 30s, reconexão silenciosa.
+- **Push/som**: service worker rev., `silent: false`, vibração configurável; desbloqueio sonoro garantido no 1º gesto; fallback audio HTML5 se Web Audio falhar.
+- **Badges erradas**: refatorar `useUnreadFeed` para usar `channel_read_status` como fonte única, recalcular via SQL view materializada `unread_counts`, sync otimista + revalidação 1s.
+- Centro de notificações com agrupamento (3 mensagens de João em #geral → 1 card).
+- Notificação por e-mail opcional para menções quando offline >5min (edge function cron).
+
+## Fase 5 — UX Polish
+
+- Loading skeletons em todos lugares ainda com spinners.
+- Estados vazios ilustrados.
+- Atalhos de teclado expandidos + dialog `?` para descobrir.
+- Tema claro/escuro automático por horário.
+- Acessibilidade: ARIA labels, focus trap em modais, contraste AA.
+- Pull-to-refresh mobile.
+- Animações Framer Motion sutis em transições de view.
+
+---
+
+## Detalhes técnicos
+
+```text
+Migrations novas:
+  - workspace_bans + RLS + trigger de bloqueio de re-join
+  - user_roles + has_role() + is_super_admin()
+  - profiles.is_deleted + trigger de anonimização
+  - índices: messages, dm_messages, dm_group_messages, notifications
+  - view: unread_counts (materialized refresh on insert)
+
+Edge functions novas:
+  - admin-delete-user (service_role, valida super_admin)
+  - admin-ban-user (insere ban + signOut)
+  - admin-unban-user
+  - send-mention-email (cron, mencionados offline)
+
+Hooks novos / refatorados:
+  - useChatMessages (unificado canal/dm/grupo)
+  - useVirtualizedMessages
+  - useMediaGallery
+  - useAdminActions
+  - useWorkspaceBans
+
+Pacotes a adicionar:
+  - @tanstack/react-virtual (virtualização)
+  - zxcvbn (força de senha)
+  - @ffmpeg/ffmpeg + @ffmpeg/util (compressão vídeo opcional, lazy)
 ```
-Garante que payloads de UPDATE/DELETE tragam a linha inteira.
 
-### 5. Dedup robusto via `client_msg_id`
-- Adicionar coluna `client_msg_id uuid` (nullable) em `messages`, `dm_messages`, `dm_group_messages` (índice único parcial por canal).
-- Ao enviar: gerar UUID no cliente, usar como `optimisticId` e enviar no INSERT.
-- Realtime INSERT compara por `client_msg_id` → dedup determinístico, sem heurística de tempo/conteúdo.
+---
 
-### 6. onSuccess preserva profile correto
-- Em `useSendMessage.onSuccess`, manter o `profile` do cache local em vez de copiar do retorno (que vem sem profile).
+## Como prefere prosseguir?
 
-### 7. Conexão Realtime mais resiliente
-- No `supabase/client.ts` (se permitido) ou via `supabase.realtime.setAuth()` — garantir reconexão automática e `heartbeatIntervalMs: 15000` para detectar quedas mais cedo. (Apenas se o client gerado permitir; caso contrário, pular.)
+Posso:
+1. **Implementar tudo em sequência** num único loop massivo (várias horas de execução, muitos arquivos alterados).
+2. **Aprovar fase por fase** — você revisa cada uma antes da próxima.
 
-## Ganho esperado
-- Latência percebida do envio: de ~500ms → instantânea (otimismo + sem fetch profile).
-- Sem mais "piscadas" ou mensagens duplicadas em rajadas.
-- Edições/deleções refletem corretamente sem refetch full.
-- Sem subscriptions colidindo → entregas estáveis em background.
-
-## Arquivos a editar/criar
-- `src/lib/realtimeSync.ts` — adicionar `getProfileCached`, manter helpers.
-- `src/hooks/useMessagesRealtime.tsx` (novo) — subscription unificada de canais.
-- `src/hooks/useDMMessagesRealtime.tsx` (novo) — idem para DMs.
-- `src/hooks/useMessages.tsx`, `useInfiniteMessages.tsx`, `useDirectMessages.tsx`, `useInfiniteDMMessages.tsx`, `useDMGroups.tsx` — usar hooks unificados, adicionar `client_msg_id` no envio, dedup determinístico.
-- Nova migration SQL: `REPLICA IDENTITY FULL` + coluna `client_msg_id` + índice único.
+Recomendo opção 2 para você validar e dar feedback. Confirme qual prefere e eu inicio pela **Fase 1 — Performance & Realtime**.
