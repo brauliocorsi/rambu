@@ -218,13 +218,13 @@ export function DesktopApp() {
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* Left Sidebar - Workspace Icon */}
-      <div className="w-16 bg-secondary/50 border-r border-border flex flex-col items-center py-4 gap-2">
+      <div className="w-[68px] bg-sidebar border-r border-sidebar-border flex flex-col items-center py-3 gap-1.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="relative">
-              <Avatar className="h-10 w-10 rounded-xl cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+              <Avatar className="h-11 w-11 rounded-2xl cursor-pointer ring-1 ring-border/40 hover:ring-2 hover:ring-primary hover:rounded-xl transition-all duration-200 shadow-md-token">
                 <AvatarImage src={currentWorkspace?.icon_url || undefined} />
-                <AvatarFallback className="rounded-xl gradient-primary text-white font-bold">
+                <AvatarFallback className="rounded-2xl gradient-primary text-white font-semibold tracking-tight">
                   {currentWorkspace?.name?.charAt(0).toUpperCase() || "C"}
                 </AvatarFallback>
               </Avatar>
@@ -489,7 +489,7 @@ export function DesktopApp() {
 
       {/* Expand sidebar button - visible when collapsed */}
       {sidebarCollapsed && (
-        <div className="flex items-start pt-4 border-r border-border bg-card">
+        <div className="flex items-start pt-4 border-r border-sidebar-border bg-sidebar">
           <Button
             variant="ghost"
             size="icon"
@@ -503,9 +503,9 @@ export function DesktopApp() {
       )}
 
       {/* Second Sidebar - Channels & DMs (collapsible) */}
-      <div className={`${sidebarCollapsed ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'} sidebar-transition bg-card border-r border-border flex flex-col`}>
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-bold text-lg truncate">
+      <div className={`${sidebarCollapsed ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'} sidebar-transition bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col`}>
+        <div className="px-4 h-14 border-b border-sidebar-border flex items-center justify-between shrink-0">
+          <h2 className="font-semibold text-[15px] tracking-tight truncate">
             {currentWorkspace?.name || "Rambu"}
           </h2>
           <div className="flex items-center gap-1">
@@ -529,7 +529,7 @@ export function DesktopApp() {
           </div>
         </div>
 
-        <div className="flex border-b border-border">
+        <div className="flex border-b border-sidebar-border px-2 pt-1">
           <button
             onClick={() => setActiveSection("channels")}
             className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
