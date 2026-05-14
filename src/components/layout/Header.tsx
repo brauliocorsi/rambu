@@ -20,15 +20,15 @@ export function Header({
 }: HeaderProps) {
   const { focusMode, toggleFocusMode } = useFocusMode();
   return (
-    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-top">
-      <div className="flex items-center justify-between px-4 h-12">
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 glass safe-top">
+      <div className="flex items-center justify-between px-3 h-14">
+        <div className="flex items-center gap-2">
           {onMenuClick && (
-            <Button variant="ghost" size="icon" onClick={onMenuClick} className="rounded-xl h-8 w-8">
-              <Menu className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={onMenuClick} className="rounded-lg h-9 w-9 active:scale-95 transition-transform">
+              <Menu className="h-[18px] w-[18px]" />
             </Button>
           )}
-          <h1 className="text-lg font-semibold truncate max-w-[200px]">
+          <h1 className="text-[17px] font-semibold tracking-tight truncate max-w-[220px]">
             {title}
           </h1>
         </div>
@@ -37,25 +37,25 @@ export function Header({
           <Button
             variant="ghost"
             size="icon"
-            className={cn("rounded-xl h-8 w-8", focusMode && "text-primary bg-primary/10")}
+            className={cn("rounded-lg h-9 w-9 active:scale-95 transition-transform", focusMode && "text-primary bg-primary/10")}
             onClick={toggleFocusMode}
             title={focusMode ? "Sair do modo foco" : "Modo foco"}
           >
-            <Focus className="h-4 w-4" />
+            <Focus className="h-[18px] w-[18px]" />
           </Button>
           {showSearch && (
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-xl h-8 w-8"
+              className="rounded-lg h-9 w-9 active:scale-95 transition-transform"
               onClick={onSearchClick}
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-[18px] w-[18px]" />
             </Button>
           )}
           {onSettingsClick && (
-            <Button variant="ghost" size="icon" onClick={onSettingsClick} className="rounded-xl h-8 w-8">
-              <Settings className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={onSettingsClick} className="rounded-lg h-9 w-9 active:scale-95 transition-transform">
+              <Settings className="h-[18px] w-[18px]" />
             </Button>
           )}
         </div>
