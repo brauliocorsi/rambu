@@ -77,7 +77,7 @@ interface SettingsViewProps {
 export function SettingsView({ onBack }: SettingsViewProps) {
   const { user, signOut } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const { preferences, setSlackMode, setDensity, setDesktopInputMode } = useLayoutPreferences();
+  const { preferences, setSlackMode, setDensity, setInputBarMode } = useLayoutPreferences();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: notifPrefs } = useNotificationPreferences();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, sendTestNotification } = useBrowserNotifications();
@@ -499,29 +499,43 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                 </p>
               </div>
 
-              {/* Desktop Input Mode */}
+              {/* Input Bar Mode */}
               <div className="pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-start gap-3">
-                    <PanelTop className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-medium">Barra de mensagem desktop</p>
-                      <p className="text-sm text-muted-foreground">
-                        Mostrar todas as ações (emoji, tarefa, enquete, agendar, áudio…) sempre visíveis, mesmo em telas pequenas
-                      </p>
-                    </div>
+                <div className="flex items-start gap-3 mb-3">
+                  <PanelTop className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Barra de mensagens</p>
+                    <p className="text-sm text-muted-foreground">
+                      Escolha como as ações (emoji, tarefa, enquete, áudio…) aparecem
+                    </p>
                   </div>
-                  <Switch
-                    checked={preferences.desktopInputMode}
-                    onCheckedChange={(checked) => {
-                      setDesktopInputMode(checked);
-                      toast.success(
-                        checked
-                          ? "Barra desktop ativada — todas as ações sempre visíveis"
-                          : "Barra desktop desativada — layout compacto restaurado"
-                      );
-                    }}
-                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: "auto", label: "Auto", desc: "Responsivo padrão" },
+                    { value: "desktop", label: "Desktop", desc: "Barra completa" },
+                    { value: "compact", label: "Compacto", desc: "Sempre minimal" },
+                  ] as const).map((opt) => (
+                    <Button
+                      key={opt.value}
+                      variant={preferences.inputBarMode === opt.value ? "default" : "outline"}
+                      className="rounded-xl flex flex-col gap-0.5 h-auto py-3"
+                      onClick={() => {
+                        if (preferences.inputBarMode === opt.value) return;
+                        setInputBarMode(opt.value);
+                        toast.success(
+                          opt.value === "auto"
+                            ? "Modo Auto — segue o tamanho da tela"
+                            : opt.value === "desktop"
+                              ? "Modo Desktop — todas as ações visíveis"
+                              : "Modo Compacto — layout minimal sempre"
+                        );
+                      }}
+                    >
+                      <span className="text-xs font-semibold">{opt.label}</span>
+                      <span className="text-[10px] opacity-70">{opt.desc}</span>
+                    </Button>
+                  ))}
                 </div>
               </div>
             </div>
