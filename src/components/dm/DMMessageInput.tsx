@@ -84,8 +84,14 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
   const { preferences } = useLayoutPreferences();
-  const fullBarClass = preferences.desktopInputMode ? "flex" : "hidden lg:flex";
-  const compactBarClass = preferences.desktopInputMode ? "hidden" : "flex lg:hidden";
+  const fullBarClass =
+    preferences.inputBarMode === "desktop" ? "flex"
+    : preferences.inputBarMode === "compact" ? "hidden"
+    : "hidden lg:flex";
+  const compactBarClass =
+    preferences.inputBarMode === "desktop" ? "hidden"
+    : preferences.inputBarMode === "compact" ? "flex"
+    : "flex lg:hidden";
   const inputRef = useRef<{ focus: () => void }>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   

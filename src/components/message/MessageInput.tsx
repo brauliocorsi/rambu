@@ -72,9 +72,18 @@ export function MessageInput({
   const [ephemeralMinutes, setEphemeralMinutes] = useState<number | null>(null);
   const [showEphemeralMenu, setShowEphemeralMenu] = useState(false);
   const { preferences } = useLayoutPreferences();
-  const fullBarClass = preferences.desktopInputMode ? "flex" : "hidden lg:flex";
-  const compactBarClass = preferences.desktopInputMode ? "hidden" : "flex lg:hidden";
-  const toolbarClass = preferences.desktopInputMode ? "flex mt-0.5" : "hidden lg:flex mt-0.5";
+  const fullBarClass =
+    preferences.inputBarMode === "desktop" ? "flex"
+    : preferences.inputBarMode === "compact" ? "hidden"
+    : "hidden lg:flex";
+  const compactBarClass =
+    preferences.inputBarMode === "desktop" ? "hidden"
+    : preferences.inputBarMode === "compact" ? "flex"
+    : "flex lg:hidden";
+  const toolbarClass =
+    preferences.inputBarMode === "desktop" ? "flex mt-0.5"
+    : preferences.inputBarMode === "compact" ? "hidden mt-0.5"
+    : "hidden lg:flex mt-0.5";
 
   // Insert markdown formatting around selection or at cursor
   const handleInsertMarkdown = useCallback((prefix: string, suffix: string, placeholder?: string) => {

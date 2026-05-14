@@ -1,24 +1,25 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 
 export type MessageDensity = "compact" | "normal" | "comfortable";
+export type InputBarMode = "auto" | "desktop" | "compact";
 
 interface LayoutPreferences {
   slackMode: boolean; // All messages aligned left with day separators
   density: MessageDensity; // Message spacing density
-  desktopInputMode: boolean; // Force the full desktop message-input toolbar regardless of viewport
+  inputBarMode: InputBarMode; // auto = responsivo, desktop = sempre completo, compact = sempre compacto
 }
 
 interface LayoutPreferencesContextType {
   preferences: LayoutPreferences;
   setSlackMode: (enabled: boolean) => void;
   setDensity: (density: MessageDensity) => void;
-  setDesktopInputMode: (enabled: boolean) => void;
+  setInputBarMode: (mode: InputBarMode) => void;
 }
 
 const defaultPreferences: LayoutPreferences = {
   slackMode: false,
   density: "normal",
-  desktopInputMode: false,
+  inputBarMode: "auto",
 };
 
 const LayoutPreferencesContext = createContext<LayoutPreferencesContextType | null>(null);
@@ -30,7 +31,12 @@ export function LayoutPreferencesProvider({ children }: { children: ReactNode })
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return { ...defaultPreferences, ...JSON.parse(stored) };
+        const parsed = JSON.parse(stored);
+        // Back-compat: migrate old desktopInputMode boolean to inputBarMode
+        if (parsed && typeof parsed.desktopInputMode === "boolean" && !parsed.inputBarMode) {
+          parsed.inputBarMode = parsed.desktopInputMode ? "desktop" : "auto";
+        }
+        return { ...defaultPreferences, ...parsed };
       }
     } catch (e) {
       console.error("Error loading layout preferences:", e);
@@ -55,12 +61,12 @@ export function LayoutPreferencesProvider({ children }: { children: ReactNode })
     setPreferences((prev) => ({ ...prev, density }));
   }, []);
 
-  const setDesktopInputMode = useCallback((enabled: boolean) => {
-    setPreferences((prev) => ({ ...prev, desktopInputMode: enabled }));
+  const setInputBarMode = useCallback((mode: InputBarMode) => {
+    setPreferences((prev) => ({ ...prev, inputBarMode: mode }));
   }, []);
 
   return (
-    <LayoutPreferencesContext.Provider value={{ preferences, setSlackMode, setDensity, setDesktopInputMode }}>
+    <LayoutPreferencesContext.Provider value={{ preferences, setSlackMode, setDensity, setInputBarMode }}>
       {children}
     </LayoutPreferencesContext.Provider>
   );
