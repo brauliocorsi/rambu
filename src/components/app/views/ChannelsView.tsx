@@ -17,6 +17,7 @@ import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
 import { PinnedMessagesPanel } from "@/components/message/PinnedMessagesPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
