@@ -425,7 +425,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
       {/* Input Area */}
       <div className="flex items-end gap-1.5 md:gap-2">
         {/* Left actions */}
-        <div className="hidden md:flex items-center gap-0.5 shrink-0">
+        <div className="hidden lg:flex items-center gap-0.5 shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -484,7 +484,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         </div>
 
         {/* Mobile action button - dropdown */}
-        <div className="flex md:hidden items-center gap-0.5 shrink-0">
+        <div className="flex lg:hidden items-center gap-0.5 shrink-0">
           <input
             ref={fileInputRef}
             type="file"
