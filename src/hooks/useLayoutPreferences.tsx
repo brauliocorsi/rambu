@@ -5,17 +5,20 @@ export type MessageDensity = "compact" | "normal" | "comfortable";
 interface LayoutPreferences {
   slackMode: boolean; // All messages aligned left with day separators
   density: MessageDensity; // Message spacing density
+  desktopInputMode: boolean; // Force the full desktop message-input toolbar regardless of viewport
 }
 
 interface LayoutPreferencesContextType {
   preferences: LayoutPreferences;
   setSlackMode: (enabled: boolean) => void;
   setDensity: (density: MessageDensity) => void;
+  setDesktopInputMode: (enabled: boolean) => void;
 }
 
 const defaultPreferences: LayoutPreferences = {
   slackMode: false,
   density: "normal",
+  desktopInputMode: false,
 };
 
 const LayoutPreferencesContext = createContext<LayoutPreferencesContextType | null>(null);
@@ -52,8 +55,12 @@ export function LayoutPreferencesProvider({ children }: { children: ReactNode })
     setPreferences((prev) => ({ ...prev, density }));
   }, []);
 
+  const setDesktopInputMode = useCallback((enabled: boolean) => {
+    setPreferences((prev) => ({ ...prev, desktopInputMode: enabled }));
+  }, []);
+
   return (
-    <LayoutPreferencesContext.Provider value={{ preferences, setSlackMode, setDensity }}>
+    <LayoutPreferencesContext.Provider value={{ preferences, setSlackMode, setDensity, setDesktopInputMode }}>
       {children}
     </LayoutPreferencesContext.Provider>
   );

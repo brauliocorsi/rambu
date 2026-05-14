@@ -18,6 +18,7 @@ import { TaskFormDialog } from "@/components/tasks/TaskFormDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { type TaskTemplate } from "@/hooks/useTaskTemplates";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { toast } from "sonner";
 import { format, addHours, addDays, setHours, setMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -82,6 +83,9 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
   const [selectedTaskTemplate, setSelectedTaskTemplate] = useState<TaskTemplate | null>(null);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
+  const { preferences } = useLayoutPreferences();
+  const fullBarClass = preferences.desktopInputMode ? "flex" : "hidden lg:flex";
+  const compactBarClass = preferences.desktopInputMode ? "hidden" : "flex lg:hidden";
   const inputRef = useRef<{ focus: () => void }>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -425,7 +429,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
       {/* Input Area */}
       <div className="flex items-end gap-1.5 md:gap-2">
         {/* Left actions */}
-        <div className="hidden lg:flex items-center gap-0.5 shrink-0">
+        <div className={`${fullBarClass} items-center gap-0.5 shrink-0`}>
           <Button
             variant="ghost"
             size="icon"
@@ -484,7 +488,7 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
         </div>
 
         {/* Mobile action button - dropdown */}
-        <div className="flex lg:hidden items-center gap-0.5 shrink-0">
+        <div className={`${compactBarClass} items-center gap-0.5 shrink-0`}>
           <input
             ref={fileInputRef}
             type="file"

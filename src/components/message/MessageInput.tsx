@@ -26,6 +26,7 @@ import { type TaskTemplate } from "@/hooks/useTaskTemplates";
 import { CreatePollDialog } from "@/components/poll/CreatePollDialog";
 import { MarkdownToolbar } from "./MarkdownToolbar";
 import { MessageContent } from "./MessageContent";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { toast } from "sonner";
 
 interface MessageInputProps {
@@ -70,6 +71,10 @@ export function MessageInput({
   const [showPreview, setShowPreview] = useState(false);
   const [ephemeralMinutes, setEphemeralMinutes] = useState<number | null>(null);
   const [showEphemeralMenu, setShowEphemeralMenu] = useState(false);
+  const { preferences } = useLayoutPreferences();
+  const fullBarClass = preferences.desktopInputMode ? "flex" : "hidden lg:flex";
+  const compactBarClass = preferences.desktopInputMode ? "hidden" : "flex lg:hidden";
+  const toolbarClass = preferences.desktopInputMode ? "flex mt-0.5" : "hidden lg:flex mt-0.5";
 
   // Insert markdown formatting around selection or at cursor
   const handleInsertMarkdown = useCallback((prefix: string, suffix: string, placeholder?: string) => {
@@ -431,7 +436,7 @@ export function MessageInput({
         />
 
         {/* Action buttons - hidden on mobile, shown in a compact row */}
-        <div className="hidden lg:flex items-center gap-0.5">
+        <div className={`${fullBarClass} items-center gap-0.5`}>
           <Button
             variant="ghost"
             size="icon"
@@ -528,7 +533,7 @@ export function MessageInput({
         </div>
 
         {/* Mobile action button - dropdown */}
-        <div className="flex lg:hidden items-center gap-0.5 shrink-0">
+        <div className={`${compactBarClass} items-center gap-0.5 shrink-0`}>
           <Button
             variant="ghost"
             size="icon"
@@ -619,7 +624,7 @@ export function MessageInput({
             />
           )}
           {/* Formatting toolbar - below input, subtle */}
-          <div className="hidden lg:flex mt-0.5">
+          <div className={toolbarClass}>
             <MarkdownToolbar
               onInsert={handleInsertMarkdown}
               showPreview={showPreview}
