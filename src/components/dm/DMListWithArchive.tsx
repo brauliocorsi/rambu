@@ -74,10 +74,11 @@ export function DMListWithArchive({
         <button
           onClick={() => onSelectDM(dm)}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
+            "w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-150 relative",
+            "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:rounded-r-full before:transition-all",
             isSelected
-              ? "bg-primary/10"
-              : "hover:bg-secondary/70 active:bg-secondary",
+              ? "bg-dm/10 before:h-6 before:bg-dm"
+              : "hover:bg-secondary/70 active:bg-secondary before:h-0",
           )}
         >
           {/* Avatar */}
@@ -102,7 +103,7 @@ export function DMListWithArchive({
               <span className={cn(
                 "text-sm font-medium truncate",
                 unreadCount > 0 && "font-bold text-foreground",
-                isSelected && "text-primary"
+                isSelected && "text-dm"
               )}>
                 {displayName}
               </span>
