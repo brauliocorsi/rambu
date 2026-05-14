@@ -512,7 +512,14 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                   </div>
                   <Switch
                     checked={preferences.desktopInputMode}
-                    onCheckedChange={setDesktopInputMode}
+                    onCheckedChange={(checked) => {
+                      setDesktopInputMode(checked);
+                      toast.success(
+                        checked
+                          ? "Barra desktop ativada — todas as ações sempre visíveis"
+                          : "Barra desktop desativada — layout compacto restaurado"
+                      );
+                    }}
                   />
                 </div>
               </div>
