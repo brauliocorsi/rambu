@@ -533,7 +533,7 @@ export function MessageInput({
         </div>
 
         {/* Mobile action button - dropdown */}
-        <div className="flex lg:hidden items-center gap-0.5 shrink-0">
+        <div className={`${compactBarClass} items-center gap-0.5 shrink-0`}>
           <Button
             variant="ghost"
             size="icon"
@@ -624,7 +624,7 @@ export function MessageInput({
             />
           )}
           {/* Formatting toolbar - below input, subtle */}
-          <div className="hidden lg:flex mt-0.5">
+          <div className={toolbarClass}>
             <MarkdownToolbar
               onInsert={handleInsertMarkdown}
               showPreview={showPreview}
