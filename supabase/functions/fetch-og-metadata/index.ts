@@ -87,10 +87,21 @@ Deno.serve(async (req) => {
       if (!ct.includes("text/html")) throw new Error("not html");
       html = (await res.text()).slice(0, 200_000);
     } catch (e) {
-      return new Response(
-        JSON.stringify({ error: String(e) }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      // Target URL unreachable / protected (401, 403, timeout, non-HTML, etc.).
+      // Return an empty preview with 200 so the client doesn't show a broken state,
+      // and cache it briefly to avoid hammering the same URL.
+      const emptyRow = {
+        url,
+        title: null,
+        description: null,
+        image_url: null,
+        site_name: null,
+        fetched_at: new Date().toISOString(),
+      };
+      await supabase.from("link_previews").upsert(emptyRow, { onConflict: "url" });
+      return new Response(JSON.stringify(emptyRow), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const title =
