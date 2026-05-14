@@ -73,36 +73,38 @@ function ChannelChatView() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Channel Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 border-b border-border">
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-xl"
+          className="rounded-xl h-9 w-9 shrink-0"
           onClick={() => setCurrentChannel(null)}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold flex items-center gap-1">
-            <Hash className="h-4 w-4" />
-            {currentChannel.name}
+          <h2 className="font-bold flex items-center gap-1 min-w-0">
+            <Hash className="h-4 w-4 shrink-0" />
+            <span className="truncate">{currentChannel.name}</span>
           </h2>
           {currentChannel.description && (
             <p className="text-xs text-muted-foreground truncate">{currentChannel.description}</p>
           )}
-          <div className="mt-1">
+          <div className="mt-1 hidden sm:block">
             <LabelPicker channelId={currentChannel.id} />
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <ChannelMembersPopover channelId={currentChannel.id} />
-          <JumpToDateButton jumpToDate={jumpToDate} isJumping={isJumping} />
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <div className="hidden md:flex items-center gap-1">
+            <ChannelMembersPopover channelId={currentChannel.id} />
+            <JumpToDateButton jumpToDate={jumpToDate} isJumping={isJumping} />
+          </div>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-xl h-9 w-9 touch-target"
+                className="hidden sm:inline-flex rounded-xl h-9 w-9 touch-target"
                 title={isSnoozed ? "Silenciado" : "Silenciar canal"}
               >
                 {isSnoozed ? <BellOff className="h-4.5 w-4.5 text-muted-foreground" /> : <Bell className="h-4.5 w-4.5" />}
@@ -123,7 +125,7 @@ function ChannelChatView() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl h-9 w-9 touch-target"
+            className="hidden sm:inline-flex rounded-xl h-9 w-9 touch-target"
             onClick={() => setShowPinned(true)}
             title="Mensagens fixadas"
           >
@@ -131,7 +133,7 @@ function ChannelChatView() {
           </Button>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 touch-target" title="Exportar">
+              <Button variant="ghost" size="icon" className="hidden sm:inline-flex rounded-xl h-9 w-9 touch-target" title="Exportar">
                 <Download className="h-4.5 w-4.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -150,14 +152,32 @@ function ChannelChatView() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {(channelRole === 'owner' || channelRole === 'admin') && (
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 touch-target">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-xl w-48 z-[60]" sideOffset={4}>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 touch-target" title="Mais opções">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-56 z-[60]" sideOffset={4}>
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer sm:hidden"
+                onSelect={() => setShowPinned(true)}
+              >
+                <Pin className="h-4 w-4 mr-2" /> Mensagens fixadas
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer sm:hidden"
+                onSelect={() => exportAsText({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+              >
+                <FileText className="h-4 w-4 mr-2" /> Exportar texto
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-lg cursor-pointer sm:hidden"
+                onSelect={() => exportAsJSON({ type: "channel", id: currentChannel.id, name: currentChannel.name })}
+              >
+                <FileJson className="h-4 w-4 mr-2" /> Exportar JSON
+              </DropdownMenuItem>
+              {(channelRole === 'owner' || channelRole === 'admin') && (
                 <DropdownMenuItem
                   className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
                   onSelect={() => {
@@ -172,9 +192,9 @@ function ChannelChatView() {
                   <Trash2 className="h-4 w-4 mr-2" />
                   Remover Canal
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
