@@ -11,6 +11,7 @@ import { NewDMDialog } from "@/components/dm/NewDMDialog";
 import { NewGroupDialog } from "@/components/dm/NewGroupDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 import { 
   MessageSquare, 
@@ -67,14 +68,13 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   if (!currentWorkspace) {
     return (
       <div className="p-4">
-        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-            <Briefcase className="h-8 w-8 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-semibold">Nenhum workspace</h3>
-            <p className="text-sm text-muted-foreground">Crie um workspace para iniciar conversas!</p>
-          </div>
+        <Card className="rounded-2xl border-border/60">
+          <EmptyState
+            icon={Briefcase}
+            tone="dm"
+            title="Nenhum workspace"
+            description="Crie um workspace para iniciar conversas diretas."
+          />
         </Card>
       </div>
     );
@@ -112,31 +112,32 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
           />
         </Card>
       ) : hasNoConversations ? (
-        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-            <MessageSquare className="h-8 w-8 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-semibold">Nenhuma conversa</h3>
-            <p className="text-sm text-muted-foreground">Inicie uma nova conversa!</p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setShowNewGroup(true)}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Novo Grupo
-            </Button>
-            <Button 
-              className="rounded-xl gradient-primary text-white"
-              onClick={() => setShowNewDM(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Mensagem
-            </Button>
-          </div>
+        <Card className="rounded-2xl border-border/60">
+          <EmptyState
+            icon={MessageSquare}
+            tone="dm"
+            title="Nenhuma conversa ainda"
+            description="Comece uma conversa direta ou crie um grupo com sua equipe."
+            action={
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setShowNewGroup(true)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Novo Grupo
+                </Button>
+                <Button
+                  className="rounded-xl gradient-dm text-white shadow-md-token"
+                  onClick={() => setShowNewDM(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Mensagem
+                </Button>
+              </div>
+            }
+          />
         </Card>
       ) : (
         <div className="space-y-4">

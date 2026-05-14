@@ -17,6 +17,7 @@ import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
 import { PinnedMessagesPanel } from "@/components/message/PinnedMessagesPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -239,14 +240,13 @@ export function ChannelsView() {
   if (!currentWorkspace) {
     return (
       <div className="p-4">
-        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-            <Briefcase className="h-8 w-8 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-semibold">Nenhum workspace</h3>
-            <p className="text-sm text-muted-foreground">Crie um workspace para criar canais!</p>
-          </div>
+        <Card className="rounded-2xl border-border/60">
+          <EmptyState
+            icon={Briefcase}
+            tone="channel"
+            title="Nenhum workspace"
+            description="Crie um workspace para começar a organizar seus canais."
+          />
         </Card>
       </div>
     );
@@ -286,21 +286,22 @@ export function ChannelsView() {
           />
         </Card>
       ) : channels.length === 0 ? (
-        <Card className="p-8 rounded-2xl flex flex-col items-center justify-center gap-4">
-          <div className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center">
-            <Hash className="h-8 w-8 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-semibold">Nenhum canal</h3>
-            <p className="text-sm text-muted-foreground">Crie o primeiro canal em {currentWorkspace.name}!</p>
-          </div>
-          <Button 
-            className="rounded-xl gradient-primary text-white"
-            onClick={() => setShowCreateChannel(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Criar Canal
-          </Button>
+        <Card className="rounded-2xl border-border/60">
+          <EmptyState
+            icon={Hash}
+            tone="channel"
+            title="Nenhum canal ainda"
+            description={`Crie o primeiro canal em ${currentWorkspace.name} e comece a conversar.`}
+            action={
+              <Button
+                className="rounded-xl gradient-primary text-white shadow-md-token"
+                onClick={() => setShowCreateChannel(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Canal
+              </Button>
+            }
+          />
         </Card>
       ) : (
         <Card className="p-2 rounded-2xl">
