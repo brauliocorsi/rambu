@@ -68,6 +68,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -512,7 +513,14 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                   </div>
                   <Switch
                     checked={preferences.desktopInputMode}
-                    onCheckedChange={setDesktopInputMode}
+                    onCheckedChange={(checked) => {
+                      setDesktopInputMode(checked);
+                      toast.success(
+                        checked
+                          ? "Barra desktop ativada — todas as ações sempre visíveis"
+                          : "Barra desktop desativada — layout compacto restaurado"
+                      );
+                    }}
                   />
                 </div>
               </div>
