@@ -47,6 +47,7 @@ import {
   Tag,
   BarChart3,
   ShieldCheck,
+  PanelTop,
 } from "lucide-react";
 import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
@@ -75,7 +76,7 @@ interface SettingsViewProps {
 export function SettingsView({ onBack }: SettingsViewProps) {
   const { user, signOut } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const { preferences, setSlackMode, setDensity } = useLayoutPreferences();
+  const { preferences, setSlackMode, setDensity, setDesktopInputMode } = useLayoutPreferences();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: notifPrefs } = useNotificationPreferences();
   const { isSupported: pushSupported, permission: pushPermission, requestPermission: requestPushPermission, sendTestNotification } = useBrowserNotifications();
@@ -495,6 +496,25 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                   {preferences.density === "normal" && "Espaçamento padrão"}
                   {preferences.density === "comfortable" && "Mais espaçamento para leitura"}
                 </p>
+              </div>
+
+              {/* Desktop Input Mode */}
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <PanelTop className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="font-medium">Barra de mensagem desktop</p>
+                      <p className="text-sm text-muted-foreground">
+                        Mostrar todas as ações (emoji, tarefa, enquete, agendar, áudio…) sempre visíveis, mesmo em telas pequenas
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.desktopInputMode}
+                    onCheckedChange={setDesktopInputMode}
+                  />
+                </div>
               </div>
             </div>
           </Card>
