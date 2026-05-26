@@ -1,91 +1,92 @@
-## Modernização UI/UX — Rambu
+# Refatoração: Camada Unificada de Conversa
 
-Direção: **Slack/Discord moderno** — densidade equilibrada, sidebar marcante com identidade colorida por contexto (azul/verde/roxo), tipografia profissional, microinterações em molas suaves, glassmorphism mais sutil e sombras em camadas.
+Hoje existem três implementações paralelas de chat — canais (`messages`), DMs (`dm_messages`) e grupos (`dm_group_messages`) — cada uma com seus próprios hooks, componentes de bolha, input, lista e lógica de realtime/read receipts. O objetivo é introduzir uma **camada frontend única** que abstrai a tabela de origem e é reutilizada pelos três fluxos, sem mexer no banco.
 
----
+## 1. Tipo unificado (`src/types/conversation.ts`)
 
-### 1. Novos tokens globais (`src/index.css` + `tailwind.config.ts`)
+```ts
+export type ConversationType = "channel" | "dm" | "group";
 
-- **Tipografia**: trocar `Inter` por par moderno **Geist Sans** (UI/body) + **Geist Mono** (códigos/timestamps). Importar via Google Fonts/CDN. Cabeçalhos com `tracking-tight` e `font-medium` (não bold pesado).
-- **Paleta refinada (HSL)**:
-  - Light: `--background 0 0% 99%`, `--foreground 240 10% 8%`, `--muted 240 5% 96%`, `--border 240 6% 91%`.
-  - Dark: `--background 240 12% 6%`, `--card 240 12% 9%`, `--muted 240 8% 14%`, `--border 240 8% 16%` — base mais profunda, próxima ao Discord/Linear.
-  - **Primary** mantém roxo (262 83% 58%) mas com `--primary-glow` para halos.
-  - Cores de contexto promovidas a tokens semânticos: `--channel 217 91% 60%` (azul), `--dm 142 71% 45%` (verde), `--group 262 83% 58%` (roxo). Cada uma com `-foreground`, `-soft` (10% alpha) e `-glow`.
-- **Radius**: reduzir `--radius` de `1rem` para `0.75rem` (mais Slack/Linear) + adicionar `--radius-bubble: 1.125rem`.
-- **Sombras em camadas**: `--shadow-xs/sm/md/lg/xl` baseadas em foreground com baixa opacidade + `--shadow-glow-channel/dm/group` para focus rings coloridos.
-- **Gradientes**: novos `--gradient-channel`, `--gradient-dm`, `--gradient-group` para headers e avatares.
-- **Spacing scale**: novos utilitários `space-tight` para listas densas (sidebar) e `space-cozy` para mensagens.
+export interface ConversationRef {
+  type: ConversationType;
+  id: string;                 // channel_id | dm_id | group_id
+  workspaceId?: string;       // necessário p/ channel/group
+  otherUserId?: string;       // necessário p/ dm
+}
 
-### 2. Sidebar e navegação (`src/components/app/DesktopApp.tsx`, `MainApp.tsx`, sidebar components)
-
-- Workspace switcher vertical à esquerda (estilo Discord) com avatares quadrados arredondados, indicador ativo (barra vertical primária animada).
-- Lista de canais/DMs com:
-  - Itens mais densos (h-9, px-2), ícone + nome, badge de unread alinhada à direita com `--primary` sólido e count tabular-nums.
-  - Item ativo: fundo `bg-{contexto}-soft`, borda esquerda 3px na cor do contexto, texto `text-foreground font-medium`.
-  - Hover: `bg-muted/60` com transição 120ms.
-  - Seções colapsáveis com chevron rotacionado (sem Framer Motion, CSS only).
-- Header da sidebar: nome do workspace + dropdown, busca global pinada (Cmd+K hint à direita).
-- Footer fixo: avatar do usuário + status dot + ações (settings, status).
-
-### 3. Headers e barras de ação
-
-- Header do chat redesenhado: 56px de altura, glass sutil (`backdrop-blur 16px` + 70% opacity), título em `font-medium tracking-tight`, subtítulo de membros/descrição em `text-xs text-muted-foreground`.
-- AvatarStack à direita com sobreposição -8px e ring `ring-2 ring-background`.
-- Barra de ações: ícones em botões `ghost` 32x32 com hover bg `muted` + tooltip refinado.
-- Breadcrumbs sutis quando aplicável (workspace › canal › thread).
-
-### 4. Mensagens e bolhas (`src/components/message/*`)
-
-- **Layout próprio (own)**: bubble com `bg-primary text-primary-foreground`, sombra suave `shadow-md` com tint primary, corner radius assimétrico (`rounded-2xl rounded-br-sm`).
-- **Layout outros**: bubble com `bg-card border border-border/50`, hover revela ações (reagir, responder, mais) em barra flutuante acima.
-- Avatares 36px com ring sutil, agrupamento de mensagens consecutivas (sem repetir avatar/nome em <5min).
-- Timestamps em `font-mono text-[11px] text-muted-foreground` aparecem só no hover do grupo.
-- Reações: pills compactas com count, hover scale 1.05, animação spring no toggle.
-- Reply preview com barra colorida vertical de 3px na cor do contexto.
-- Anexos: thumbnails com radius `--radius-bubble`, overlay com info no hover.
-- Indicador "novo" com linha + label centralizado em `bg-background` flutuante.
-
-### 5. Microinterações (equilibradas)
-
-- Spring leve (Framer Motion já presente) só em: abrir modais, toggle de reação, envio de mensagem, swap de canal (fade 120ms).
-- Hover states com `transition-colors duration-150`.
-- Botões com `active:scale-[0.98]` via `.press-scale`.
-- Skip animations em itens otimistas (já implementado).
-
-### 6. Diálogos, modais e empty states
-
-- Padronizar modais com header denso (h-12), divider sutil, footer com botões à direita.
-- Empty states com ilustração SVG simples (linhas finas, accent na cor do contexto), título `text-lg font-medium`, descrição `text-sm text-muted-foreground`, CTA primário.
-- Telas: lista de canais vazia, sem mensagens no canal, busca sem resultados, notificações limpas.
-
-### 7. Componentes shadcn customizados
-
-- `Button`: nova variant `soft` (bg-{cor}-soft / text-{cor}), variant `ghost` com hover `bg-muted/60`.
-- `Badge`: variant `unread` (bg-primary, text-primary-foreground, font-mono tabular-nums, h-5 min-w-5 px-1.5).
-- `Tooltip`: delay 300ms, glass + border sutil.
-- `Avatar`: ring contextual opcional via prop.
-
----
-
-### Detalhes técnicos
-
-- **Sem mudança de business logic**: apenas tokens, classes Tailwind, componentes de apresentação.
-- **Cores em HSL** via design system; nada de cores hardcoded em componentes.
-- **Compatibilidade dark/light** garantida em todos os tokens novos.
-- **Performance**: manter memoização de `MessageBubble`; transições só em propriedades GPU-friendly (transform, opacity).
-- **Fontes**: `<link>` em `index.html` para Geist; fallback `system-ui`.
-- **Sem refactor estrutural**: arquivos existentes mantêm suas responsabilidades; mudanças são em estilo, classes e tokens.
-
-### Ordem de execução
-
-```text
-1. Tokens (index.css + tailwind.config.ts) + import de fonte
-2. Sidebar (workspace switcher + lista de canais/DMs)
-3. Headers e barras de ação
-4. Bolhas de mensagem + reações + agrupamento
-5. Diálogos + empty states
-6. Polimento de microinterações + revisão dark mode
+export interface ConversationMessage {
+  id: string;
+  conversationRef: ConversationRef;
+  authorId: string;
+  authorProfile?: { display_name; avatar_url; ... };
+  content: string;
+  attachments: Attachment[];
+  audioUrl?: string;
+  replyToId?: string;
+  replyToPreview?: { authorName; content; };
+  mentions: string[];
+  editedAt?: string;
+  deletedAt?: string;
+  reactions: Reaction[];
+  readBy: ReadReceipt[];
+  scheduledFor?: string;
+  createdAt: string;
+  // flags p/ wrappers visuais existentes
+  _raw: any;                  // payload original p/ retrocompatibilidade
+}
 ```
 
-Cada etapa será verificada visualmente no preview antes de seguir.
+Inclui também `SendMessageInput`, `Attachment`, `Reaction`, `ReadReceipt`, `EditMessageInput` — mesma forma para os 3 tipos.
+
+## 2. Hooks unificados (`src/hooks/`)
+
+Cada hook recebe `ConversationRef` e despacha internamente para a implementação correta. Reaproveitam os hooks existentes por dentro (sem duplicar SQL):
+
+- **`useConversationMessages(ref, opts)`** — wrapper sobre `useInfiniteMessages` (channel) e `useInfiniteDMMessages` (dm/group). Retorna `{ messages: ConversationMessage[], loadMore, hasMore, isLoading }` já normalizado via um `normalizeMessage(ref, raw)`.
+- **`useSendConversationMessage(ref)`** — wrapper sobre `useMessages.sendMessage`, `useDirectMessages.sendMessage` e `useDMGroups.sendMessage`. Mesma assinatura `(input: SendMessageInput) => Promise<...>`. Cuida de optimistic update, edit, delete, react, schedule, reply.
+- **`useConversationRealtime(ref)`** — assina a tabela certa (`messages` / `dm_messages` / `dm_group_messages`), aplica `INSERT/UPDATE/DELETE` ao cache do React Query usado por `useConversationMessages`, e respeita o padrão atual de fetch de perfil isolado + revalidação 1200 ms (regra de memória).
+- **`useConversationReadStatus(ref)`** — unifica leitura/marcação. Internamente reusa `markChannelAsRead`, `markDMAsRead`, `markGroupAsRead` que já existem. Expõe `markAsRead()`, `markAsUnread()`, `readReceipts(messageId)`.
+
+Os hooks legados continuam exportados; novos hooks são fachadas, sem reescrever queries.
+
+## 3. Componentes unificados (`src/components/conversation/`)
+
+- **`ConversationView.tsx`** — orquestra header (delegado por prop), `ConversationMessageList`, `ConversationComposer`, `ConversationMediaViewer`. Recebe `ref: ConversationRef` + slots `headerSlot`, `sidebarSlot`.
+- **`ConversationMessageList.tsx`** — extraído de `MessageList`/lista interna de `DMChatView`/`GroupChatView`. Usa `useConversationMessages` + `useConversationRealtime`. Renderiza `ConversationMessageBubble` (novo, baseado em `MessageBubble`, que já cobre quase tudo). Mantém infinite scroll com `scrollTop = scrollHeight` (regra de memória), skeleton shimmer, scroll-to-bottom, swipe-to-reply, highlight de reply.
+- **`ConversationComposer.tsx`** — extraído de `MessageInput`/`DMMessageInput`. Inclui: textarea auto-ajustável, toolbar markdown "Aa" colapsável, mentions, anexos (≤5, compressão JPEG), gravação de áudio com fallback webm/mp4/ogg, reply preview, edição, scheduled messages, drag-and-drop, paste, atalhos. Usa `useSendConversationMessage(ref)`.
+- **`ConversationMediaViewer.tsx`** — wrapper sobre `ImageLightbox` + `VideoPlayer` + `FilePreview`. Gerencia estado de visualização de mídia.
+- **`ConversationMessageBubble.tsx`** (novo, mesma pasta) — versão única da bolha. `MessageBubble.tsx` e `DMMessageBubble.tsx` viram wrappers finos que normalizam a mensagem e delegam.
+
+## 4. Migração dos pontos de uso
+
+- `MessageInput.tsx` → reduzido a `<ConversationComposer ref={{type:"channel",id:channelId,workspaceId}}/>` preservando props públicas atuais.
+- `DMMessageInput.tsx` → idem com `{type:"dm",id:dmId,otherUserId}`.
+- `GroupChatView.tsx` → usa `ConversationComposer` com `{type:"group",id:groupId,workspaceId}`. A lista de mensagens local do grupo passa a usar `ConversationMessageList`.
+- `MessageBubble.tsx` / `DMMessageBubble.tsx` → wrappers de 10–20 linhas chamando `ConversationMessageBubble`.
+- `MessageList.tsx` e a lista interna do `DMChatView`/`GroupChatView` podem permanecer como casca fina (header + `ConversationMessageList`) na primeira fase.
+
+## 5. Regras preservadas
+
+- Visual idêntico — reaproveitamos os mesmos componentes filhos (`AudioPlayer`, `LinkPreviewCard`, `MessageActionsMenu`, `ReadReceiptIndicator`, `ImageLightbox`, etc.).
+- Nada removido: áudio, anexos, reply, edição, reações, read receipts, mentions, scheduled, threads, pinned, forward, swipe-to-reply, drafts.
+- Sem mudanças de banco / RLS / edge functions.
+- Componentes não importam mais `supabase` diretamente para mensagens — somente via hooks de conversa.
+- Mantém regras de memória: `h-[100dvh]` + `flex-1 min-h-0`, scroll com `scrollTop = scrollHeight`, sem enter animation em IDs temporários, fetch de profile isolado do payload realtime.
+
+## 6. Ordem de implementação (uma só PR grande)
+
+1. `types/conversation.ts` + normalizadores.
+2. Hooks (`useConversationMessages`, `useSendConversationMessage`, `useConversationRealtime`, `useConversationReadStatus`) — delegando aos hooks existentes.
+3. `ConversationMessageBubble` + `ConversationMediaViewer`.
+4. `ConversationMessageList` + `ConversationComposer` + `ConversationView`.
+5. Reduzir `MessageBubble`, `DMMessageBubble`, `MessageInput`, `DMMessageInput`, `MessageList` e parte do `GroupChatView` a wrappers.
+6. Verificar build, abrir canal/DM/grupo no preview, validar envio de texto, áudio, anexo, reply, edição, reação, mention, scheduled, read receipt.
+
+## 7. Riscos / pontos de atenção
+
+- **Tamanho**: ~5.000 linhas afetadas. A primeira passada manterá os componentes legados como wrappers para evitar regressões; uma segunda passada (futura) pode removê-los de vez.
+- **Realtime**: três canais Supabase distintos continuam existindo; a unificação é apenas na API consumida pelo componente.
+- **Optimistic updates**: precisam usar a mesma chave de cache que o hook legado correspondente para não duplicar mensagens.
+- **Scheduled / threads / pinned**: ficam fora do composer unificado nesta fase (são panels independentes) — apenas o gatilho `ScheduleMessageDialog` é exposto pelo composer.
+
+Posso seguir e implementar?
