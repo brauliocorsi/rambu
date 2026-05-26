@@ -326,23 +326,36 @@ export function useSendDMMessage() {
         file_name: variables.fileName || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        _status: "pending",
         profile: {
           display_name: cachedProfile?.display_name || null,
           avatar_url: cachedProfile?.avatar_url || null,
         },
       };
 
-      // Optimistically update infinite DM messages
+      saveRetry(clientMsgId, {
+        kind: "dm",
+        conversationId: variables.dmId,
+        content: variables.content,
+        replyTo: variables.replyTo ?? null,
+        fileUrl: variables.fileUrl ?? null,
+        fileType: variables.fileType ?? null,
+        fileName: variables.fileName ?? null,
+      });
+
+      // Optimistically update infinite DM messages (upsert by client_msg_id)
       queryClient.setQueryData(
         ["infinite-dm-messages", variables.dmId],
         (oldData: any) => {
           if (!oldData) return oldData;
           const newPages = [...oldData.pages];
           if (newPages.length > 0) {
-            newPages[newPages.length - 1] = {
-              ...newPages[newPages.length - 1],
-              messages: [...newPages[newPages.length - 1].messages, optimisticMessage],
-            };
+            const lastPage = newPages[newPages.length - 1];
+            const i = lastPage.messages.findIndex((m: DMMessage) => m.client_msg_id === clientMsgId);
+            const messages = i >= 0
+              ? lastPage.messages.map((m: DMMessage, idx: number) => (idx === i ? { ...m, ...optimisticMessage } : m))
+              : [...lastPage.messages, optimisticMessage];
+            newPages[newPages.length - 1] = { ...lastPage, messages };
           }
           return { ...oldData, pages: newPages };
         }
@@ -351,24 +364,51 @@ export function useSendDMMessage() {
       // Also update legacy dm-messages query if exists
       queryClient.setQueryData(
         ["dm-messages", variables.dmId],
-        (old: DMMessage[] | undefined) => [...(old || []), optimisticMessage]
+        (old: DMMessage[] | undefined) => {
+          const list = old || [];
+          const i = list.findIndex((m) => m.client_msg_id === clientMsgId);
+          if (i >= 0) {
+            const next = list.slice();
+            next[i] = { ...next[i], ...optimisticMessage };
+            return next;
+          }
+          return [...list, optimisticMessage];
+        }
       );
 
-      return { previousMessages, optimisticId: tempId };
+      return { previousMessages, optimisticId: tempId, clientMsgId };
     },
     onError: (error: any, variables, context) => {
-      // Rollback on error
-      if (context?.previousMessages) {
+      const cid = context?.clientMsgId;
+      if (cid) {
         queryClient.setQueryData(
           ["infinite-dm-messages", variables.dmId],
-          context.previousMessages
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.map((m: DMMessage) =>
+                  m.client_msg_id === cid ? { ...m, _status: "failed" as const } : m
+                ),
+              })),
+            };
+          }
+        );
+        queryClient.setQueryData(
+          ["dm-messages", variables.dmId],
+          (old: DMMessage[] | undefined) =>
+            old?.map((m) => (m.client_msg_id === cid ? { ...m, _status: "failed" as const } : m))
         );
       }
       toast.error(error.message || "Erro ao enviar mensagem");
     },
     onSuccess: (data, variables, context) => {
       // Replace optimistic message with real one
-      if (data && context?.optimisticId) {
+      if (data && context?.clientMsgId) {
+        const cid = context.clientMsgId;
+        clearRetry(cid);
         queryClient.setQueryData(
           ["infinite-dm-messages", variables.dmId],
           (oldData: any) => {
@@ -378,8 +418,8 @@ export function useSendDMMessage() {
               pages: oldData.pages.map((page: any) => ({
                 ...page,
                 messages: page.messages.map((msg: DMMessage) =>
-                  msg.id === context.optimisticId
-                    ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at }
+                  msg.client_msg_id === cid
+                    ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at, _status: "sent" as const }
                     : msg
                 ),
               })),
@@ -392,8 +432,8 @@ export function useSendDMMessage() {
           ["dm-messages", variables.dmId],
           (old: DMMessage[] | undefined) =>
             old?.map((msg) =>
-              msg.id === context.optimisticId
-                ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at }
+              msg.client_msg_id === cid
+                ? { ...msg, id: data.id, created_at: data.created_at, updated_at: data.updated_at, _status: "sent" as const }
                 : msg
             )
         );
@@ -402,6 +442,29 @@ export function useSendDMMessage() {
       queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });
     },
   });
+}
+
+/**
+ * Retry a previously-failed DM message by client_msg_id.
+ */
+export function useRetryDMMessage() {
+  const send = useSendDMMessage();
+  return (clientMsgId: string) => {
+    const payload = getRetry(clientMsgId);
+    if (!payload || payload.kind !== "dm") {
+      toast.error("Não foi possível recuperar a mensagem para reenviar");
+      return;
+    }
+    send.mutate({
+      dmId: payload.conversationId,
+      content: payload.content,
+      replyTo: payload.replyTo || undefined,
+      fileUrl: payload.fileUrl || undefined,
+      fileType: payload.fileType || undefined,
+      fileName: payload.fileName || undefined,
+      clientMsgId,
+    });
+  };
 }
 
 export function useEditDMMessage() {
