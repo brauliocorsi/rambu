@@ -1,92 +1,80 @@
-# Refatoração: Camada Unificada de Conversa
+## Por que um plano antes de executar
 
-Hoje existem três implementações paralelas de chat — canais (`messages`), DMs (`dm_messages`) e grupos (`dm_group_messages`) — cada uma com seus próprios hooks, componentes de bolha, input, lista e lógica de realtime/read receipts. O objetivo é introduzir uma **camada frontend única** que abstrai a tabela de origem e é reutilizada pelos três fluxos, sem mexer no banco.
+A tarefa pedida toca **sete áreas críticas** simultaneamente (camada unificada, realtime, envio, multimídia, push, read receipts, build). Tentar fazer tudo numa única passada é o cenário com maior risco de regressão — exatamente o que as “regras absolutas” pedem para evitar (não quebrar mobile/desktop, não remover funcionalidades, não declarar sucesso falso).
 
-## 1. Tipo unificado (`src/types/conversation.ts`)
+Quero confirmar **escopo, ordem e cortes seguros** antes de mexer em ~30 arquivos e potencialmente migrações de banco + edge functions + service worker.
 
-```ts
-export type ConversationType = "channel" | "dm" | "group";
+## Estado atual (verificado)
 
-export interface ConversationRef {
-  type: ConversationType;
-  id: string;                 // channel_id | dm_id | group_id
-  workspaceId?: string;       // necessário p/ channel/group
-  otherUserId?: string;       // necessário p/ dm
-}
+Já existe e está em uso parcial:
+- `types/conversation.ts`, `useConversationMessages`, `useSendConversationMessage`, `useConversationRealtime`, `useConversationReadStatus`.
+- `ConversationComposer`, `ConversationMessageList`, `ConversationMessageBubble`, `ConversationMediaViewer`, `ConversationView`.
+- `ConversationComposer` já é usado em `ChannelsView`, `DesktopApp`, `DMChatView`, `GroupChatView` (Fase 1.1 concluída).
+- `MessageList`, `MessageBubble`, `DMMessageBubble` ainda são os renderers reais — `ConversationMessageList`/`ConversationMessageBubble` hoje são apenas wrappers finos.
 
-export interface ConversationMessage {
-  id: string;
-  conversationRef: ConversationRef;
-  authorId: string;
-  authorProfile?: { display_name; avatar_url; ... };
-  content: string;
-  attachments: Attachment[];
-  audioUrl?: string;
-  replyToId?: string;
-  replyToPreview?: { authorName; content; };
-  mentions: string[];
-  editedAt?: string;
-  deletedAt?: string;
-  reactions: Reaction[];
-  readBy: ReadReceipt[];
-  scheduledFor?: string;
-  createdAt: string;
-  // flags p/ wrappers visuais existentes
-  _raw: any;                  // payload original p/ retrocompatibilidade
-}
-```
+Push hoje:
+- `usePushNotifications`, `public/sw.js` existem.
+- Não há tabela `push_subscriptions` nem `notification_delivery_logs`; não há edge function `send-push-notification`. Push real está incompleto.
 
-Inclui também `SendMessageInput`, `Attachment`, `Reaction`, `ReadReceipt`, `EditMessageInput` — mesma forma para os 3 tipos.
+## Plano em fases independentes, cada uma entregável e reversível
 
-## 2. Hooks unificados (`src/hooks/`)
+Cada fase abaixo termina com app funcional. Posso parar entre fases. **Recomendo executar Fases A→C agora e abrir uma nova sessão para D/E** (push + SW + banco) porque envolve migrações, edge function nova, mudança de SW em produção e diagnóstico iOS — risco diferente e precisa janela própria.
 
-Cada hook recebe `ConversationRef` e despacha internamente para a implementação correta. Reaproveitam os hooks existentes por dentro (sem duplicar SQL):
+### Fase A — Realtime estável (sem mexer em banco)
+- Centralizar a regra “uma subscription por conversa ativa” em `useConversationRealtime`; auditar `useMessages`, `useDirectMessages`, `useDMGroups` para garantir que não abrem canais duplicados quando a view já abriu o seu.
+- Dedup determinística por `id` + `client_msg_id` no cache (canal, DM, grupo) antes de aplicar INSERT do realtime.
+- Cleanup de subscription ao trocar `conversationId`/`conversationType` (já parcial — formalizar e testar).
+- Reconnect: ao `SUBSCRIBED` após disconnect, fetch incremental por `created_at > lastKnown`.
+- Throttle de `markAsRead` (≥800ms) e guard “só marca se visível”.
+- Sem alteração de SQL/RLS/edge.
 
-- **`useConversationMessages(ref, opts)`** — wrapper sobre `useInfiniteMessages` (channel) e `useInfiniteDMMessages` (dm/group). Retorna `{ messages: ConversationMessage[], loadMore, hasMore, isLoading }` já normalizado via um `normalizeMessage(ref, raw)`.
-- **`useSendConversationMessage(ref)`** — wrapper sobre `useMessages.sendMessage`, `useDirectMessages.sendMessage` e `useDMGroups.sendMessage`. Mesma assinatura `(input: SendMessageInput) => Promise<...>`. Cuida de optimistic update, edit, delete, react, schedule, reply.
-- **`useConversationRealtime(ref)`** — assina a tabela certa (`messages` / `dm_messages` / `dm_group_messages`), aplica `INSERT/UPDATE/DELETE` ao cache do React Query usado por `useConversationMessages`, e respeita o padrão atual de fetch de perfil isolado + revalidação 1200 ms (regra de memória).
-- **`useConversationReadStatus(ref)`** — unifica leitura/marcação. Internamente reusa `markChannelAsRead`, `markDMAsRead`, `markGroupAsRead` que já existem. Expõe `markAsRead()`, `markAsUnread()`, `readReceipts(messageId)`.
+### Fase B — Fluxo de envio com estados + retry
+- Gerar `client_msg_id` no `useSendConversationMessage` (hoje é passado do composer; centralizar).
+- Estados `pending | sent | failed` no `ConversationMessage` (já existe `_raw`; adicionar `deliveryState`).
+- Botão discreto de retry no bubble quando `failed` (wrapper, sem trocar visual padrão).
+- Anexos: upload antes do insert; falha de upload → mensagem `failed` sem inserir linha.
+- Reconciliação por `client_msg_id` (canal e DM já fazem; estender ao grupo).
 
-Os hooks legados continuam exportados; novos hooks são fachadas, sem reescrever queries.
+### Fase C — Multimídia consolidada
+- `ConversationMediaViewer` passa a detectar por MIME, fallback extensão.
+- Imagem → `ImageLightbox`; vídeo → `VideoPlayer`; áudio → `AudioPlayer` (mantém fallback Safari já existente); PDF → modal/iframe + “abrir em nova aba”; outros → download.
+- ESC fecha no desktop, swipe-down fecha no mobile.
+- Bubbles (Channel/DM/Group) passam a delegar abertura para o viewer unificado via callback — sem mudar layout do bubble.
+- Sem mudança de design.
 
-## 3. Componentes unificados (`src/components/conversation/`)
+### Fase D — Push notifications real (precisa banco + edge + SW)
+Requer:
+- Migração: `push_subscriptions`, `notification_delivery_logs` com GRANTs + RLS (user-only).
+- Edge function nova `send-push-notification` (Web Push, VAPID).
+- **Necessário**: secrets `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` — vou pedir via `add_secret` no início da fase.
+- Edge function `notify-message-event` chamada por triggers (DM insert, mention, task assigned) — ou via cron polling de `notifications`, decidir.
+- Rewrite controlado de `public/sw.js`: handler `push`, `notificationclick` com foco/abrir, tag por conversa, sem quebrar UpdatePrompt.
+- `usePushSubscription` (registrar/atualizar/remover) + painel de diagnóstico em Settings (permissão, SW ativo, subscription, iOS standalone, último sucesso/erro).
+- iOS: detectar standalone; se não estiver, mostrar guia em vez de pedir permissão.
 
-- **`ConversationView.tsx`** — orquestra header (delegado por prop), `ConversationMessageList`, `ConversationComposer`, `ConversationMediaViewer`. Recebe `ref: ConversationRef` + slots `headerSlot`, `sidebarSlot`.
-- **`ConversationMessageList.tsx`** — extraído de `MessageList`/lista interna de `DMChatView`/`GroupChatView`. Usa `useConversationMessages` + `useConversationRealtime`. Renderiza `ConversationMessageBubble` (novo, baseado em `MessageBubble`, que já cobre quase tudo). Mantém infinite scroll com `scrollTop = scrollHeight` (regra de memória), skeleton shimmer, scroll-to-bottom, swipe-to-reply, highlight de reply.
-- **`ConversationComposer.tsx`** — extraído de `MessageInput`/`DMMessageInput`. Inclui: textarea auto-ajustável, toolbar markdown "Aa" colapsável, mentions, anexos (≤5, compressão JPEG), gravação de áudio com fallback webm/mp4/ogg, reply preview, edição, scheduled messages, drag-and-drop, paste, atalhos. Usa `useSendConversationMessage(ref)`.
-- **`ConversationMediaViewer.tsx`** — wrapper sobre `ImageLightbox` + `VideoPlayer` + `FilePreview`. Gerencia estado de visualização de mídia.
-- **`ConversationMessageBubble.tsx`** (novo, mesma pasta) — versão única da bolha. `MessageBubble.tsx` e `DMMessageBubble.tsx` viram wrappers finos que normalizam a mensagem e delegam.
+### Fase E — Read receipts + não-lidas consistentes
+- Consolidar em `useConversationReadStatus` (já existe — preencher gaps).
+- Debounce de marcação ao abrir; guard “tab visível + conversa ativa”.
+- Optimistic badge clear + revalidação 1200ms (regra já estabelecida).
+- Sem mudança de banco.
 
-## 4. Migração dos pontos de uso
+### Fase F — Build/TS final
+- `tsc --noEmit` limpo, imports, query keys, remoção de dead code apenas onde for seguro.
 
-- `MessageInput.tsx` → reduzido a `<ConversationComposer ref={{type:"channel",id:channelId,workspaceId}}/>` preservando props públicas atuais.
-- `DMMessageInput.tsx` → idem com `{type:"dm",id:dmId,otherUserId}`.
-- `GroupChatView.tsx` → usa `ConversationComposer` com `{type:"group",id:groupId,workspaceId}`. A lista de mensagens local do grupo passa a usar `ConversationMessageList`.
-- `MessageBubble.tsx` / `DMMessageBubble.tsx` → wrappers de 10–20 linhas chamando `ConversationMessageBubble`.
-- `MessageList.tsx` e a lista interna do `DMChatView`/`GroupChatView` podem permanecer como casca fina (header + `ConversationMessageList`) na primeira fase.
+## O que NÃO vou fazer
 
-## 5. Regras preservadas
+- Não vou apagar `MessageInput`, `DMMessageInput`, `MessageBubble`, `DMMessageBubble`, `MessageList`, `DMChatView`, `GroupChatView` — continuam como renderers/wrappers.
+- Não vou trocar o visual.
+- Não vou “simplificar para compilar”.
+- Não vou declarar sucesso em fase que não foi validada.
 
-- Visual idêntico — reaproveitamos os mesmos componentes filhos (`AudioPlayer`, `LinkPreviewCard`, `MessageActionsMenu`, `ReadReceiptIndicator`, `ImageLightbox`, etc.).
-- Nada removido: áudio, anexos, reply, edição, reações, read receipts, mentions, scheduled, threads, pinned, forward, swipe-to-reply, drafts.
-- Sem mudanças de banco / RLS / edge functions.
-- Componentes não importam mais `supabase` diretamente para mensagens — somente via hooks de conversa.
-- Mantém regras de memória: `h-[100dvh]` + `flex-1 min-h-0`, scroll com `scrollTop = scrollHeight`, sem enter animation em IDs temporários, fetch de profile isolado do payload realtime.
+## Decisão que preciso de você
 
-## 6. Ordem de implementação (uma só PR grande)
+Responda com **uma** das opções:
 
-1. `types/conversation.ts` + normalizadores.
-2. Hooks (`useConversationMessages`, `useSendConversationMessage`, `useConversationRealtime`, `useConversationReadStatus`) — delegando aos hooks existentes.
-3. `ConversationMessageBubble` + `ConversationMediaViewer`.
-4. `ConversationMessageList` + `ConversationComposer` + `ConversationView`.
-5. Reduzir `MessageBubble`, `DMMessageBubble`, `MessageInput`, `DMMessageInput`, `MessageList` e parte do `GroupChatView` a wrappers.
-6. Verificar build, abrir canal/DM/grupo no preview, validar envio de texto, áudio, anexo, reply, edição, reação, mention, scheduled, read receipt.
+1. **“Executa A, B, C agora”** — faço as três fases sem tocar em banco/edge/SW; entrego relatório; abrimos nova sessão para D (push) e E (read receipts) com escopo focado.
+2. **“Executa só A”** — começo pela mais crítica (realtime) e paro para validar antes de seguir.
+3. **“Executa tudo mesmo assim”** — sigo de A a F numa única passada, ciente do risco maior de regressão; nesse caso a Fase D vai exigir que você forneça as chaves VAPID quando eu pedir.
+4. **Outra ordem / outro recorte** — me diga qual.
 
-## 7. Riscos / pontos de atenção
-
-- **Tamanho**: ~5.000 linhas afetadas. A primeira passada manterá os componentes legados como wrappers para evitar regressões; uma segunda passada (futura) pode removê-los de vez.
-- **Realtime**: três canais Supabase distintos continuam existindo; a unificação é apenas na API consumida pelo componente.
-- **Optimistic updates**: precisam usar a mesma chave de cache que o hook legado correspondente para não duplicar mensagens.
-- **Scheduled / threads / pinned**: ficam fora do composer unificado nesta fase (são panels independentes) — apenas o gatilho `ScheduleMessageDialog` é exposto pelo composer.
-
-Posso seguir e implementar?
+Recomendação: **opção 1**. É a que respeita melhor as “regras absolutas” e me deixa entregar push num passe limpo depois.
