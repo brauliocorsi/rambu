@@ -220,7 +220,7 @@ function ChannelChatView() {
         }}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(undefined)}
-        onTyping={(name) => handleTyping(name ?? "")}
+        onTyping={() => handleTyping()}
         onStopTyping={sendTypingStop}
       />
       <PinnedMessagesPanel
