@@ -14,6 +14,7 @@ import {
 } from "@/lib/conversation/messageGrouping";
 import type { ConversationRef } from "@/types/conversation";
 import type { MessageDensity } from "@/hooks/useLayoutPreferences";
+import type { ConversationMessage } from "@/types/conversation";
 
 interface TypingUser {
   userId: string;
@@ -40,6 +41,18 @@ interface ConversationMessageListProps {
   conversationName?: string;
   /** Lista opcional de usuários digitando. Sem subscription interna. */
   typingUsers?: TypingUser[];
+  /**
+   * Modo controlled — quando `messages` é fornecido, a lista NÃO
+   * chama `useConversationMessages` internamente, evitando hook
+   * duplicado quando o pai (ex.: `ConversationView`) é o dono dos
+   * dados. Se `messages` for `undefined`, o hook interno é usado
+   * (compatibilidade com consumidores standalone).
+   */
+  messages?: ConversationMessage[];
+  isLoading?: boolean;
+  isFetchingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function ConversationMessageList({
@@ -51,9 +64,27 @@ export function ConversationMessageList({
   emptyState,
   conversationName,
   typingUsers = [],
+  messages: controlledMessages,
+  isLoading: controlledIsLoading,
+  isFetchingMore: controlledIsFetchingMore,
+  hasMore: controlledHasMore,
+  onLoadMore,
 }: ConversationMessageListProps) {
-  const { messages, isLoading, isFetchingMore, hasMore, loadMore } =
-    useConversationMessages(conversation);
+  const isControlled = controlledMessages !== undefined;
+  const internal = useConversationMessages(isControlled ? null : conversation);
+  const messages = isControlled ? controlledMessages! : internal.messages;
+  const isLoading = isControlled
+    ? Boolean(controlledIsLoading)
+    : internal.isLoading;
+  const isFetchingMore = isControlled
+    ? Boolean(controlledIsFetchingMore)
+    : internal.isFetchingMore;
+  const hasMore = isControlled
+    ? Boolean(controlledHasMore)
+    : internal.hasMore;
+  const loadMore = isControlled ? onLoadMore ?? (() => {}) : internal.loadMore;
+  // Façade de realtime (visibility/online resync) sempre ativa para a
+  // conversa exibida — não duplica subscription, é só refetch hook.
   useConversationRealtime(conversation);
 
   const containerRef = useRef<HTMLDivElement>(null);
