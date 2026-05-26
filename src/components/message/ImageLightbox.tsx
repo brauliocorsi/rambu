@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, ArrowLeft, ZoomIn, ZoomOut, RotateCw, Maximize } from "lucide-react";
+import { X, Download, ArrowLeft, ZoomIn, ZoomOut, RotateCw, Maximize, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useCallback, useState, useRef } from "react";
+import { safeOpenExternal } from "@/lib/mediaKind";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
@@ -18,6 +19,7 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [loadError, setLoadError] = useState(false);
 
   // Active pointers (id -> last position) for multi-touch gestures
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -66,6 +68,7 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
     setScale(1);
     setRotation(0);
     setOffset({ x: 0, y: 0 });
+    setLoadError(false);
   }, []);
 
   const zoomIn = useCallback(() => setScale((s) => Math.min(s + 0.5, MAX_SCALE)), []);
@@ -321,6 +324,7 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
               src={url}
               alt={name}
               onDoubleClick={handleDoubleClick}
+              onError={() => setLoadError(true)}
               style={{
                 transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotation}deg)`,
                 cursor: scale > 1 ? (panStart.current ? "grabbing" : "grab") : "zoom-in",
@@ -328,9 +332,27 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
                 touchAction: "none",
                 willChange: "transform",
               }}
-              className="max-w-full max-h-full object-contain rounded-lg select-none pointer-events-none"
+              className={`max-w-full max-h-full object-contain rounded-lg select-none pointer-events-none ${loadError ? "hidden" : ""}`}
               draggable={false}
             />
+            {loadError && (
+              <div className="flex flex-col items-center gap-3 text-white/90 text-center px-6">
+                <AlertCircle className="h-10 w-10 text-destructive" />
+                <p className="text-sm">Não foi possível carregar a imagem.</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); safeOpenExternal(url); }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" /> Abrir em nova aba
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
+                    <Download className="h-4 w-4 mr-1" /> Baixar
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile bottom action bar */}
