@@ -5,6 +5,7 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getProfileCached, scheduleQuerySync } from "@/lib/realtimeSync";
 import { enqueueMessage } from "@/lib/offlineQueue";
+import { saveRetry, getRetry, clearRetry } from "@/lib/pendingRetries";
 
 export interface Message {
   id: string;
@@ -19,6 +20,8 @@ export interface Message {
   created_at: string;
   updated_at: string;
   client_msg_id?: string | null;
+  /** Client-only send lifecycle. Never persisted. */
+  _status?: "pending" | "uploading" | "failed" | "sent";
   profile?: {
     display_name: string | null;
     avatar_url: string | null;
