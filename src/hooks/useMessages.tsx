@@ -99,7 +99,8 @@ export function useMessages(channelId: string | null) {
                     : -1;
                   if (optimisticIdx >= 0) {
                     const next = old.slice();
-                    next[optimisticIdx] = { ...next[optimisticIdx], ...(data as unknown as Message) };
+                    next[optimisticIdx] = { ...next[optimisticIdx], ...(data as unknown as Message), _status: "sent" };
+                    if (cid) clearRetry(cid);
                     return next;
                   }
                   if (old.some((m) => m.id === data.id)) return old;
