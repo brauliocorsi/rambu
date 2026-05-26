@@ -1,11 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Hash, Loader2, MessageCircle, Users } from "lucide-react";
+import { format } from "date-fns";
 import { useConversationMessages } from "@/hooks/useConversationMessages";
 import { useConversationRealtime } from "@/hooks/useConversationRealtime";
 import { ConversationMessageBubble } from "./ConversationMessageBubble";
 import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
+import { TypingIndicator } from "@/components/message/TypingIndicator";
+import { MessageListSkeleton } from "@/components/ui/skeletons";
+import {
+  formatDaySeparator,
+  groupMessagesByDay,
+} from "@/lib/conversation/messageGrouping";
 import type { ConversationRef } from "@/types/conversation";
 import type { MessageDensity } from "@/hooks/useLayoutPreferences";
+
+interface TypingUser {
+  userId: string;
+  displayName: string;
+}
 
 /**
  * Lista unificada de mensagens. Segue as regras de scroll do projeto:
@@ -19,6 +32,14 @@ interface ConversationMessageListProps {
   slackMode?: boolean;
   density?: MessageDensity;
   emptyState?: React.ReactNode;
+  /**
+   * Nome amigável da conversa (#canal, nome do contato, nome do grupo)
+   * para header "início da conversa" e empty state. Se não vier, cai
+   * para `conversation.displayName`. Sem fetch extra.
+   */
+  conversationName?: string;
+  /** Lista opcional de usuários digitando. Sem subscription interna. */
+  typingUsers?: TypingUser[];
 }
 
 export function ConversationMessageList({
@@ -28,6 +49,8 @@ export function ConversationMessageList({
   slackMode,
   density,
   emptyState,
+  conversationName,
+  typingUsers = [],
 }: ConversationMessageListProps) {
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } =
     useConversationMessages(conversation);
@@ -161,6 +184,51 @@ export function ConversationMessageList({
     return () => vv.removeEventListener("resize", onResize);
   }, []);
 
+  const displayName = conversationName ?? conversation.displayName ?? "";
+  const isChannel = conversation.type === "channel";
+  const isGroup = conversation.type === "group";
+  const messageGroups = useMemo(() => groupMessagesByDay(messages), [messages]);
+
+  if (isLoading) {
+    return <MessageListSkeleton count={8} />;
+  }
+
+  if (messages.length === 0) {
+    if (emptyState) {
+      return <>{emptyState}</>;
+    }
+    const Icon = isChannel ? Hash : isGroup ? Users : MessageCircle;
+    const title = isChannel
+      ? displayName
+        ? `Início de #${displayName}`
+        : "Início do canal"
+      : isGroup
+        ? displayName
+          ? `Início de ${displayName}`
+          : "Início do grupo"
+        : displayName
+          ? `Conversa com ${displayName}`
+          : "Início da conversa";
+    const subtitle = isChannel
+      ? "Este é o início do canal. Envie a primeira mensagem!"
+      : isGroup
+        ? "Diga olá ao grupo. Envie a primeira mensagem!"
+        : "Envie a primeira mensagem para começar.";
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="h-16 w-16 rounded-full gradient-primary-soft flex items-center justify-center mb-4"
+        >
+          <Icon className="h-8 w-8 text-primary" />
+        </motion.div>
+        <h3 className="font-bold text-lg">{title}</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mt-1">{subtitle}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
       <div
@@ -174,11 +242,59 @@ export function ConversationMessageList({
           </div>
         )}
 
-        {isLoading
-          ? null
-          : messages.length === 0
-          ? emptyState ?? null
-          : messages.map((m) => (
+        {/* Header "início da conversa" quando não há mais histórico */}
+        {!hasMore && (
+          <div className="text-center py-8 px-4">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="h-12 w-12 rounded-full gradient-primary-soft flex items-center justify-center mx-auto mb-3"
+            >
+              {isChannel ? (
+                <Hash className="h-6 w-6 text-primary" />
+              ) : isGroup ? (
+                <Users className="h-6 w-6 text-primary" />
+              ) : (
+                <MessageCircle className="h-6 w-6 text-primary" />
+              )}
+            </motion.div>
+            <h3 className="font-bold">
+              {isChannel
+                ? displayName
+                  ? `Início de #${displayName}`
+                  : "Início do canal"
+                : isGroup
+                  ? displayName
+                    ? `Início de ${displayName}`
+                    : "Início do grupo"
+                  : displayName
+                    ? `Conversa com ${displayName}`
+                    : "Início da conversa"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {isChannel
+                ? "Este é o começo deste canal."
+                : isGroup
+                  ? "Este é o começo deste grupo."
+                  : "Este é o começo desta conversa."}
+            </p>
+          </div>
+        )}
+
+        {/* Mensagens agrupadas por dia com separadores sticky */}
+        {messageGroups.map((group, groupIndex) => (
+          <div
+            key={`day-${format(group.date, "yyyy-MM-dd")}-${groupIndex}`}
+            data-day={format(group.date, "yyyy-MM-dd")}
+          >
+            <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs font-semibold text-foreground/80 px-3 py-1 bg-secondary rounded-full shadow-sm">
+                {formatDaySeparator(group.date)}
+              </span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            {group.messages.map((m) => (
               <ConversationMessageBubble
                 key={m.id}
                 message={m}
@@ -188,6 +304,11 @@ export function ConversationMessageList({
                 density={density}
               />
             ))}
+          </div>
+        ))}
+
+        {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
+
         <div ref={bottomRef} />
       </div>
       <ScrollToBottomButton
