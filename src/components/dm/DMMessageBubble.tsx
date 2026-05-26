@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { DMMessage, useEditDMMessage, useDeleteDMMessage, useDMMessageById } from "@/hooks/useDirectMessages";
+import { useRetryDMMessage } from "@/hooks/useDirectMessages";
+import { MessageStatusIndicator, type MessageStatus } from "@/components/message/MessageStatusIndicator";
 import { useMarkDMAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "@/components/message/MessageContent";
