@@ -70,6 +70,7 @@ async function shouldSkipUser(userId: string, type: string, metadata: Record<str
   if (type === "dm" && prefs?.dm_notifications === false) return "dm_muted";
   if (type === "mention" && prefs?.mention_notifications === false) return "mention_muted";
   if (type === "group" && prefs?.dm_notifications === false) return "dm_muted";
+  if (type === "channel" && prefs?.channel_notifications === false) return "channel_muted_global";
 
   // 2. DND no profile
   const { data: profile } = await admin
@@ -83,8 +84,8 @@ async function shouldSkipUser(userId: string, type: string, metadata: Record<str
     }
   }
 
-  // 3. snooze por canal (mention em canal)
-  if (type === "mention" && metadata?.channel_id) {
+  // 3. preferências por canal (mention ou mensagem comum de canal)
+  if ((type === "mention" || type === "channel") && metadata?.channel_id) {
     const { data: ch } = await admin
       .from("channel_notification_preferences")
       .select("notification_level, snoozed_until")
@@ -95,6 +96,10 @@ async function shouldSkipUser(userId: string, type: string, metadata: Record<str
       return "channel_snoozed";
     }
     if (ch?.notification_level === "none") return "channel_muted";
+    // Para mensagem comum em canal, exigir opt-in 'all'.
+    if (type === "channel" && ch?.notification_level !== "all") {
+      return "channel_not_subscribed_all";
+    }
   }
 
   return null;
@@ -115,6 +120,10 @@ function buildPayload(notification: any): PushPayload {
     conversationType = "group";
     conversationId = md.group_id;
   } else if (notification.type === "mention" && md.channel_id) {
+    url = `/?channel=${md.channel_id}`;
+    conversationType = "channel";
+    conversationId = md.channel_id;
+  } else if (notification.type === "channel" && md.channel_id) {
     url = `/?channel=${md.channel_id}`;
     conversationType = "channel";
     conversationId = md.channel_id;
