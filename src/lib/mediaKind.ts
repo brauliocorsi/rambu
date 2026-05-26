@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 /**
  * Detecção unificada de tipo de mídia para anexos de chat.
  *
@@ -77,13 +79,49 @@ export function getMediaKind(
 
 /**
  * Abre URL externa de forma segura (noopener/noreferrer).
- * Aceita URLs http(s), blob: e data:; qualquer outro esquema é ignorado.
+ *
+ * Protocolos permitidos:
+ *   - http:// / https://
+ *   - blob:
+ *   - data: limitado a image/*, application/pdf e text/plain
+ *
+ * Protocolos bloqueados:
+ *   - javascript:, data:, file:, ftp:, ssh:, telnet:, mailto:, etc.
+ * Se bloqueada, exibe toast discreto sem travar a UI.
  */
 export function safeOpenExternal(url: string): void {
   if (!url) return;
-  const safe = /^(https?:|blob:|data:)/i.test(url);
-  if (!safe) return;
-  window.open(url, "_blank", "noopener,noreferrer");
+
+  try {
+    const parsed = new URL(url);
+    const protocol = parsed.protocol.toLowerCase();
+
+    // 1) Permitir http(s) e blob sem restrições
+    if (protocol === "http:" || protocol === "https:" || protocol === "blob:") {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // 2) data: apenas tipos seguros
+    if (protocol === "data:") {
+      const dataPrefix = parsed.pathname.toLowerCase(); // ex: "image/png;base64,..."
+      const isSafeData =
+        dataPrefix.startsWith("image/") ||
+        dataPrefix.startsWith("application/pdf") ||
+        dataPrefix.startsWith("text/plain");
+
+      if (isSafeData) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        return;
+      }
+    }
+
+    // 3) Qualquer outro protocolo é bloqueado silenciosamente com toast
+    toast("Este anexo não pode ser aberto com segurança.");
+  } catch {
+    // URL malformada — não abre
+    toast("Este anexo não pode ser aberto com segurança.");
+  }
 }
 
 /**
