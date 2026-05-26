@@ -756,6 +756,11 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                   </div>
                 )}
               </div>
+
+              {/* Push backend (Web Push API) — funciona com app fechado */}
+              <div className="pt-2">
+                <PushDiagnosticsPanel />
+              </div>
             </div>
           </Card>
         </motion.div>
