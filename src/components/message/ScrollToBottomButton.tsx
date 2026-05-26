@@ -17,7 +17,7 @@ export function ScrollToBottomButton({ visible, onClick, unreadCount = 0 }: Scro
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.9 }}
           transition={{ duration: 0.2 }}
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20"
         >
           <Button
             size="sm"

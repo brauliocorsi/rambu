@@ -88,7 +88,7 @@ export function MessageList({
   const checkIfNearBottom = useCallback(() => {
     if (!containerRef.current) return true;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    return scrollHeight - scrollTop - clientHeight < 150;
+    return scrollHeight - scrollTop - clientHeight < 200;
   }, []);
 
   // Track scroll position and detect scroll to top for infinite loading
@@ -186,6 +186,38 @@ export function MessageList({
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length, scrollToBottom, isMobile]);
+
+  // Keep view anchored to bottom when content grows (images/audio loading,
+  // mobile keyboard resize). Only re-pin if the user was already near bottom.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (isLoadingMoreRef.current) return;
+      if (isNearBottomRef.current) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+    ro.observe(el);
+    // Observe inner content (the only direct child wrapping messages)
+    const inner = el.firstElementChild as HTMLElement | null;
+    if (inner) ro.observe(inner);
+    return () => ro.disconnect();
+  }, [channelId]);
+
+  // Re-anchor on mobile keyboard open/close via visualViewport
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const onResize = () => {
+      if (!containerRef.current) return;
+      if (isNearBottomRef.current && !isLoadingMoreRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      }
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
 
   // Always group messages by day so date separators are visible in any mode
   const messageGroups = useMemo(() => groupMessagesByDay(messages), [messages]);
