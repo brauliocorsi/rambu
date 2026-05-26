@@ -5,7 +5,7 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getProfileCached, scheduleQuerySync } from "@/lib/realtimeSync";
 import { enqueueMessage } from "@/lib/offlineQueue";
-import { saveRetry, getRetry, clearRetry } from "@/lib/pendingRetries";
+import { saveRetry, getRetry, clearRetry, isAttachmentReusable } from "@/lib/pendingRetries";
 
 export interface Message {
   id: string;
@@ -412,7 +412,11 @@ export function useRetryChannelMessage() {
   return (clientMsgId: string) => {
     const payload = getRetry(clientMsgId);
     if (!payload || payload.kind !== "channel") {
-      toast.error("Não foi possível recuperar a mensagem para reenviar");
+      toast.error("Não foi possível reenviar após recarregar. Copie a mensagem e envie novamente.");
+      return;
+    }
+    if (!isAttachmentReusable(payload)) {
+      toast.error("Reanexe o arquivo para tentar novamente");
       return;
     }
     send.mutate({
