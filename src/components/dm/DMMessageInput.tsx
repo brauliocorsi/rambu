@@ -506,29 +506,34 @@ export function DMMessageInput({ dmId, otherUserName, replyTo, onCancelReply, on
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-lg h-9 w-9"
+            className="rounded-lg h-11 w-11"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
+            aria-label="Anexar arquivo"
           >
             <Paperclip className="h-4.5 w-4.5 text-muted-foreground" />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-lg h-9 w-9"
-            onClick={handleStartRecording}
-            disabled={isRecording || isUploading}
-          >
-            <Mic className="h-4.5 w-4.5 text-muted-foreground" />
-          </Button>
+          {!message.trim() && attachedFiles.length === 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-lg h-11 w-11"
+              onClick={handleStartRecording}
+              disabled={isRecording || isUploading}
+              aria-label="Gravar áudio"
+            >
+              <Mic className="h-4.5 w-4.5 text-muted-foreground" />
+            </Button>
+          )}
 
           <div className="relative">
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-lg h-9 w-9"
+              className="rounded-lg h-11 w-11"
               onClick={() => setShowMobileActions(!showMobileActions)}
+              aria-label="Mais ações"
             >
               <Plus className={`h-4.5 w-4.5 text-muted-foreground transition-transform duration-200 ${showMobileActions ? "rotate-45" : ""}`} />
             </Button>
