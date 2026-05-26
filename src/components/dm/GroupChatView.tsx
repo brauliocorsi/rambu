@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Users, MoreHorizontal, UserPlus, LogOut } from "lucide-react";
 import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
 import { Button } from "@/components/ui/button";
@@ -11,8 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DMGroup, useDMGroupMessages, useLeaveGroup, DMGroupMessage } from "@/hooks/useDMGroups";
-import { useRetryGroupMessage } from "@/hooks/useDMGroups";
-import { MessageStatusIndicator, type MessageStatus } from "@/components/message/MessageStatusIndicator";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -22,34 +19,9 @@ import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { ConversationComposer } from "@/components/conversation/ConversationComposer";
-import { formatMentionsForDisplay } from "@/hooks/useMentions";
-import { FilePreview } from "@/components/message/FilePreview";
+import { GroupMessageBubble } from "./GroupMessageBubble";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import type { MessageDensity } from "@/hooks/useLayoutPreferences";
-
-// Density-based styles for group messages
-const densityStyles = {
-  compact: {
-    container: "py-0.5",
-    avatar: "h-7 w-7",
-    standardAvatar: "h-6 w-6",
-    spacing: "mb-1",
-  },
-  normal: {
-    container: "py-1.5",
-    avatar: "h-9 w-9",
-    standardAvatar: "h-8 w-8",
-    spacing: "mb-2",
-  },
-  comfortable: {
-    container: "py-3",
-    avatar: "h-10 w-10",
-    standardAvatar: "h-10 w-10",
-    spacing: "mb-3",
-  },
-};
 
 interface GroupChatViewProps {
   group: DMGroup;
@@ -63,7 +35,6 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const { preferences } = useLayoutPreferences();
   const { isMobile } = useViewMode();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useDMGroupMessages(group.id);
-  const retryGroupSend = useRetryGroupMessage();
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(`group:${group.id}`, true);
   const leaveGroup = useLeaveGroup();
   const [replyTo, setReplyTo] = useState<string | undefined>();
@@ -313,124 +284,15 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                   </div>
                   
                 {/* Messages for this day */}
-                {preferences.slackMode ? group.messages.map((msg) => {
-                    const displayName = msg.profile?.display_name || "Usuário";
-                    const time = format(new Date(msg.created_at), "HH:mm", { locale: ptBR });
-                    const styles = densityStyles[preferences.density];
-                    const isOwn = msg.user_id === user?.id;
-
-                    return (
-                      <motion.div
-                        key={msg.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={cn("flex gap-3 px-4 hover:bg-secondary/50 transition-colors", styles.container)}
-                      >
-                        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
-                          <AvatarImage src={msg.profile?.avatar_url || undefined} />
-                          <AvatarFallback className="text-xs gradient-primary text-white">
-                            {displayName.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2 mb-0.5">
-                            <span className="font-semibold text-sm">{displayName}</span>
-                            <span className="text-xs text-muted-foreground">{time}</span>
-                            {msg.is_edited && (
-                              <span className="text-xs text-muted-foreground">(editado)</span>
-                            )}
-                          </div>
-                          <p className="text-sm whitespace-pre-wrap break-words">
-                            {formatMentionsForDisplay(msg.content)}
-                          </p>
-                          {msg.file_url && msg.file_name && (
-                            <div className="mt-2">
-                              <FilePreview
-                                url={msg.file_url}
-                                name={msg.file_name}
-                                type={msg.file_type || ""}
-                              />
-                            </div>
-                          )}
-                          {isOwn && (
-                            <MessageStatusIndicator
-                              status={(msg as any)._status as MessageStatus | undefined}
-                              onRetry={
-                                (msg as any)._status === "failed" && (msg as any).client_msg_id
-                                  ? () => retryGroupSend((msg as any).client_msg_id as string)
-                                  : undefined
-                              }
-                            />
-                          )}
-                        </div>
-                      </motion.div>
-                    );
-                }) : group.messages.map((msg) => {
-                const isOwn = msg.user_id === user?.id;
-                const styles = densityStyles[preferences.density];
-                return (
-                  <motion.div
+                {group.messages.map((msg) => (
+                  <GroupMessageBubble
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn("flex px-4", styles.spacing, isOwn ? "justify-end" : "justify-start")}
-                  >
-                    <div className={`flex gap-2 max-w-[85%] ${isOwn ? "flex-row-reverse" : ""}`}>
-                      {!isOwn && (
-                        <Avatar className={cn(styles.standardAvatar, "shrink-0")}>
-                          <AvatarImage src={msg.profile?.avatar_url || undefined} />
-                          <AvatarFallback className="text-xs gradient-primary text-white">
-                            {(msg.profile?.display_name || "U").charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div>
-                        {!isOwn && (
-                          <p className="text-xs text-muted-foreground mb-1 px-1">
-                            {msg.profile?.display_name || "Usuário"}
-                          </p>
-                        )}
-                        <div
-                          className={cn(
-                            "rounded-2xl px-4 py-2",
-                            isOwn
-                              ? "gradient-primary text-white rounded-br-md"
-                              : "bg-secondary rounded-bl-md"
-                          )}
-                        >
-                          <p className="text-sm whitespace-pre-wrap break-words">
-                            {formatMentionsForDisplay(msg.content)}
-                          </p>
-                          {msg.file_url && msg.file_name && (
-                            <div className="mt-2">
-                              <FilePreview
-                                url={msg.file_url}
-                                name={msg.file_name}
-                                type={msg.file_type || ""}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? "text-right" : ""} px-1`}>
-                          {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
-                          {msg.is_edited && " (editado)"}
-                        </p>
-                        {isOwn && (
-                          <MessageStatusIndicator
-                            status={(msg as any)._status as MessageStatus | undefined}
-                            onRetry={
-                              (msg as any)._status === "failed" && (msg as any).client_msg_id
-                                ? () => retryGroupSend((msg as any).client_msg_id as string)
-                                : undefined
-                            }
-                            className="text-right px-1"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-                })}
+                    message={msg}
+                    currentUserId={user?.id}
+                    slackMode={preferences.slackMode}
+                    density={preferences.density}
+                  />
+                ))}
               </div>
             ))}
 
