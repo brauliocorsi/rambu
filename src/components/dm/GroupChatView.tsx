@@ -23,6 +23,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
+import { FilePreview } from "@/components/message/FilePreview";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -342,6 +343,15 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                           <p className="text-sm whitespace-pre-wrap break-words">
                             {formatMentionsForDisplay(msg.content)}
                           </p>
+                          {msg.file_url && msg.file_name && (
+                            <div className="mt-2">
+                              <FilePreview
+                                url={msg.file_url}
+                                name={msg.file_name}
+                                type={msg.file_type || ""}
+                              />
+                            </div>
+                          )}
                           {isOwn && (
                             <MessageStatusIndicator
                               status={(msg as any)._status as MessageStatus | undefined}
@@ -391,6 +401,15 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                           <p className="text-sm whitespace-pre-wrap break-words">
                             {formatMentionsForDisplay(msg.content)}
                           </p>
+                          {msg.file_url && msg.file_name && (
+                            <div className="mt-2">
+                              <FilePreview
+                                url={msg.file_url}
+                                name={msg.file_name}
+                                type={msg.file_type || ""}
+                              />
+                            </div>
+                          )}
                         </div>
                         <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? "text-right" : ""} px-1`}>
                           {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
