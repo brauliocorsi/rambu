@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getProfileCached } from "@/lib/realtimeSync";
-import { saveRetry, getRetry, clearRetry } from "@/lib/pendingRetries";
+import { saveRetry, getRetry, clearRetry, isAttachmentReusable } from "@/lib/pendingRetries";
 
 export interface DirectMessage {
   id: string;
@@ -452,7 +452,11 @@ export function useRetryDMMessage() {
   return (clientMsgId: string) => {
     const payload = getRetry(clientMsgId);
     if (!payload || payload.kind !== "dm") {
-      toast.error("Não foi possível recuperar a mensagem para reenviar");
+      toast.error("Não foi possível reenviar após recarregar. Copie a mensagem e envie novamente.");
+      return;
+    }
+    if (!isAttachmentReusable(payload)) {
+      toast.error("Reanexe o arquivo para tentar novamente");
       return;
     }
     send.mutate({
