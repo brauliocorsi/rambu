@@ -96,7 +96,17 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/';
+  // Segurança: forçar URL same-origin. Aceitar apenas path/relative.
+  const rawUrl = event.notification.data?.url || '/';
+  let targetUrl = '/';
+  try {
+    const u = new URL(rawUrl, self.location.origin);
+    if (u.origin === self.location.origin) {
+      targetUrl = u.pathname + u.search + u.hash;
+    }
+  } catch {
+    targetUrl = '/';
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
