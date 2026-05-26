@@ -7,6 +7,16 @@ import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import type { ConversationRef } from "@/types/conversation";
 
 /**
+ * Decisão arquitetural: `ConversationView` é o ÚNICO dono dos dados
+ * de leitura — chama `useConversationMessages` uma vez e repassa a
+ * lista controlada para `ConversationMessageList`. Isso elimina a
+ * chamada dupla do hook (uma no view, outra na list) e mantém uma
+ * única fonte de verdade para `messages`, usada também pelo
+ * `ConversationMediaViewer`. `ConversationMessageList` continua
+ * aceitando uso standalone (sem props controladas) por compatibilidade.
+ */
+
+/**
  * View unificada de conversa. Compoe header (slot), lista
  * (ConversationMessageList) e composer (ConversationComposer).
  * Para grupos, passe um composerSlot enquanto a migracao nao termina.
@@ -29,7 +39,8 @@ export function ConversationView({
   onStopTyping,
 }: ConversationViewProps) {
   const { preferences } = useLayoutPreferences();
-  const { messages } = useConversationMessages(conversation);
+  const { messages, isLoading, isFetchingMore, hasMore, loadMore } =
+    useConversationMessages(conversation);
   const [replyTo, setReplyTo] = useState<string | undefined>();
 
   return (
@@ -41,8 +52,13 @@ export function ConversationView({
         slackMode={preferences.slackMode}
         density={preferences.density}
         emptyState={emptyState}
+        messages={messages}
+        isLoading={isLoading}
+        isFetchingMore={isFetchingMore}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
       />
-      <ConversationMediaViewer messages={messages} />
+      {!isLoading && <ConversationMediaViewer messages={messages} />}
       <div className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         {composerSlot ?? (
           <ConversationComposer
