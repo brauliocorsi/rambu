@@ -4,11 +4,22 @@ import webpush from "npm:web-push@3.6.7";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@rambu.app";
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+let vapidReady = false;
+let vapidError: string | null = null;
+try {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    vapidError = "VAPID secrets ausentes (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)";
+  } else {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    vapidReady = true;
+  }
+} catch (e: any) {
+  vapidError = `VAPID inválido: ${e?.message ?? "unknown"}`;
+}
 
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -196,12 +207,27 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
+    const mode = body.test === true ? "test" : (body.notification_id ? "notification_id" : "unknown");
+    console.log(JSON.stringify({
+      stage: "request",
+      method: req.method,
+      mode,
+      has_auth: !!req.headers.get("Authorization"),
+      vapid_ready: vapidReady,
+    }));
+
+    if (!vapidReady) {
+      return new Response(JSON.stringify({ ok: false, stage: "secrets", error: vapidError ?? "vapid_not_configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Modo 1: teste manual (autenticado)
     if (body.test === true) {
       const auth = req.headers.get("Authorization");
       if (!auth) {
-        return new Response(JSON.stringify({ error: "unauthorized" }), {
+        return new Response(JSON.stringify({ ok: false, stage: "auth", error: "missing_authorization" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -212,7 +238,7 @@ Deno.serve(async (req) => {
       const { data: userRes } = await userClient.auth.getUser();
       const userId = userRes?.user?.id;
       if (!userId) {
-        return new Response(JSON.stringify({ error: "unauthorized" }), {
+        return new Response(JSON.stringify({ ok: false, stage: "auth", error: "invalid_token" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -225,6 +251,12 @@ Deno.serve(async (req) => {
         conversationType: "test",
       };
       const result = await sendToUser(userId, payload, null);
+      if (result.sent === 0 && result.failed === 0) {
+        return new Response(JSON.stringify({ ok: false, stage: "subscription", error: "no_active_subscription" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ ok: true, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -236,7 +268,7 @@ Deno.serve(async (req) => {
     const auth = req.headers.get("Authorization") ?? "";
     const expected = `Bearer ${SERVICE_ROLE_KEY}`;
     if (auth !== expected) {
-      return new Response(JSON.stringify({ error: "forbidden" }), {
+      return new Response(JSON.stringify({ ok: false, stage: "auth", error: "forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -244,7 +276,7 @@ Deno.serve(async (req) => {
 
     const notificationId: string | undefined = body.notification_id;
     if (!notificationId) {
-      return new Response(JSON.stringify({ error: "missing notification_id" }), {
+      return new Response(JSON.stringify({ ok: false, stage: "auth", error: "missing_notification_id" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -257,7 +289,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (error || !notification) {
-      return new Response(JSON.stringify({ error: "notification_not_found" }), {
+      return new Response(JSON.stringify({ ok: false, stage: "database", error: "notification_not_found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -295,8 +327,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    console.error("send-push-notification error", err);
-    return new Response(JSON.stringify({ error: err?.message ?? "internal_error" }), {
+    console.error("send-push-notification error", err?.message);
+    return new Response(JSON.stringify({ ok: false, stage: "webpush", error: err?.message ?? "internal_error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
