@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rambu-cache-v2';
+const CACHE_NAME = 'rambu-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -69,7 +69,17 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const payload = event.data.json();
-      data = { ...data, ...payload };
+      if (payload && typeof payload === 'object') {
+        data = {
+          ...data,
+          title: typeof payload.title === 'string' && payload.title.trim() ? payload.title : data.title,
+          body: typeof payload.body === 'string' ? payload.body : data.body,
+          icon: typeof payload.icon === 'string' ? payload.icon : data.icon,
+          badge: typeof payload.badge === 'string' ? payload.badge : data.badge,
+          tag: typeof payload.tag === 'string' ? payload.tag : undefined,
+          url: typeof payload.url === 'string' ? payload.url : '/',
+        };
+      }
     } catch {
       data.body = event.data.text();
     }
@@ -109,18 +119,31 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if available
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
-        }
+    (async () => {
+      const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const sameOrigin = clientList.filter((c) => {
+        try { return new URL(c.url).origin === self.location.origin; } catch { return false; }
+      });
+
+      // 1) Prefer a window already on the target URL
+      const exact = sameOrigin.find((c) => {
+        try { return (new URL(c.url).pathname + new URL(c.url).search) === targetUrl; } catch { return false; }
+      });
+      if (exact && 'focus' in exact) {
+        return exact.focus();
       }
-      // Open new window
+
+      // 2) Otherwise reuse any same-origin window
+      const reusable = sameOrigin[0];
+      if (reusable) {
+        try { await reusable.navigate(targetUrl); } catch { /* cross-origin nav not allowed */ }
+        if ('focus' in reusable) return reusable.focus();
+      }
+
+      // 3) Last resort: open a new window
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }
-    })
+    })()
   );
 });
