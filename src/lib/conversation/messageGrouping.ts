@@ -10,7 +10,6 @@ import { ptBR } from "date-fns/locale";
 
 export interface DayGroupableMessage {
   id: string;
-  created_at: string;
 }
 
 export interface MessageDayGroup<T extends DayGroupableMessage> {
@@ -32,6 +31,10 @@ export function formatDaySeparator(date: Date): string {
  */
 export function groupMessagesByDay<T extends DayGroupableMessage>(
   messages: T[],
+  getCreatedAt: (m: T) => string | Date = (m) =>
+    (m as unknown as { created_at?: string; createdAt?: string }).created_at ??
+    (m as unknown as { created_at?: string; createdAt?: string }).createdAt ??
+    "",
 ): MessageDayGroup<T>[] {
   const groups: MessageDayGroup<T>[] = [];
   const seen = new Set<string>();
@@ -40,7 +43,7 @@ export function groupMessagesByDay<T extends DayGroupableMessage>(
     if (seen.has(message.id)) continue;
     seen.add(message.id);
 
-    const messageDate = new Date(message.created_at);
+    const messageDate = new Date(getCreatedAt(message));
     const lastGroup = groups[groups.length - 1];
 
     if (lastGroup && isSameDay(lastGroup.date, messageDate)) {
