@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { useConversationMessages } from "@/hooks/useConversationMessages";
 import { useConversationRealtime } from "@/hooks/useConversationRealtime";
 import { ConversationMessageBubble } from "./ConversationMessageBubble";
+import type { ConversationViewData } from "./ConversationMessageBubble";
 import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { MessageListSkeleton } from "@/components/ui/skeletons";
@@ -53,6 +54,13 @@ interface ConversationMessageListProps {
   isFetchingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  /**
+   * Mapa opcional de read-receipt/view data por message.id. A coleta
+   * fica no call-site (ex.: `DMChatView` usando `useDMMessageViewCounts`);
+   * a lista só repassa para o bubble. Quando ausente, nada é calculado
+   * e nenhum fetch novo é disparado.
+   */
+  viewDataById?: Record<string, ConversationViewData | undefined>;
 }
 
 export function ConversationMessageList({
@@ -69,6 +77,7 @@ export function ConversationMessageList({
   isFetchingMore: controlledIsFetchingMore,
   hasMore: controlledHasMore,
   onLoadMore,
+  viewDataById,
 }: ConversationMessageListProps) {
   const isControlled = controlledMessages !== undefined;
   const internal = useConversationMessages(isControlled ? null : conversation);
@@ -333,6 +342,7 @@ export function ConversationMessageList({
                 onOpenThread={onOpenThread}
                 slackMode={slackMode}
                 density={density}
+                viewData={viewDataById?.[m.id]}
               />
             ))}
           </div>

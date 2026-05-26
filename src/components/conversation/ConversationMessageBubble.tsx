@@ -4,6 +4,20 @@ import type { ConversationMessage } from "@/types/conversation";
 import type { MessageDensity } from "@/hooks/useLayoutPreferences";
 
 /**
+ * Forma de viewData compartilhada entre MessageBubble e DMMessageBubble.
+ * Mantida aqui para que `ConversationMessageList` possa tipar um mapa
+ * `viewDataById` sem importar de bubbles concretos.
+ */
+export interface ConversationViewData {
+  count: number;
+  viewers: {
+    user_id: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  }[];
+}
+
+/**
  * Bubble unificado. Delega para MessageBubble (channel) ou
  * DMMessageBubble (dm/group), passando o payload bruto para
  * preservar todas as funcionalidades: reply, edicao, reacoes,
@@ -15,14 +29,7 @@ interface ConversationMessageBubbleProps {
   onOpenThread?: (message: any) => void;
   slackMode?: boolean;
   density?: MessageDensity;
-  viewData?: {
-    count: number;
-    viewers: {
-      user_id: string;
-      display_name: string | null;
-      avatar_url: string | null;
-    }[];
-  };
+  viewData?: ConversationViewData;
 }
 
 export function ConversationMessageBubble({
