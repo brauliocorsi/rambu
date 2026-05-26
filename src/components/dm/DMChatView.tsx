@@ -13,7 +13,7 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
 import { DMMessageBubble } from "./DMMessageBubble";
-import { DMMessageInput } from "./DMMessageInput";
+import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { ScrollToBottomButton } from "@/components/message/ScrollToBottomButton";
 import { useRecordDMMessageView, useDMMessageViewCounts } from "@/hooks/useMessageViews";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
@@ -287,9 +287,13 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
         />
       </div>
       {/* Input */}
-      <DMMessageInput
-        dmId={dm.id}
-        otherUserName={displayName}
+      <ConversationComposer
+        conversation={{
+          type: "dm",
+          id: dm.id,
+          otherUserId: otherUser?.user_id,
+          displayName,
+        }}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(undefined)}
         onTyping={() => profile?.display_name && sendTypingStart(profile.display_name)}
