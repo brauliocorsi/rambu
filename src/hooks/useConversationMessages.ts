@@ -24,6 +24,8 @@ export interface UseConversationMessagesResult {
   isFetchingMore: boolean;
   hasMore: boolean;
   loadMore: () => void;
+  /** Erro de fetch da fonte ativa (channel/dm/group), se houver. */
+  error: Error | null;
 }
 
 export function useConversationMessages(
@@ -53,5 +55,6 @@ export function useConversationMessages(
     isFetchingMore: Boolean((active as any)?.isFetchingMore),
     hasMore: Boolean((active as any)?.hasMore),
     loadMore: (active as any)?.loadMore ?? (() => {}),
+    error: ((active as any)?.error as Error | null | undefined) ?? null,
   };
 }
