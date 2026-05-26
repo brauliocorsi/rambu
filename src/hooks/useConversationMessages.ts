@@ -11,40 +11,11 @@ import { useMemo } from "react";
 import { useInfiniteMessages } from "./useInfiniteMessages";
 import { useInfiniteDMMessages } from "./useInfiniteDMMessages";
 import { useDMGroupMessages } from "./useDMGroups";
+import { normalizeMessage } from "@/lib/conversation/normalizeMessage";
 import type {
   ConversationMessage,
   ConversationRef,
 } from "@/types/conversation";
-
-function normalize(ref: ConversationRef, raw: any): ConversationMessage {
-  return {
-    id: raw.id,
-    conversationRef: ref,
-    authorId: raw.user_id,
-    authorProfile: raw.profile
-      ? {
-          display_name: raw.profile.display_name ?? null,
-          avatar_url: raw.profile.avatar_url ?? null,
-        }
-      : undefined,
-    content: raw.content ?? "",
-    attachment: raw.file_url
-      ? {
-          url: raw.file_url,
-          name: raw.file_name ?? null,
-          type: raw.file_type ?? null,
-        }
-      : undefined,
-    replyToId: raw.reply_to ?? null,
-    isEdited: Boolean(raw.is_edited),
-    editedAt: raw.edited_at ?? null,
-    scheduledFor: raw.scheduled_for ?? raw.expires_at ?? null,
-    clientMsgId: raw.client_msg_id ?? null,
-    createdAt: raw.created_at,
-    updatedAt: raw.updated_at ?? raw.created_at,
-    _raw: raw,
-  };
-}
 
 export interface UseConversationMessagesResult {
   messages: ConversationMessage[];
@@ -72,7 +43,7 @@ export function useConversationMessages(
 
   const messages = useMemo<ConversationMessage[]>(() => {
     if (!ref) return [];
-    return rawMessages.map((m) => normalize(ref, m));
+    return rawMessages.map((m) => normalizeMessage(ref, m));
   }, [ref, rawMessages]);
 
   return {
