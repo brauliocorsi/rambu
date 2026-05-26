@@ -162,7 +162,8 @@ export function useDMMessages(dmId: string | null) {
                 const idx = cid ? old.findIndex((m) => m.client_msg_id === cid) : -1;
                 if (idx >= 0) {
                   const next = old.slice();
-                  next[idx] = { ...next[idx], ...data };
+                  next[idx] = { ...next[idx], ...data, _status: "sent" };
+                  if (cid) clearRetry(cid);
                   return next;
                 }
                 if (old.some((m) => m.id === data.id)) return old;
