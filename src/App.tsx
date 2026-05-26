@@ -22,6 +22,10 @@ import NotFound from "./pages/NotFound";
 import JoinWorkspace from "./pages/JoinWorkspace";
 import ResetPassword from "./pages/ResetPassword";
 import InstallPWA from "./pages/InstallPWA";
+import { lazy, Suspense } from "react";
+const ConversationPreviewDev = import.meta.env.DEV
+  ? lazy(() => import("./pages/ConversationPreviewDev"))
+  : null;
 
 const queryClient = new QueryClient();
 
@@ -90,6 +94,16 @@ const App = () => (
               <Route path="/join/:code" element={<JoinWorkspace />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/install" element={<InstallPWA />} />
+            {ConversationPreviewDev && (
+              <Route
+                path="/dev/conversation-preview"
+                element={
+                  <Suspense fallback={null}>
+                    <ConversationPreviewDev />
+                  </Suspense>
+                }
+              />
+            )}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
