@@ -333,12 +333,13 @@ export function useDMGroupMessages(groupId: string | null) {
                 if (cid) {
                   const idx = allMsgs.findIndex((m: any) => m.client_msg_id === cid);
                   if (idx >= 0) {
+                    clearRetry(cid);
                     return {
                       ...old,
                       pages: old.pages.map((p: any) => ({
                         ...p,
                         messages: p.messages.map((m: any) =>
-                          m.client_msg_id === cid ? { ...m, ...data } : m
+                          m.client_msg_id === cid ? { ...m, ...data, _status: "sent" } : m
                         ),
                       })),
                     };
