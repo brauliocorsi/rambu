@@ -117,19 +117,33 @@ export function ConversationMessageList({
 
   // ResizeObserver: keep pinned to bottom when content grows (images/audio
   // render, keyboard resize) — only if the user was already near bottom.
+  // Coalesce bursts via rAF: em conversas com muitas mídias o RO dispara
+  // várias vezes no mesmo frame; queremos no máximo 1 scroll efetivo/frame.
   useEffect(() => {
     const el = containerRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
+    let rafId: number | null = null;
+    const schedule = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (loadingMoreRef.current) return;
+        if (isNearBottomRef.current) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    };
     const ro = new ResizeObserver(() => {
       if (loadingMoreRef.current) return;
-      if (isNearBottomRef.current) {
-        el.scrollTop = el.scrollHeight;
-      }
+      schedule();
     });
     ro.observe(el);
     const inner = el.firstElementChild as HTMLElement | null;
     if (inner) ro.observe(inner);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (rafId != null) cancelAnimationFrame(rafId);
+    };
   }, [conversation.type, conversation.id]);
 
   // Re-anchor on mobile keyboard open/close
