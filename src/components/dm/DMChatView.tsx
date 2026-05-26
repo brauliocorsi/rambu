@@ -291,7 +291,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
         conversation={{
           type: "dm",
           id: dm.id,
-          otherUserId: otherUser?.user_id,
+          otherUserId: otherUser?.id,
           displayName,
         }}
         replyTo={replyTo}
