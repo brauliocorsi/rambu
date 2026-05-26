@@ -53,6 +53,7 @@ import { StatusSelector } from "@/components/user/StatusSelector";
 import { QuickRepliesSettings } from "@/components/settings/QuickRepliesSettings";
 import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 import { LabelsManager } from "@/components/labels/LabelsManager";
+import { PushDiagnosticsPanel } from "@/components/notifications/PushDiagnosticsPanel";
 import { UserStatsPanel } from "@/components/stats/UserStatsPanel";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { useNavigate } from "react-router-dom";
