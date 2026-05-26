@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { DMMessage, useEditDMMessage, useDeleteDMMessage, useDMMessageById } from "@/hooks/useDirectMessages";
+import { useRetryDMMessage } from "@/hooks/useDirectMessages";
+import { MessageStatusIndicator, type MessageStatus } from "@/components/message/MessageStatusIndicator";
 import { useMarkDMAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "@/components/message/MessageContent";
@@ -63,6 +65,7 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
 
   const editMessage = useEditDMMessage();
   const deleteMessage = useDeleteDMMessage();
+  const retrySend = useRetryDMMessage();
   const markAsUnread = useMarkDMAsUnread();
   
   // Fetch the original message if this is a reply
@@ -263,6 +266,16 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
 
           {/* Read receipt */}
           {isOwn && !isEditing && (
+            <>
+            <MessageStatusIndicator
+              status={(message as any)._status as MessageStatus | undefined}
+              onRetry={
+                (message as any)._status === "failed" && message.client_msg_id
+                  ? () => retrySend(message.client_msg_id as string)
+                  : undefined
+              }
+              className={!useSlackLayout && isOwn ? "text-right" : ""}
+            />
             <ReadReceiptIndicator
               messageId={message.id}
               isOwn={isOwn}
@@ -271,6 +284,7 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
               viewers={viewData?.viewers || []}
               className={!useSlackLayout && isOwn ? "justify-end" : ""}
             />
+            </>
           )}
         </div>
 

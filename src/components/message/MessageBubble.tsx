@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Message, useToggleReaction, useMessageReactions, useEditMessage, useDeleteMessage, useMessageById } from "@/hooks/useMessages";
+import { useRetryChannelMessage } from "@/hooks/useMessages";
+import { MessageStatusIndicator, type MessageStatus } from "./MessageStatusIndicator";
 import { useMarkChannelAsUnread } from "@/hooks/useMarkAsUnread";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { MessageContent } from "./MessageContent";
@@ -61,6 +63,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
   const toggleReaction = useToggleReaction();
   const editMessage = useEditMessage();
   const deleteMessage = useDeleteMessage();
+  const retrySend = useRetryChannelMessage();
   const markAsUnread = useMarkChannelAsUnread();
   const { data: reactions = [] } = useMessageReactions(message.id);
   const { data: originalMessage } = useMessageById(message.reply_to);
@@ -275,6 +278,16 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
 
           {/* Read receipt */}
           {isOwn && !isEditing && (
+            <>
+              <MessageStatusIndicator
+                status={(message as any)._status as MessageStatus | undefined}
+                onRetry={
+                  (message as any)._status === "failed" && message.client_msg_id
+                    ? () => retrySend(message.client_msg_id as string)
+                    : undefined
+                }
+                className={!useSlackLayout && isOwn ? "text-right" : ""}
+              />
             <ReadReceiptIndicator
               messageId={message.id}
               isOwn={isOwn}
@@ -284,6 +297,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
               isPending={message.id.startsWith("temp-")}
               className={!useSlackLayout && isOwn ? "justify-end" : ""}
             />
+            </>
           )}
         </div>
 

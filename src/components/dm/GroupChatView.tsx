@@ -11,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DMGroup, useDMGroupMessages, useLeaveGroup, DMGroupMessage } from "@/hooks/useDMGroups";
+import { useRetryGroupMessage } from "@/hooks/useDMGroups";
+import { MessageStatusIndicator, type MessageStatus } from "@/components/message/MessageStatusIndicator";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -60,6 +62,7 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const { preferences } = useLayoutPreferences();
   const { isMobile } = useViewMode();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useDMGroupMessages(group.id);
+  const retryGroupSend = useRetryGroupMessage();
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(`group:${group.id}`, true);
   const leaveGroup = useLeaveGroup();
   const [replyTo, setReplyTo] = useState<string | undefined>();
@@ -382,6 +385,17 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                           {format(new Date(msg.created_at), "HH:mm", { locale: ptBR })}
                           {msg.is_edited && " (editado)"}
                         </p>
+                        {isOwn && (
+                          <MessageStatusIndicator
+                            status={(msg as any)._status as MessageStatus | undefined}
+                            onRetry={
+                              (msg as any)._status === "failed" && (msg as any).client_msg_id
+                                ? () => retryGroupSend((msg as any).client_msg_id as string)
+                                : undefined
+                            }
+                            className="text-right px-1"
+                          />
+                        )}
                       </div>
                     </div>
                   </motion.div>
