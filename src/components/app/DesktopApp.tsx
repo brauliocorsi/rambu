@@ -16,9 +16,8 @@ import {
   useUnreadChannelCounts, 
   useUnreadDMCounts, 
   useTotalUnreadCount,
-  useMarkChannelAsRead,
-  useMarkDMAsRead,
 } from "@/hooks/useNotifications";
+import { useConversationReadStatus } from "@/hooks/useConversationReadStatus";
 import { useReminders } from "@/hooks/useMessageReminders";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { ChannelDetailsDialog } from "@/components/channel/ChannelDetailsDialog";
@@ -126,8 +125,6 @@ export function DesktopApp() {
   const totalFeedUnread = useFeedUnreadCount();
   const { data: scheduledMessages = [] } = useScheduledMessages();
   const { data: pendingReminders = [] } = useReminders();
-  const markChannelAsRead = useMarkChannelAsRead();
-  const markDMAsRead = useMarkDMAsRead();
   const deleteChannel = useDeleteChannel();
   const { data: currentChannelRole } = useCurrentChannelRole(currentChannel?.id || null);
 
@@ -191,9 +188,28 @@ export function DesktopApp() {
     }, description: 'Fechar modal' },
   ]);
 
+  // Auto-mark via hook centralizado (debounce + visibilidade + cancel-on-switch).
+  // Apenas uma conversa ativa por vez: channel OU dm.
+  const activeConvRef = currentChannel
+    ? { type: "channel" as const, id: currentChannel.id }
+    : selectedDM
+      ? { type: "dm" as const, id: selectedDM.id }
+      : null;
+  const activeHasUnread = currentChannel
+    ? (unreadChannelCounts[currentChannel.id] ?? 0) > 0
+    : selectedDM
+      ? (unreadDMCounts[selectedDM.id] ?? 0) > 0
+      : false;
+  useConversationReadStatus(activeConvRef, {
+    autoMark: true,
+    hasUnread: activeHasUnread,
+  });
+
+  // Side-effects de seleção (resetar a outra conversa e fechar Flows)
+  // permanecem locais, mas SEM disparar markAsRead — isso é responsabilidade
+  // do hook acima.
   useEffect(() => {
     if (currentChannel) {
-      markChannelAsRead.mutate(currentChannel.id);
       setSelectedDM(null);
       setShowFlows(false);
     }
@@ -201,7 +217,6 @@ export function DesktopApp() {
 
   useEffect(() => {
     if (selectedDM) {
-      markDMAsRead.mutate(selectedDM.id);
       setCurrentChannel(null);
       setShowFlows(false);
     }
