@@ -189,20 +189,35 @@ export function MessageList({
 
   // Keep view anchored to bottom when content grows (images/audio loading,
   // mobile keyboard resize). Only re-pin if the user was already near bottom.
+  // Coalesce ResizeObserver bursts via rAF: canais longos com muitas mídias
+  // disparam o RO várias vezes no mesmo frame; isso garante no máximo 1
+  // scroll efetivo por frame sem reduzir confiabilidade do anchor.
   useEffect(() => {
     const el = containerRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
+    let rafId: number | null = null;
+    const schedule = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (isLoadingMoreRef.current) return;
+        if (isNearBottomRef.current) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    };
     const ro = new ResizeObserver(() => {
       if (isLoadingMoreRef.current) return;
-      if (isNearBottomRef.current) {
-        el.scrollTop = el.scrollHeight;
-      }
+      schedule();
     });
     ro.observe(el);
     // Observe inner content (the only direct child wrapping messages)
     const inner = el.firstElementChild as HTMLElement | null;
     if (inner) ro.observe(inner);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (rafId != null) cancelAnimationFrame(rafId);
+    };
   }, [channelId]);
 
   // Re-anchor on mobile keyboard open/close via visualViewport
