@@ -316,7 +316,8 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                     const displayName = msg.profile?.display_name || "Usuário";
                     const time = format(new Date(msg.created_at), "HH:mm", { locale: ptBR });
                     const styles = densityStyles[preferences.density];
-                    
+                    const isOwn = msg.user_id === user?.id;
+
                     return (
                       <motion.div
                         key={msg.id}
@@ -341,6 +342,16 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
                           <p className="text-sm whitespace-pre-wrap break-words">
                             {formatMentionsForDisplay(msg.content)}
                           </p>
+                          {isOwn && (
+                            <MessageStatusIndicator
+                              status={(msg as any)._status as MessageStatus | undefined}
+                              onRetry={
+                                (msg as any)._status === "failed" && (msg as any).client_msg_id
+                                  ? () => retryGroupSend((msg as any).client_msg_id as string)
+                                  : undefined
+                              }
+                            />
+                          )}
                         </div>
                       </motion.div>
                     );
