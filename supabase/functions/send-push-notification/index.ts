@@ -231,6 +231,17 @@ Deno.serve(async (req) => {
     }
 
     // Modo 2: dispatch a partir de uma notification row
+    // Exige Authorization Bearer == SERVICE_ROLE_KEY (apenas o trigger DB conhece).
+    // Isso bloqueia chamadas anônimas com o anon key público.
+    const auth = req.headers.get("Authorization") ?? "";
+    const expected = `Bearer ${SERVICE_ROLE_KEY}`;
+    if (auth !== expected) {
+      return new Response(JSON.stringify({ error: "forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const notificationId: string | undefined = body.notification_id;
     if (!notificationId) {
       return new Response(JSON.stringify({ error: "missing notification_id" }), {
