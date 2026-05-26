@@ -393,6 +393,7 @@ export function useSendGroupMessage() {
       fileUrl,
       fileType,
       fileName,
+      clientMsgId,
     }: {
       groupId: string;
       content: string;
@@ -400,6 +401,7 @@ export function useSendGroupMessage() {
       fileUrl?: string;
       fileType?: string;
       fileName?: string;
+      clientMsgId?: string;
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
@@ -413,6 +415,7 @@ export function useSendGroupMessage() {
           file_url: fileUrl || null,
           file_type: fileType || null,
           file_name: fileName || null,
+          client_msg_id: clientMsgId || null,
         })
         .select()
         .single();
@@ -427,8 +430,125 @@ export function useSendGroupMessage() {
 
       return data;
     },
-    onError: (error: any) => {
+    onMutate: async (variables) => {
+      if (!user?.id) return;
+      await queryClient.cancelQueries({ queryKey: ["dm-group-messages", variables.groupId] });
+
+      const cachedProfile = queryClient.getQueryData<{ display_name: string | null; avatar_url: string | null }>(["profile", user.id]);
+
+      const clientMsgId =
+        variables.clientMsgId ||
+        (typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
+      (variables as any).clientMsgId = clientMsgId;
+      const tempId = `temp-${clientMsgId}`;
+
+      const optimistic: DMGroupMessage = {
+        id: tempId,
+        client_msg_id: clientMsgId,
+        group_id: variables.groupId,
+        user_id: user.id,
+        content: variables.content,
+        reply_to: variables.replyTo || null,
+        is_edited: false,
+        file_url: variables.fileUrl || null,
+        file_type: variables.fileType || null,
+        file_name: variables.fileName || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        _status: "pending",
+        profile: {
+          display_name: cachedProfile?.display_name || null,
+          avatar_url: cachedProfile?.avatar_url || null,
+        },
+      };
+
+      saveRetry(clientMsgId, {
+        kind: "group",
+        conversationId: variables.groupId,
+        content: variables.content,
+        replyTo: variables.replyTo ?? null,
+        fileUrl: variables.fileUrl ?? null,
+        fileType: variables.fileType ?? null,
+        fileName: variables.fileName ?? null,
+      });
+
+      queryClient.setQueryData(["dm-group-messages", variables.groupId], (old: any) => {
+        if (!old) return old;
+        const pages = old.pages.slice();
+        if (pages.length === 0) return old;
+        const lastIdx = pages.length - 1;
+        const lastPage = pages[lastIdx];
+        const i = lastPage.messages.findIndex((m: DMGroupMessage) => m.client_msg_id === clientMsgId);
+        const messages = i >= 0
+          ? lastPage.messages.map((m: DMGroupMessage, idx: number) => (idx === i ? { ...m, ...optimistic } : m))
+          : [...lastPage.messages, optimistic];
+        pages[lastIdx] = { ...lastPage, messages };
+        return { ...old, pages };
+      });
+
+      return { clientMsgId };
+    },
+    onSuccess: (data, variables, context) => {
+      const cid = (context as any)?.clientMsgId;
+      if (!data || !cid) return;
+      clearRetry(cid);
+      queryClient.setQueryData(["dm-group-messages", variables.groupId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p: any) => ({
+            ...p,
+            messages: p.messages.map((m: DMGroupMessage) =>
+              m.client_msg_id === cid
+                ? { ...m, id: data.id, created_at: data.created_at, updated_at: data.updated_at, _status: "sent" as const }
+                : m
+            ),
+          })),
+        };
+      });
+    },
+    onError: (error: any, variables, context) => {
+      const cid = (context as any)?.clientMsgId;
+      if (cid) {
+        queryClient.setQueryData(["dm-group-messages", variables.groupId], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((p: any) => ({
+              ...p,
+              messages: p.messages.map((m: DMGroupMessage) =>
+                m.client_msg_id === cid ? { ...m, _status: "failed" as const } : m
+              ),
+            })),
+          };
+        });
+      }
       toast.error(error.message || "Erro ao enviar mensagem");
     },
   });
+}
+
+/**
+ * Retry a previously-failed group message by client_msg_id.
+ */
+export function useRetryGroupMessage() {
+  const send = useSendGroupMessage();
+  return (clientMsgId: string) => {
+    const payload = getRetry(clientMsgId);
+    if (!payload || payload.kind !== "group") {
+      toast.error("Não foi possível recuperar a mensagem para reenviar");
+      return;
+    }
+    send.mutate({
+      groupId: payload.conversationId,
+      content: payload.content,
+      replyTo: payload.replyTo || undefined,
+      fileUrl: payload.fileUrl || undefined,
+      fileType: payload.fileType || undefined,
+      fileName: payload.fileName || undefined,
+      clientMsgId,
+    });
+  };
 }
