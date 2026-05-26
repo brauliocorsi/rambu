@@ -30,13 +30,13 @@ export function useConversationReadStatus(ref: ConversationRef | null) {
   }, [ref, markChannelRead, markDMRead]);
 
   const markAsUnread = useCallback(
-    (messageId?: string) => {
+    (messageCreatedAt?: string) => {
       if (!ref) return;
-      if (ref.type === "channel" && messageId) {
-        return markChannelUnread.mutate({ channelId: ref.id, messageId });
+      if (ref.type === "channel" && messageCreatedAt) {
+        return markChannelUnread.mutate({ channelId: ref.id, messageCreatedAt });
       }
-      if (ref.type === "dm" && messageId) {
-        return markDMUnread.mutate({ dmId: ref.id, messageId });
+      if (ref.type === "dm" && messageCreatedAt) {
+        return markDMUnread.mutate({ dmId: ref.id, messageCreatedAt });
       }
     },
     [ref, markChannelUnread, markDMUnread],
