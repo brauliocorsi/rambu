@@ -6,7 +6,6 @@ import { useChannelContext } from "@/contexts/ChannelContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChannels } from "@/hooks/useChannels";
-import { useMessages } from "@/hooks/useMessages";
 import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { usePresence } from "@/hooks/usePresence";

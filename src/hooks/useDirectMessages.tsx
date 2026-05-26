@@ -111,6 +111,13 @@ export function useDirectMessages(workspaceId: string | null) {
   });
 }
 
+/**
+ * @deprecated Hook legado de stream de mensagens de DM.
+ * Não é consumido em runtime (verificado em auditoria). Mantido por
+ * compatibilidade de export público. Para listar mensagens de DM,
+ * use `useInfiniteDMMessages(dmId)` ou, na camada unificada,
+ * `useConversationMessages({ type: "dm", id })`.
+ */
 export function useDMMessages(dmId: string | null) {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);

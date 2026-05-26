@@ -37,6 +37,13 @@ export interface MessageReaction {
   created_at: string;
 }
 
+/**
+ * @deprecated Hook legado de stream de mensagens de canal.
+ * Não é consumido em runtime (verificado em auditoria). Mantido por
+ * compatibilidade de export público. Para listar mensagens de canal,
+ * use `useInfiniteMessages(channelId)` ou, na camada unificada,
+ * `useConversationMessages({ type: "channel", id })`.
+ */
 export function useMessages(channelId: string | null) {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
