@@ -235,7 +235,7 @@ export function ConversationMessageList({
 
   if (messages.length === 0) {
     if (emptyState) {
-      return <>{emptyState}</>;
+      return <div className="flex-1 min-h-0 flex flex-col">{emptyState}</div>;
     }
     const Icon = isChannel ? Hash : isGroup ? Users : MessageCircle;
     const title = isChannel
