@@ -1,5 +1,7 @@
 import { MessageBubble } from "@/components/message/MessageBubble";
 import { DMMessageBubble } from "@/components/dm/DMMessageBubble";
+import { GroupMessageBubble } from "@/components/dm/GroupMessageBubble";
+import { useAuth } from "@/hooks/useAuth";
 import type { ConversationMessage } from "@/types/conversation";
 import type { MessageDensity } from "@/hooks/useLayoutPreferences";
 
@@ -41,6 +43,7 @@ export function ConversationMessageBubble({
   viewData,
 }: ConversationMessageBubbleProps) {
   const { conversationRef, _raw } = message;
+  const { user } = useAuth();
 
   if (conversationRef.type === "channel") {
     return (
@@ -52,6 +55,17 @@ export function ConversationMessageBubble({
         slackMode={slackMode}
         density={density}
         viewData={viewData}
+      />
+    );
+  }
+
+  if (conversationRef.type === "group") {
+    return (
+      <GroupMessageBubble
+        message={_raw}
+        currentUserId={user?.id}
+        slackMode={slackMode}
+        density={density}
       />
     );
   }
