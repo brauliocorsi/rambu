@@ -1,6 +1,6 @@
 // VAPID public key — safe to expose in client code (it's the public half of the keypair)
 export const VAPID_PUBLIC_KEY =
-  "BOpXvy3FqnXStwgbFLaGkOWEPiAu2epsBcIj8MyntVbHKgqpHEEnsPPCBx2W9FG_KexUk1hz60H8UQwb7S0GeVg";
+  "BAjR_Lc-gpS_HlOYCyhQQmIYJIOH18xGj8KnypXR1C6Lk15snwbX6Bd8Zj_GuEGxAE0oxXHMeIfoCI1nZ6FhQ0w";
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
