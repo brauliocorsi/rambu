@@ -9,8 +9,11 @@ import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { useRecordMessageView, useMessageViewCounts } from "@/hooks/useMessageViews";
-import { format, isToday, isYesterday, isSameDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
+import {
+  formatDaySeparator,
+  groupMessagesByDay,
+} from "@/lib/conversation/messageGrouping";
 
 interface TypingUser {
   userId: string;
@@ -28,36 +31,6 @@ interface MessageListProps {
   onReply?: (messageId: string) => void;
   onOpenThread?: (message: Message) => void;
   typingUsers?: TypingUser[];
-}
-
-// Helper to format day separator
-function formatDaySeparator(date: Date): string {
-  if (isToday(date)) return "Hoje";
-  if (isYesterday(date)) return "Ontem";
-  return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
-}
-
-// Group messages by day
-function groupMessagesByDay(messages: Message[]): { date: Date; messages: Message[] }[] {
-  const groups: { date: Date; messages: Message[] }[] = [];
-  const seen = new Set<string>();
-
-  messages.forEach((message) => {
-    // Dedupe messages by id to avoid React duplicate-key warnings
-    if (seen.has(message.id)) return;
-    seen.add(message.id);
-
-    const messageDate = new Date(message.created_at);
-    const lastGroup = groups[groups.length - 1];
-    
-    if (lastGroup && isSameDay(lastGroup.date, messageDate)) {
-      lastGroup.messages.push(message);
-    } else {
-      groups.push({ date: messageDate, messages: [message] });
-    }
-  });
-  
-  return groups;
 }
 
 export function MessageList({ 
