@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DMGroup, useDMGroupMessages, useSendGroupMessage, useLeaveGroup, DMGroupMessage } from "@/hooks/useDMGroups";
+import { DMGroup, useDMGroupMessages, useLeaveGroup, DMGroupMessage } from "@/hooks/useDMGroups";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -19,7 +19,7 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
-import { DMMessageInput } from "./DMMessageInput";
+import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { formatMentionsForDisplay } from "@/hooks/useMentions";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,7 +61,6 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
   const { isMobile } = useViewMode();
   const { messages, isLoading, isFetchingMore, hasMore, loadMore } = useDMGroupMessages(group.id);
   const { typingUsers, sendTypingStart, sendTypingStop } = useTypingIndicator(`group:${group.id}`, true);
-  const sendMessage = useSendGroupMessage();
   const leaveGroup = useLeaveGroup();
   const [replyTo, setReplyTo] = useState<string | undefined>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -207,15 +206,6 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
     });
     return groups;
   }, [messages]);
-
-  const handleSendMessage = async (content: string, replyToId?: string) => {
-    await sendMessage.mutateAsync({
-      groupId: group.id,
-      content,
-      replyTo: replyToId,
-    });
-    setReplyTo(undefined);
-  };
 
   const handleLeaveGroup = () => {
     if (!currentWorkspace) return;
@@ -416,49 +406,17 @@ export function GroupChatView({ group, onBack }: GroupChatViewProps) {
         />
       </div>
 
-      {/* Custom Input for Group */}
-      <div className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:p-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder={`Mensagem para ${getGroupName()}`}
-            className="flex-1 min-h-[44px] px-4 py-3 rounded-xl bg-secondary border-0 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                const input = e.currentTarget;
-                if (input.value.trim()) {
-                  handleSendMessage(input.value);
-                  input.value = "";
-                }
-              }
-            }}
-            onChange={(e) => {
-              if (e.target.value.trim() && profile?.display_name) {
-                sendTypingStart(profile.display_name);
-              } else {
-                sendTypingStop();
-              }
-            }}
-            onBlur={sendTypingStop}
-          />
-          <Button
-            size="icon"
-            className="h-10 w-10 md:h-12 md:w-12 rounded-xl gradient-primary text-white shrink-0"
-            onClick={(e) => {
-              const input = (e.currentTarget.previousSibling as HTMLInputElement);
-              if (input.value.trim()) {
-                handleSendMessage(input.value);
-                input.value = "";
-              }
-            }}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-            </svg>
-          </Button>
-        </div>
-      </div>
+      {/* Input */}
+      <ConversationComposer
+        conversation={{
+          type: "group",
+          id: group.id,
+          workspaceId: currentWorkspace?.id,
+          displayName: getGroupName(),
+        }}
+        onTyping={() => profile?.display_name && sendTypingStart(profile.display_name)}
+        onStopTyping={sendTypingStop}
+      />
     </div>
   );
 }
