@@ -11,7 +11,7 @@ import { useCurrentChannelRole } from "@/hooks/useChannelMembers";
 import { CategoryManager } from "@/components/channel/CategoryManager";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
 import { MessageList } from "@/components/message/MessageList";
-import { MessageInput } from "@/components/message/MessageInput";
+import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
 import { PinnedMessagesPanel } from "@/components/message/PinnedMessagesPanel";
@@ -211,13 +211,16 @@ function ChannelChatView() {
         typingUsers={typingUsers}
       />
 
-      {/* Message Input */}
-      <MessageInput
-        channelId={currentChannel.id}
-        channelName={currentChannel.name}
+      {/* Message Input (camada unificada) */}
+      <ConversationComposer
+        conversation={{
+          type: "channel",
+          id: currentChannel.id,
+          displayName: currentChannel.name,
+        }}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(undefined)}
-        onTyping={handleTyping}
+        onTyping={(name) => handleTyping(name ?? "")}
         onStopTyping={sendTypingStop}
       />
       <PinnedMessagesPanel
