@@ -13,6 +13,7 @@
  * para cá e remover dos hooks de leitura.
  */
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ConversationRef } from "@/types/conversation";
 
 export interface UseConversationRealtimeResult {
@@ -24,18 +25,42 @@ export function useConversationRealtime(
   ref: ConversationRef | null,
 ): UseConversationRealtimeResult {
   const [isSubscribed, setSubscribed] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!ref) {
       setSubscribed(false);
       return;
     }
-    // A assinatura real é feita pelo hook de leitura associado
-    // (useConversationMessages -> useInfiniteMessages/etc).
-    // Aqui apenas sinalizamos o ciclo de vida para consumidores.
     setSubscribed(true);
-    return () => setSubscribed(false);
-  }, [ref?.type, ref?.id]);
+
+    // Reconcile cache quando a aba volta a ficar visível ou a rede
+    // reconecta. A assinatura postgres_changes em si é gerida pelos
+    // hooks de leitura — aqui forçamos um refetch incremental para
+    // recuperar mensagens perdidas durante desconexões curtas.
+    const key =
+      ref.type === "channel"
+        ? ["infinite-messages", ref.id]
+        : ref.type === "dm"
+          ? ["infinite-dm-messages", ref.id]
+          : ["dm-group-messages", ref.id];
+
+    const resync = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      queryClient.invalidateQueries({ queryKey: key, exact: false });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") resync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", resync);
+
+    return () => {
+      setSubscribed(false);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", resync);
+    };
+  }, [ref?.type, ref?.id, queryClient]);
 
   return { isSubscribed, ref };
 }
