@@ -4,7 +4,8 @@ import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
 import { useChannels, useDeleteChannel } from "@/hooks/useChannels";
 import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
-import { useUnreadChannelCounts, useMarkChannelAsRead } from "@/hooks/useNotifications";
+import { useUnreadChannelCounts } from "@/hooks/useNotifications";
+import { useConversationReadStatus } from "@/hooks/useConversationReadStatus";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useProfile } from "@/hooks/useProfile";
 import { useCurrentChannelRole } from "@/hooks/useChannelMembers";
@@ -245,16 +246,17 @@ export function ChannelsView() {
   const { currentChannel, setCurrentChannel } = useChannelContext();
   const { data: channels = [], isLoading } = useChannels(currentWorkspace?.id || null);
   const { data: unreadCounts = {} } = useUnreadChannelCounts(currentWorkspace?.id || null);
-  const markAsRead = useMarkChannelAsRead();
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
 
-  // Mark channel as read when selected
-  useEffect(() => {
-    if (currentChannel) {
-      markAsRead.mutate(currentChannel.id);
-    }
-  }, [currentChannel?.id]);
+  // Auto-mark via hook centralizado: debounce + visibilidade + cancel-on-switch.
+  useConversationReadStatus(
+    currentChannel ? { type: "channel", id: currentChannel.id } : null,
+    {
+      autoMark: true,
+      hasUnread: currentChannel ? (unreadCounts[currentChannel.id] ?? 0) > 0 : false,
+    },
+  );
 
   if (currentChannel) {
     return <div className="h-full min-h-0"><ChannelChatView /></div>;

@@ -223,34 +223,26 @@ export function useMarkChannelAsRead() {
     },
     onMutate: async (channelId: string) => {
       await queryClient.cancelQueries({ queryKey: ["unread-channel-counts"] });
-      const previousCounts = queryClient.getQueryData(["unread-channel-counts"]);
-      
-      // Optimistically set count to 0
-      queryClient.setQueryData(
-        ["unread-channel-counts"],
-        (old: any) => {
-          if (!old) return old;
-          // Handle all matching query keys
-          return old;
-        }
-      );
-      // Also update any specific workspace key
+      // Snapshot otimista de todas as queries de unread-channel-counts.
+      const previousSnapshots = queryClient.getQueriesData<Record<string, number>>({
+        queryKey: ["unread-channel-counts"],
+      });
+      // Zera o badge da conversa que está sendo marcada como lida.
       queryClient.setQueriesData(
         { queryKey: ["unread-channel-counts"] },
         (old: Record<string, number> | undefined) => {
           if (!old) return old;
+          if (!(channelId in old)) return old;
           return { ...old, [channelId]: 0 };
         }
       );
-      
-      return { previousCounts };
+      return { previousSnapshots };
     },
     onError: (_err, _channelId, context) => {
-      if (context?.previousCounts) {
-        queryClient.setQueriesData(
-          { queryKey: ["unread-channel-counts"] },
-          context.previousCounts
-        );
+      if (context?.previousSnapshots) {
+        for (const [key, data] of context.previousSnapshots) {
+          queryClient.setQueryData(key, data);
+        }
       }
     },
     onSuccess: () => {
@@ -290,15 +282,25 @@ export function useMarkDMAsRead() {
     },
     onMutate: async (dmId: string) => {
       await queryClient.cancelQueries({ queryKey: ["unread-dm-counts"] });
-      
-      // Optimistically set count to 0
+      const previousSnapshots = queryClient.getQueriesData<Record<string, number>>({
+        queryKey: ["unread-dm-counts"],
+      });
       queryClient.setQueriesData(
         { queryKey: ["unread-dm-counts"] },
         (old: Record<string, number> | undefined) => {
           if (!old) return old;
+          if (!(dmId in old)) return old;
           return { ...old, [dmId]: 0 };
         }
       );
+      return { previousSnapshots };
+    },
+    onError: (_err, _dmId, context) => {
+      if (context?.previousSnapshots) {
+        for (const [key, data] of context.previousSnapshots) {
+          queryClient.setQueryData(key, data);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["unread-dm-counts"] });

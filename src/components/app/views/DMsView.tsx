@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { useDMGroups, DMGroup } from "@/hooks/useDMGroups";
-import { useUnreadDMCounts, useMarkDMAsRead } from "@/hooks/useNotifications";
+import { useUnreadDMCounts } from "@/hooks/useNotifications";
+import { useConversationReadStatus } from "@/hooks/useConversationReadStatus";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { GroupChatView } from "@/components/dm/GroupChatView";
 import { DMListWithArchive } from "@/components/dm/DMListWithArchive";
@@ -40,7 +41,6 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   const { data: dms = [], isLoading } = useDirectMessages(currentWorkspace?.id || null);
   const { data: groups = [], isLoading: loadingGroups } = useDMGroups(currentWorkspace?.id || null);
   const { data: unreadCounts = {} } = useUnreadDMCounts(currentWorkspace?.id || null);
-  const markAsRead = useMarkDMAsRead();
   const [showNewDM, setShowNewDM] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DMGroup | null>(null);
@@ -48,12 +48,14 @@ export function DMsView({ selectedDM, onSelectDM }: DMsViewProps) {
   const isLoadingAll = isLoading || loadingGroups;
   const hasNoConversations = dms.length === 0 && groups.length === 0;
 
-  // Mark DM as read when selected
-  useEffect(() => {
-    if (selectedDM) {
-      markAsRead.mutate(selectedDM.id);
-    }
-  }, [selectedDM?.id]);
+  // Auto-mark via hook centralizado: debounce + visibilidade + cancel-on-switch.
+  useConversationReadStatus(
+    selectedDM ? { type: "dm", id: selectedDM.id } : null,
+    {
+      autoMark: true,
+      hasUnread: selectedDM ? (unreadCounts[selectedDM.id] ?? 0) > 0 : false,
+    },
+  );
 
   // Show group chat view
   if (selectedGroup) {
