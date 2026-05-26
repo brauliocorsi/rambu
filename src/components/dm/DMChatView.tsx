@@ -10,6 +10,7 @@ import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { ConversationMessageList } from "@/components/conversation/ConversationMessageList";
 import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { useRecordDMMessageView, useDMMessageViewCounts } from "@/hooks/useMessageViews";
+import { normalizeMessage } from "@/lib/conversation/normalizeMessage";
 
 interface DMChatViewProps {
   dm: DirectMessage;
@@ -39,14 +40,7 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   );
   const conversationMessages = useMemo(
     () =>
-      messages.map((m) => ({
-        id: m.id,
-        content: m.content,
-        createdAt: m.created_at,
-        userId: m.user_id,
-        conversationRef,
-        _raw: m,
-      })),
+      messages.map((m) => normalizeMessage(conversationRef, m)),
     [messages, conversationRef],
   );
 
