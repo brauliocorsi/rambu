@@ -39,12 +39,13 @@ export function ConversationMessageList({
   const prevLenRef = useRef(0);
   const prevHeightRef = useRef(0);
   const loadingMoreRef = useRef(false);
+  const wasLoadingRef = useRef(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   const checkNearBottom = useCallback(() => {
     const el = containerRef.current;
     if (!el) return true;
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 200;
   }, []);
 
   const handleScroll = useCallback(() => {
@@ -90,8 +91,61 @@ export function ConversationMessageList({
     prevLenRef.current = 0;
     prevHeightRef.current = 0;
     loadingMoreRef.current = false;
+    wasLoadingRef.current = true;
     setShowScrollBtn(false);
   }, [conversation.type, conversation.id]);
+
+  // Scroll to bottom when initial load finishes (open conversation)
+  useEffect(() => {
+    if (isLoading) {
+      wasLoadingRef.current = true;
+      return;
+    }
+    if (wasLoadingRef.current) {
+      wasLoadingRef.current = false;
+      const doScroll = () => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      };
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+      const t1 = setTimeout(doScroll, 100);
+      const t2 = setTimeout(doScroll, 300);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+  }, [isLoading]);
+
+  // ResizeObserver: keep pinned to bottom when content grows (images/audio
+  // render, keyboard resize) — only if the user was already near bottom.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (loadingMoreRef.current) return;
+      if (isNearBottomRef.current) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+    ro.observe(el);
+    const inner = el.firstElementChild as HTMLElement | null;
+    if (inner) ro.observe(inner);
+    return () => ro.disconnect();
+  }, [conversation.type, conversation.id]);
+
+  // Re-anchor on mobile keyboard open/close
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const onResize = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      if (isNearBottomRef.current && !loadingMoreRef.current) {
+        el.scrollTop = el.scrollHeight;
+      }
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
 
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
