@@ -1169,6 +1169,39 @@ export type Database = {
           },
         ]
       }
+      notification_delivery_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          notification_id: string | null
+          provider_response: Json | null
+          push_subscription_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_id?: string | null
+          provider_response?: Json | null
+          push_subscription_id?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_id?: string | null
+          provider_response?: Json | null
+          push_subscription_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           channel_notifications: boolean
@@ -1440,6 +1473,57 @@ export type Database = {
           status_emoji?: string | null
           status_text?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          device_label: string | null
+          endpoint: string
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_failure_at: string | null
+          last_success_at: string | null
+          p256dh: string
+          platform: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          device_label?: string | null
+          endpoint: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh: string
+          platform?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          device_label?: string | null
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh?: string
+          platform?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
