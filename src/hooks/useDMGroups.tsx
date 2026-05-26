@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getProfileCached } from "@/lib/realtimeSync";
+import { saveRetry, getRetry, clearRetry } from "@/lib/pendingRetries";
 
 export interface DMGroup {
   id: string;
@@ -46,6 +47,9 @@ export interface DMGroupMessage {
   file_name: string | null;
   created_at: string;
   updated_at: string;
+  client_msg_id?: string | null;
+  /** Client-only send lifecycle. Never persisted. */
+  _status?: "pending" | "uploading" | "failed" | "sent";
   profile?: {
     display_name: string | null;
     avatar_url: string | null;
