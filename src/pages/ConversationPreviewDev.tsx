@@ -128,8 +128,9 @@ export default function ConversationPreviewDev() {
 }
 
 function DiagnosticsPanel({ conversation }: { conversation: ConversationRef }) {
-  const { messages, isLoading, isFetchingMore, hasMore, error } =
-    useConversationMessages(conversation);
+  const result = useConversationMessages(conversation);
+  const { messages, isLoading, isFetchingMore, hasMore } = result;
+  const error = (result as { error?: unknown }).error ?? null;
 
   const last = messages[messages.length - 1];
   const first = messages[0];
