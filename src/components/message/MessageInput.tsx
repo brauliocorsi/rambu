@@ -311,7 +311,7 @@ export function MessageInput({
   return (
     <div
       ref={containerRef}
-      className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border/70 bg-background/85 px-2 py-2 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-4 md:py-3"
+     className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border/70 bg-[hsl(var(--rambu-composer-bg))]/95 px-2 py-2 backdrop-blur-xl supports-[backdrop-filter]:bg-[hsl(var(--rambu-composer-bg))]/85 md:px-4 md:py-3"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
