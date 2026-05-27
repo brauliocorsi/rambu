@@ -31,7 +31,18 @@ interface MessageListProps {
   onReply?: (messageId: string) => void;
   onOpenThread?: (message: Message) => void;
   typingUsers?: TypingUser[];
+  /**
+   * Opcional: quando fornecido, MessageList NÃO chama internamente
+   * `useRecordMessageView` nem `useMessageViewCounts`, e usa estes dados
+   * para renderizar os indicadores de visualização. Permite que o
+   * call-site (ex.: DesktopApp/ChannelsView) seja o único dono do
+   * tracking de read views — preparando a migração para
+   * `ConversationMessageList`. Quando omitido, comportamento legado.
+   */
+  viewDataById?: Record<string, { count: number; viewers: { user_id: string; display_name: string | null; avatar_url: string | null }[] }>;
 }
+
+const EMPTY_IDS: string[] = [];
 
 export function MessageList({ 
   messages, 
@@ -44,6 +55,7 @@ export function MessageList({
   onReply, 
   onOpenThread,
   typingUsers = [],
+  viewDataById,
 }: MessageListProps) {
   const { preferences } = useLayoutPreferences();
   const { isMobile } = useViewMode();
@@ -210,12 +222,19 @@ export function MessageList({
   // Always group messages by day so date separators are visible in any mode
   const messageGroups = useMemo(() => groupMessagesByDay(messages), [messages]);
 
-  // Record views for visible messages
-  const visibleMessageIds = useMemo(() => messages.map(m => m.id).filter(id => !id.startsWith("temp-")), [messages]);
-  useRecordMessageView(visibleMessageIds, channelId);
-
-  // Fetch view counts for all visible messages
-  const { data: viewCounts = {} } = useMessageViewCounts(visibleMessageIds);
+  // Record views for visible messages — só roda quando o call-site
+  // não está fornecendo `viewDataById` (evita duplicação de hooks).
+  const hasExternalViewData = viewDataById !== undefined;
+  const internalVisibleIds = useMemo(
+    () =>
+      hasExternalViewData
+        ? EMPTY_IDS
+        : messages.map((m) => m.id).filter((id) => !id.startsWith("temp-")),
+    [messages, hasExternalViewData]
+  );
+  useRecordMessageView(internalVisibleIds, hasExternalViewData ? null : channelId);
+  const { data: internalViewCounts = {} } = useMessageViewCounts(internalVisibleIds);
+  const viewCounts = viewDataById ?? internalViewCounts;
 
   if (isLoading) {
     return <MessageListSkeleton count={8} />;
