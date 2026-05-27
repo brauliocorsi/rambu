@@ -12,7 +12,9 @@ import { useProfile } from "@/hooks/useProfile";
 import { useCurrentChannelRole } from "@/hooks/useChannelMembers";
 import { CategoryManager } from "@/components/channel/CategoryManager";
 import { CreateChannelDialog } from "@/components/channel/CreateChannelDialog";
-import { MessageList } from "@/components/message/MessageList";
+import { ConversationMessageList } from "@/components/conversation/ConversationMessageList";
+import { normalizeMessage } from "@/lib/conversation/normalizeMessage";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
@@ -74,6 +76,25 @@ function ChannelChatView() {
   );
   useRecordMessageView(visibleMessageIds, currentChannel?.id || null);
   const { data: viewDataById = {} } = useMessageViewCounts(visibleMessageIds);
+
+  // Layout preferences + normalização para a camada unificada.
+  const { preferences: layoutPreferences } = useLayoutPreferences();
+  const conversationRef = useMemo(
+    () =>
+      currentChannel
+        ? {
+            type: "channel" as const,
+            id: currentChannel.id,
+            workspaceId: currentWorkspace?.id,
+            displayName: currentChannel.name,
+          }
+        : null,
+    [currentChannel?.id, currentWorkspace?.id, currentChannel?.name]
+  );
+  const conversationMessages = useMemo(() => {
+    if (!conversationRef) return [];
+    return messages.map((m) => normalizeMessage(conversationRef, m));
+  }, [messages, conversationRef]);
 
   if (!currentChannel) return null;
 
@@ -212,18 +233,22 @@ function ChannelChatView() {
       </div>
 
       {/* Messages Area */}
-      <MessageList
-        messages={messages}
-        channelId={currentChannel.id}
-        channelName={currentChannel.name}
-        isLoading={isLoading}
-        isFetchingMore={isFetchingMore}
-        hasMore={hasMore}
-        onLoadMore={loadMore}
-        onReply={setReplyTo}
-        typingUsers={typingUsers}
-        viewDataById={viewDataById}
-      />
+      {conversationRef && (
+        <ConversationMessageList
+          conversation={conversationRef}
+          conversationName={currentChannel.name}
+          messages={conversationMessages}
+          isLoading={isLoading}
+          isFetchingMore={isFetchingMore}
+          hasMore={hasMore}
+          onLoadMore={loadMore}
+          onReply={setReplyTo}
+          typingUsers={typingUsers}
+          viewDataById={viewDataById}
+          slackMode={layoutPreferences.slackMode}
+          density={layoutPreferences.density}
+        />
+      )}
 
       {/* Message Input (camada unificada) */}
       <ConversationComposer

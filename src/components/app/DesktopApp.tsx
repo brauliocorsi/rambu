@@ -30,7 +30,9 @@ import { MemberManagementDialog } from "@/components/workspace/MemberManagementD
 import { ChannelList } from "@/components/channel/ChannelList";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
-import { MessageList } from "@/components/message/MessageList";
+import { ConversationMessageList } from "@/components/conversation/ConversationMessageList";
+import { normalizeMessage } from "@/lib/conversation/normalizeMessage";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { EmojiPicker } from "@/components/message/EmojiPicker";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
@@ -147,6 +149,29 @@ export function DesktopApp() {
   );
   useRecordMessageView(channelVisibleMessageIds, currentChannel?.id || null);
   const { data: channelViewDataById = {} } = useMessageViewCounts(channelVisibleMessageIds);
+
+  // Layout preferences (slack mode / density) — consumidas pelo
+  // ConversationMessageList → ConversationMessageBubble → MessageBubble.
+  const { preferences: layoutPreferences } = useLayoutPreferences();
+
+  // Normalização das mensagens do canal para a camada unificada.
+  // Sem fetch novo; apenas mapeia o payload bruto preservando `_raw`.
+  const channelConversationRef = useMemo(
+    () =>
+      currentChannel
+        ? {
+            type: "channel" as const,
+            id: currentChannel.id,
+            workspaceId: currentWorkspace?.id,
+            displayName: currentChannel.name,
+          }
+        : null,
+    [currentChannel?.id, currentWorkspace?.id, currentChannel?.name]
+  );
+  const channelConversationMessages = useMemo(() => {
+    if (!channelConversationRef) return [];
+    return messages.map((m) => normalizeMessage(channelConversationRef, m));
+  }, [messages, channelConversationRef]);
 
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
@@ -724,18 +749,22 @@ export function DesktopApp() {
               </div>
 
               <div className="flex-1 overflow-hidden min-h-0 flex">
-                <MessageList
-                  messages={messages}
-                  channelId={currentChannel.id}
-                  channelName={currentChannel.name}
-                  isLoading={loadingMessages}
-                  isFetchingMore={isFetchingMoreMessages}
-                  hasMore={hasMoreMessages}
-                  onLoadMore={loadMoreMessages}
-                  onReply={setReplyTo}
-                  onOpenThread={setThreadMessage}
-                  viewDataById={channelViewDataById}
-                />
+                {channelConversationRef && (
+                  <ConversationMessageList
+                    conversation={channelConversationRef}
+                    conversationName={currentChannel.name}
+                    messages={channelConversationMessages}
+                    isLoading={loadingMessages}
+                    isFetchingMore={isFetchingMoreMessages}
+                    hasMore={hasMoreMessages}
+                    onLoadMore={loadMoreMessages}
+                    onReply={setReplyTo}
+                    onOpenThread={setThreadMessage}
+                    viewDataById={channelViewDataById}
+                    slackMode={layoutPreferences.slackMode}
+                    density={layoutPreferences.density}
+                  />
+                )}
               </div>
 
               {/* Typing Indicator */}
