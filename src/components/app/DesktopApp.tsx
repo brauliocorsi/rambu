@@ -760,7 +760,6 @@ export function DesktopApp() {
                     onLoadMore={loadMoreMessages}
                     onReply={setReplyTo}
                     onOpenThread={setThreadMessage}
-                    typingUsers={isAnyoneTyping ? typingUsers : []}
                     viewDataById={channelViewDataById}
                     slackMode={layoutPreferences.slackMode}
                     density={layoutPreferences.density}
