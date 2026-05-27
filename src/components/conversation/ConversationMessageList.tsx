@@ -274,7 +274,7 @@ export function ConversationMessageList({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="absolute inset-0 overflow-y-auto py-4 overscroll-contain"
+        className="absolute inset-0 overflow-y-auto py-4 overscroll-contain bg-[hsl(var(--rambu-chat-bg))]"
       >
         {isFetchingMore && (
           <div className="flex items-center justify-center py-4">
@@ -327,12 +327,12 @@ export function ConversationMessageList({
             key={`day-${format(group.date, "yyyy-MM-dd")}-${groupIndex}`}
             data-day={format(group.date, "yyyy-MM-dd")}
           >
-            <div className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs font-semibold text-foreground/80 px-3 py-1 bg-secondary rounded-full shadow-sm">
+            <div className="flex items-center gap-3 px-4 py-2.5 sticky top-0 z-10 backdrop-blur-md supports-[backdrop-filter]:bg-[hsl(var(--rambu-chat-bg)/0.75)]">
+              <div className="flex-1 h-px bg-border/70" />
+              <span className="text-[11px] font-semibold tracking-wide text-muted-foreground px-2.5 py-1 bg-card border border-border/60 rounded-full">
                 {formatDaySeparator(group.date)}
               </span>
-              <div className="flex-1 h-px bg-border" />
+              <div className="flex-1 h-px bg-border/70" />
             </div>
             {group.messages.map((m) => (
               <ConversationMessageBubble

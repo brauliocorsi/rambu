@@ -311,7 +311,7 @@ export function MessageInput({
   return (
     <div
       ref={containerRef}
-      className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border/70 bg-background/85 px-2 py-2 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-4 md:py-3"
+     className="sticky bottom-0 z-40 shrink-0 safe-bottom border-t border-border/70 bg-[hsl(var(--rambu-composer-bg))]/95 px-2 py-2 backdrop-blur-xl supports-[backdrop-filter]:bg-[hsl(var(--rambu-composer-bg))]/85 md:px-4 md:py-3"
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -624,7 +624,7 @@ export function MessageInput({
         {/* Input field with formatting toolbar */}
         <div className="flex-1 min-w-0 flex flex-col">
           {showPreview && message.trim() ? (
-            <div className="min-h-[40px] md:min-h-[44px] max-h-28 overflow-y-auto px-3.5 py-2.5 rounded-2xl bg-secondary/60 border border-dashed border-border/70 text-sm">
+            <div className="min-h-[40px] md:min-h-[44px] max-h-28 overflow-y-auto px-3.5 py-2.5 rounded-xl bg-secondary/60 border border-dashed border-border/70 text-sm">
               <MessageContent content={message} className="text-sm" />
             </div>
           ) : (
@@ -635,7 +635,7 @@ export function MessageInput({
               onKeyDown={handleKeyDown}
               onBlur={() => onStopTyping?.()}
               placeholder={`Mensagem em #${channelName}`}
-              className="w-full min-h-[40px] md:min-h-[44px] max-h-28 px-3.5 py-2.5 rounded-2xl bg-secondary/80 border border-transparent hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent placeholder:text-muted-foreground/70 text-sm md:text-base resize-none transition-colors"
+              className="w-full min-h-[40px] md:min-h-[44px] max-h-28 px-3.5 py-2.5 rounded-xl bg-secondary/70 border border-border/60 hover:border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent placeholder:text-muted-foreground/70 text-sm md:text-base resize-none transition-colors"
             />
           )}
           {/* Formatting toolbar - below input, subtle */}
@@ -651,7 +651,7 @@ export function MessageInput({
 
         <Button
           size="icon"
-          className="h-10 w-10 md:h-11 md:w-11 rounded-2xl gradient-primary text-white shrink-0 shadow-soft hover:shadow-glow active:scale-95 transition-all duration-150"
+          className="h-10 w-10 md:h-11 md:w-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 shadow-sm-token active:scale-95 transition-all duration-150"
           disabled={(!message.trim() && attachedFiles.length === 0) || sendMessage.isPending || isUploading}
           onClick={handleSend}
         >
