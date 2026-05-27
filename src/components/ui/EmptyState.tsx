@@ -41,7 +41,7 @@ export function EmptyState({
       {Icon && (
         <div
           className={cn(
-            "rounded-2xl flex items-center justify-center mb-4 shadow-xs-token ring-1 ring-border/50",
+            "rounded-xl flex items-center justify-center mb-4 shadow-xs-token ring-1 ring-border/50",
             iconSize,
             toneClasses[tone],
           )}
