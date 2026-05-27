@@ -749,18 +749,23 @@ export function DesktopApp() {
               </div>
 
               <div className="flex-1 overflow-hidden min-h-0 flex">
-                <MessageList
-                  messages={messages}
-                  channelId={currentChannel.id}
-                  channelName={currentChannel.name}
-                  isLoading={loadingMessages}
-                  isFetchingMore={isFetchingMoreMessages}
-                  hasMore={hasMoreMessages}
-                  onLoadMore={loadMoreMessages}
-                  onReply={setReplyTo}
-                  onOpenThread={setThreadMessage}
-                  viewDataById={channelViewDataById}
-                />
+                {channelConversationRef && (
+                  <ConversationMessageList
+                    conversation={channelConversationRef}
+                    conversationName={currentChannel.name}
+                    messages={channelConversationMessages}
+                    isLoading={loadingMessages}
+                    isFetchingMore={isFetchingMoreMessages}
+                    hasMore={hasMoreMessages}
+                    onLoadMore={loadMoreMessages}
+                    onReply={setReplyTo}
+                    onOpenThread={setThreadMessage}
+                    typingUsers={isAnyoneTyping ? typingUsers : []}
+                    viewDataById={channelViewDataById}
+                    slackMode={layoutPreferences.slackMode}
+                    density={layoutPreferences.density}
+                  />
+                )}
               </div>
 
               {/* Typing Indicator */}
