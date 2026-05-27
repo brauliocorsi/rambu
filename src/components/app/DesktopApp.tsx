@@ -10,6 +10,8 @@ import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { usePresence } from "@/hooks/usePresence";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useRecordMessageView, useMessageViewCounts } from "@/hooks/useMessageViews";
+import { useMemo } from "react";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { 
   useUnreadChannelCounts, 
