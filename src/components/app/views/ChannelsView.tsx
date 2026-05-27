@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useChannelContext } from "@/contexts/ChannelContext";
@@ -7,6 +7,7 @@ import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useUnreadChannelCounts } from "@/hooks/useNotifications";
 import { useConversationReadStatus } from "@/hooks/useConversationReadStatus";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useRecordMessageView, useMessageViewCounts } from "@/hooks/useMessageViews";
 import { useProfile } from "@/hooks/useProfile";
 import { useCurrentChannelRole } from "@/hooks/useChannelMembers";
 import { CategoryManager } from "@/components/channel/CategoryManager";
@@ -62,6 +63,17 @@ function ChannelChatView() {
   const { data: notifPref } = useChannelNotificationPreference(currentChannel?.id || null);
   const snoozedUntil = (notifPref as any)?.snoozed_until as string | null | undefined;
   const isSnoozed = !!(snoozedUntil && new Date(snoozedUntil) > new Date());
+
+  // Read-view tracking centralizado no call-site (Fase 5-Channel-prep).
+  // Quando `viewDataById` é fornecido, `MessageList` não chama
+  // `useRecordMessageView`/`useMessageViewCounts` internamente, evitando
+  // duplicação de fetch/realtime.
+  const visibleMessageIds = useMemo(
+    () => messages.map((m) => m.id).filter((id) => !id.startsWith("temp-")),
+    [messages]
+  );
+  useRecordMessageView(visibleMessageIds, currentChannel?.id || null);
+  const { data: viewDataById = {} } = useMessageViewCounts(visibleMessageIds);
 
   if (!currentChannel) return null;
 
@@ -210,6 +222,7 @@ function ChannelChatView() {
         onLoadMore={loadMore}
         onReply={setReplyTo}
         typingUsers={typingUsers}
+        viewDataById={viewDataById}
       />
 
       {/* Message Input (camada unificada) */}
