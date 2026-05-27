@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Workspace, useWorkspaces } from "@/hooks/useWorkspaces";
 import { useWorkspaceFavorites } from "@/hooks/useWorkspaceFavorites";
+import { applyWorkspaceAccent } from "@/lib/workspaceTheme";
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
@@ -49,6 +50,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setCurrentWorkspace(null);
     }
   }, [workspaces, currentWorkspace]);
+
+  // Aplica accent color do workspace ativo nos tokens Rambu (visual only)
+  useEffect(() => {
+    applyWorkspaceAccent((currentWorkspace as any)?.accent_color ?? null);
+  }, [currentWorkspace?.id, (currentWorkspace as any)?.accent_color]);
 
   return (
     <WorkspaceContext.Provider
