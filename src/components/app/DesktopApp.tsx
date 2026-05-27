@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
@@ -10,6 +10,7 @@ import { useInfiniteMessages } from "@/hooks/useInfiniteMessages";
 import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { usePresence } from "@/hooks/usePresence";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useRecordMessageView, useMessageViewCounts } from "@/hooks/useMessageViews";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { 
   useUnreadChannelCounts, 
@@ -134,6 +135,18 @@ export function DesktopApp() {
   const { typingUsers, sendTypingStart, sendTypingStop, isAnyoneTyping } = useTypingIndicator(
     currentChannel?.id || null
   );
+
+  // Read-view tracking centralizado no call-site (Fase 5-Channel-prep).
+  // `MessageList` recebe `viewDataById` e, por consequência, não chama
+  // `useRecordMessageView`/`useMessageViewCounts` internamente — evitando
+  // duplicação quando o mesmo canal for renderizado por
+  // `ConversationMessageList` na próxima fase.
+  const channelVisibleMessageIds = useMemo(
+    () => messages.map((m) => m.id).filter((id) => !id.startsWith("temp-")),
+    [messages]
+  );
+  useRecordMessageView(channelVisibleMessageIds, currentChannel?.id || null);
+  const { data: channelViewDataById = {} } = useMessageViewCounts(channelVisibleMessageIds);
 
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
@@ -721,6 +734,7 @@ export function DesktopApp() {
                   onLoadMore={loadMoreMessages}
                   onReply={setReplyTo}
                   onOpenThread={setThreadMessage}
+                  viewDataById={channelViewDataById}
                 />
               </div>
 
