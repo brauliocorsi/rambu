@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
@@ -11,7 +11,6 @@ import { useDirectMessages, DirectMessage } from "@/hooks/useDirectMessages";
 import { usePresence } from "@/hooks/usePresence";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useRecordMessageView, useMessageViewCounts } from "@/hooks/useMessageViews";
-import { useMemo } from "react";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { 
   useUnreadChannelCounts, 
