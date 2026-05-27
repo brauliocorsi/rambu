@@ -18,7 +18,7 @@ export function ReplyPreview({ message, onCancel }: ReplyPreviewProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 32 }}
-      className="flex items-center gap-2.5 pl-3 pr-2 py-2 bg-secondary/60 border-l-[3px] border-primary rounded-r-xl rounded-l-sm mb-2 shadow-xs-token"
+      className="flex items-center gap-2.5 pl-3 pr-2 py-2 bg-card border border-border/70 border-l-[3px] border-l-primary rounded-lg mb-2 shadow-xs-token"
     >
       <Reply className="h-3.5 w-3.5 text-primary shrink-0" />
       <div className="flex-1 min-w-0">

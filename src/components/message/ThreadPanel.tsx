@@ -68,14 +68,16 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="w-80 lg:w-96 border-l border-border bg-card flex flex-col h-full"
+      className="w-80 lg:w-96 border-l border-border/70 bg-card flex flex-col h-full"
     >
       {/* Header */}
-      <div className="h-14 border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Thread</h3>
-          <span className="text-sm text-muted-foreground">
+      <div className="h-14 border-b border-border/70 flex items-center justify-between px-4 bg-card/80 backdrop-blur">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+            <MessageSquare className="h-4 w-4" strokeWidth={2.4} />
+          </div>
+          <h3 className="text-[15px] font-semibold leading-tight">Thread</h3>
+          <span className="text-xs text-muted-foreground">
             {threadMessages.length} {threadMessages.length === 1 ? "resposta" : "respostas"}
           </span>
         </div>
