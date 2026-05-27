@@ -107,22 +107,24 @@ function ChannelChatView() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Channel Header */}
-      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 border-b border-border/70 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-xl h-9 w-9 shrink-0"
+          className="rounded-lg h-9 w-9 shrink-0"
           onClick={() => setCurrentChannel(null)}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Hash className="h-4.5 w-4.5" strokeWidth={2.5} />
+        </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold flex items-center gap-1 min-w-0">
-            <Hash className="h-4 w-4 shrink-0" />
-            <span className="truncate">{currentChannel.name}</span>
+          <h2 className="text-[15px] font-semibold leading-tight truncate text-foreground">
+            {currentChannel.name}
           </h2>
           {currentChannel.description && (
-            <p className="text-xs text-muted-foreground truncate">{currentChannel.description}</p>
+            <p className="text-xs text-muted-foreground truncate leading-tight">{currentChannel.description}</p>
           )}
           <div className="mt-1 hidden sm:block">
             <LabelPicker channelId={currentChannel.id} />
