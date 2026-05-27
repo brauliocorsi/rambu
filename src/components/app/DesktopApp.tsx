@@ -734,6 +734,7 @@ export function DesktopApp() {
                   onLoadMore={loadMoreMessages}
                   onReply={setReplyTo}
                   onOpenThread={setThreadMessage}
+                  viewDataById={channelViewDataById}
                 />
               </div>
 
