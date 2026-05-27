@@ -146,20 +146,20 @@ export function SettingsView({ onBack }: SettingsViewProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/70 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-xl"
+          className="rounded-lg h-9 w-9"
           onClick={onBack}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="font-bold text-lg">Configurações</h2>
+        <h2 className="text-[15px] font-semibold tracking-tight">Configurações</h2>
         {hasChanges && (
           <Button
             size="sm"
-            className="ml-auto rounded-xl"
+            className="ml-auto rounded-lg"
             onClick={handleSaveProfile}
             disabled={updateProfile.isPending}
           >
@@ -276,16 +276,16 @@ export function SettingsView({ onBack }: SettingsViewProps) {
             {/* Avatar */}
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
-                <Avatar className="h-24 w-24 ring-4 ring-primary/20">
+                <Avatar className="h-24 w-24 rounded-2xl ring-4 ring-primary/20">
                   <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback className="text-2xl gradient-primary text-white">
+                  <AvatarFallback className="rounded-2xl text-2xl bg-primary/15 text-primary font-semibold">
                     {displayNameValue.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadAvatar.isPending}
-                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors"
+                  className="absolute -bottom-1 -right-1 h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-md-token ring-2 ring-background transition-colors"
                 >
                   {uploadAvatar.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
