@@ -6,43 +6,51 @@
 
 @layer base {
   :root {
+    /* ============================================================
+       Rambu 2.0 — Charcoal & Ember
+       Light mode: warm paper canvas, charcoal text, ember accent.
+       Sidebar permanece escura em ambos os modos (Slack-like).
+       Cores por tipo de conversa (canal/DM/grupo) preservadas.
+       ============================================================ */
+
     /* Surfaces */
-    --background: 0 0% 99%;
-    --foreground: 240 10% 8%;
+    --background: 30 12% 98%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 8%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 8%;
+    --popover-foreground: 0 0% 9%;
 
-    /* Primary: Refined Purple */
-    --primary: 262 83% 58%;
+    /* Primary: Ember #e85d3a */
+    --primary: 14 79% 57%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 90% 70%;
+    --primary-glow: 14 89% 65%;
 
-    /* Secondary / Muted */
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 12%;
+    /* Secondary / Muted (warm neutrals) */
+    --secondary: 30 8% 94%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 30 8% 94%;
+    --muted-foreground: 0 0% 40%;
 
-    /* Accent */
-    --accent: 240 5% 94%;
-    --accent-foreground: 240 10% 12%;
+    /* Accent surface */
+    --accent: 30 8% 92%;
+    --accent-foreground: 0 0% 12%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 78% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 91%;
-    --input: 240 6% 91%;
-    --ring: 262 83% 58%;
+    --border: 30 6% 88%;
+    --input: 30 6% 88%;
+    --ring: 14 79% 57%;
 
-    --radius: 0.75rem;
-    --radius-bubble: 1.125rem;
+    /* Crisp & corporate — radii reduzidos */
+    --radius: 0.5rem;
+    --radius-bubble: 0.875rem;
 
-    /* Contextual semantic colors */
+    /* Contextual semantic colors — preservados (Azul/Verde/Roxo) */
     --channel: 217 91% 60%;
     --channel-foreground: 0 0% 100%;
     --channel-soft: 217 91% 60%;
@@ -73,9 +81,9 @@
     --success: 142 71% 45%;
     --warning: 38 92% 50%;
 
-    /* Messages */
-    --message-own: 262 83% 58%;
-    --message-other: 240 5% 97%;
+    /* Messages — own = ember, other = warm card */
+    --message-own: 14 79% 57%;
+    --message-other: 30 10% 96%;
 
     /* Layered shadows */
     --shadow-xs: 0 1px 2px 0 hsl(240 10% 8% / 0.04);
@@ -84,46 +92,67 @@
     --shadow-lg: 0 10px 30px -8px hsl(240 10% 8% / 0.12), 0 4px 8px -4px hsl(240 10% 8% / 0.06);
     --shadow-xl: 0 20px 50px -12px hsl(240 10% 8% / 0.18);
 
-    /* Sidebar */
-    --sidebar-background: 240 6% 97%;
-    --sidebar-foreground: 240 5% 30%;
-    --sidebar-primary: 262 83% 58%;
+    /* Sidebar — charcoal forte mesmo em light mode (Slack-like) */
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 78%;
+    --sidebar-primary: 14 79% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 92%;
-    --sidebar-accent-foreground: 240 10% 12%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-accent: 0 0% 17%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 17%;
+    --sidebar-ring: 14 79% 57%;
+
+    /* ============================================================
+       Tokens Rambu — semânticos, podem ser sobrescritos por
+       WorkspaceThemeBridge com workspace.accent_color.
+       ============================================================ */
+    --rambu-accent: 14 79% 57%;
+    --rambu-accent-foreground: 0 0% 100%;
+    --rambu-sidebar: 0 0% 10%;
+    --rambu-sidebar-foreground: 0 0% 78%;
+    --rambu-sidebar-active: 0 0% 17%;
+    --rambu-chat-bg: 30 12% 98%;
+    --rambu-chat-surface: 0 0% 100%;
+    --rambu-composer-bg: 0 0% 100%;
+    --rambu-border: 30 6% 88%;
+    --rambu-hover: 30 8% 94%;
+    --rambu-active: 14 79% 57%;
+    --rambu-muted: 30 8% 94%;
+    --rambu-danger: 0 78% 55%;
+    --rambu-success: 142 71% 42%;
+    --rambu-warning: 38 92% 50%;
   }
 
   .dark {
-    --background: 240 12% 6%;
+    /* Charcoal puro */
+    --background: 0 0% 7%;
     --foreground: 0 0% 96%;
 
-    --card: 240 12% 9%;
+    --card: 0 0% 11%;
     --card-foreground: 0 0% 96%;
 
-    --popover: 240 12% 10%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 262 83% 65%;
+    --primary: 14 82% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 90% 75%;
+    --primary-glow: 14 90% 68%;
 
-    --secondary: 240 8% 14%;
+    --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 96%;
 
-    --muted: 240 8% 14%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 64%;
 
-    --accent: 240 8% 16%;
+    --accent: 0 0% 16%;
     --accent-foreground: 0 0% 96%;
 
-    --destructive: 0 70% 55%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 8% 16%;
-    --input: 240 8% 16%;
-    --ring: 262 83% 65%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 14 82% 60%;
 
     --channel: 217 91% 65%;
     --channel-foreground: 0 0% 100%;
@@ -153,8 +182,8 @@
     --success: 142 71% 50%;
     --warning: 38 92% 55%;
 
-    --message-own: 262 83% 58%;
-    --message-other: 240 8% 14%;
+    --message-own: 14 82% 60%;
+    --message-other: 0 0% 14%;
 
     --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.30);
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.40), 0 1px 2px -1px hsl(0 0% 0% / 0.30);
@@ -162,14 +191,31 @@
     --shadow-lg: 0 10px 30px -8px hsl(0 0% 0% / 0.55), 0 4px 8px -4px hsl(0 0% 0% / 0.35);
     --shadow-xl: 0 20px 50px -12px hsl(0 0% 0% / 0.65);
 
-    --sidebar-background: 240 14% 5%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 262 83% 65%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 75%;
+    --sidebar-primary: 14 82% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 8% 12%;
+    --sidebar-accent: 0 0% 13%;
     --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 240 8% 14%;
-    --sidebar-ring: 262 83% 65%;
+    --sidebar-border: 0 0% 13%;
+    --sidebar-ring: 14 82% 60%;
+
+    /* Rambu tokens — dark */
+    --rambu-accent: 14 82% 60%;
+    --rambu-accent-foreground: 0 0% 100%;
+    --rambu-sidebar: 0 0% 5%;
+    --rambu-sidebar-foreground: 0 0% 75%;
+    --rambu-sidebar-active: 0 0% 13%;
+    --rambu-chat-bg: 0 0% 7%;
+    --rambu-chat-surface: 0 0% 11%;
+    --rambu-composer-bg: 0 0% 11%;
+    --rambu-border: 0 0% 18%;
+    --rambu-hover: 0 0% 14%;
+    --rambu-active: 14 82% 60%;
+    --rambu-muted: 0 0% 14%;
+    --rambu-danger: 0 72% 55%;
+    --rambu-success: 142 65% 48%;
+    --rambu-warning: 38 92% 55%;
   }
 }
 
@@ -181,7 +227,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
-    font-family: "Inter Tight", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Figtree", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -189,6 +235,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
+    font-family: "Outfit", "Figtree", system-ui, sans-serif;
     font-feature-settings: "ss01" 1, "cv11" 1;
   }
 

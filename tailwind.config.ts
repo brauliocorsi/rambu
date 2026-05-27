@@ -85,9 +85,9 @@ export default {
         bubble: "var(--radius-bubble)",
       },
       fontFamily: {
-        sans: ['"Inter Tight"', "Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: ['"Figtree"', "Inter", "system-ui", "-apple-system", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
-        display: ['"Inter Tight"', "Inter", "system-ui", "sans-serif"],
+        display: ['"Outfit"', '"Figtree"', "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
