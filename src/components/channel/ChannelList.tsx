@@ -52,19 +52,24 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
         <button
           onClick={() => onSelectChannel(channel)}
           className={cn(
-            "group/item w-full flex items-center gap-2 px-2.5 h-9 rounded-lg transition-all duration-150 relative",
+            "group/item w-full flex items-center gap-2 px-2.5 h-9 rounded-md transition-colors duration-150 relative",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
             selectedChannel?.id === channel.id
-              ? "bg-channel-soft text-foreground before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-[hsl(var(--channel))]"
-              : "hover:bg-muted/60 text-foreground/80",
-            unreadCount > 0 && "font-medium text-foreground"
+              ? "bg-[hsl(var(--sidebar-accent))] text-sidebar-accent-foreground before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-r-full before:bg-primary"
+              : "hover:bg-[hsl(var(--sidebar-accent))]/60 text-[hsl(var(--sidebar-foreground))]",
+            unreadCount > 0 && "text-sidebar-accent-foreground"
           )}
+          aria-current={selectedChannel?.id === channel.id ? "page" : undefined}
         >
           {isPrivate ? (
-            <Lock className={cn("h-4 w-4 shrink-0", selectedChannel?.id === channel.id ? "text-channel" : "text-muted-foreground")} />
+            <Lock className={cn("h-[15px] w-[15px] shrink-0", selectedChannel?.id === channel.id ? "text-primary" : "text-[hsl(var(--sidebar-foreground))]/60")} />
           ) : (
-            <Hash className={cn("h-4 w-4 shrink-0", selectedChannel?.id === channel.id ? "text-channel" : "text-muted-foreground")} />
+            <Hash className={cn("h-[15px] w-[15px] shrink-0", selectedChannel?.id === channel.id ? "text-primary" : "text-[hsl(var(--sidebar-foreground))]/60")} />
           )}
-          <span className={cn("flex-1 text-left truncate text-sm min-w-0 tracking-tight", unreadCount > 0 && "font-semibold")}>{channel.name}</span>
+          <span className={cn(
+            "flex-1 text-left truncate text-[13.5px] min-w-0 tracking-tight",
+            unreadCount > 0 ? "font-semibold" : "font-normal"
+          )}>{channel.name}</span>
           
           <div className="flex items-center gap-1 shrink-0">
             {unreadCount > 0 && <UnreadBadge count={unreadCount} size="sm" />}
@@ -72,14 +77,15 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
               variant="ghost"
               size="icon"
               className={cn(
-                "h-6 w-6 rounded-md transition-opacity",
-                isFavorite ? "opacity-100 text-yellow-500" : "opacity-0 group-hover:opacity-100"
+                "h-6 w-6 rounded-md transition-opacity hover:bg-[hsl(var(--sidebar-accent))]",
+                isFavorite ? "opacity-100 text-[hsl(var(--rambu-warning))]" : "opacity-0 group-hover:opacity-100 text-[hsl(var(--sidebar-foreground))]/70"
               )}
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
               onClick={(e) => handleToggleFavorite(e, channel.id, isFavorite)}
             >
-              <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-yellow-500")} />
+              <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-[hsl(var(--rambu-warning))]")} />
             </Button>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ChevronRight className="h-3.5 w-3.5 text-[hsl(var(--sidebar-foreground))]/50 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </button>
       </motion.div>
@@ -87,12 +93,12 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Favorite Channels */}
       {favoriteChannels.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-[0.08em] px-2 mb-1 flex items-center gap-1">
-            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+        <div className="space-y-0.5">
+          <p className="text-[10.5px] font-semibold text-[hsl(var(--sidebar-foreground))]/55 uppercase tracking-[0.1em] px-2.5 mb-1 flex items-center gap-1.5">
+            <Star className="h-3 w-3 text-[hsl(var(--rambu-warning))] fill-[hsl(var(--rambu-warning))]" />
             Favoritos
           </p>
           {favoriteChannels.map((channel, i) => renderChannel(channel, i, true))}
@@ -101,8 +107,8 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
 
       {/* Public Channels */}
       {publicChannels.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-[0.08em] px-2 mb-1">
+        <div className="space-y-0.5">
+          <p className="text-[10.5px] font-semibold text-[hsl(var(--sidebar-foreground))]/55 uppercase tracking-[0.1em] px-2.5 mb-1">
             Canais
           </p>
           {publicChannels.map((channel, i) => renderChannel(channel, i))}
@@ -111,8 +117,8 @@ export function ChannelList({ channels, selectedChannel, onSelectChannel, unread
 
       {/* Private Channels */}
       {privateChannels.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-[0.08em] px-2 mb-1">
+        <div className="space-y-0.5">
+          <p className="text-[10.5px] font-semibold text-[hsl(var(--sidebar-foreground))]/55 uppercase tracking-[0.1em] px-2.5 mb-1">
             Canais Privados
           </p>
           {privateChannels.map((channel, i) => renderChannel(channel, i))}
