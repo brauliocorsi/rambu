@@ -62,20 +62,25 @@ export function DMChatView({ dm, onBack }: DMChatViewProps) {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
-        <Button variant="ghost" size="icon" className="rounded-xl" onClick={onBack}>
+      <div className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-border/70 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+        <Button variant="ghost" size="icon" className="rounded-lg h-9 w-9 shrink-0" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={otherUser?.avatar_url || undefined} />
-          <AvatarFallback className="gradient-primary text-white">
-            {displayName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h2 className="font-bold">{displayName}</h2>
-          <p className="text-xs text-muted-foreground">
-            {otherUser?.status === "online" ? "Online" : "Offline"}
+        <div className="relative shrink-0">
+          <Avatar className="h-10 w-10 rounded-lg">
+            <AvatarImage src={otherUser?.avatar_url || undefined} />
+            <AvatarFallback className="rounded-lg bg-primary/15 text-primary font-semibold">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {otherUser?.status === "online" && (
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[hsl(var(--online))] ring-2 ring-card" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-[15px] font-semibold leading-tight truncate">{displayName}</h2>
+          <p className="text-xs text-muted-foreground leading-tight">
+            {otherUser?.status === "online" ? "Online agora" : "Offline"}
           </p>
         </div>
       </div>
