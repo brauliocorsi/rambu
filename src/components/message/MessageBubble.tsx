@@ -149,9 +149,9 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5 ring-1 ring-border/60")}>
+        <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5 rounded-lg ring-1 ring-border/60")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
-          <AvatarFallback className="text-sm gradient-primary text-primary-foreground font-medium">
+          <AvatarFallback className="rounded-lg text-sm bg-primary/15 text-primary font-semibold">
             {displayName.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -251,7 +251,10 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
           {isPollMessage && <PollCard messageId={message.id} />}
 
           {threadCount > 0 && !isEditing && (
-            <button onClick={() => onOpenThread?.(message)} className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline">
+            <button
+              onClick={() => onOpenThread?.(message)}
+              className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-md text-xs font-medium text-primary bg-primary/10 hover:bg-primary/15 border border-primary/20 transition-colors"
+            >
               <MessageSquare className="h-3 w-3" />
               <span>{threadCount} {threadCount === 1 ? "resposta" : "respostas"}</span>
             </button>
@@ -264,10 +267,10 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
                   key={emoji}
                   onClick={() => handleReaction(emoji)}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150 hover:scale-105 active:scale-95",
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs border transition-all duration-150 active:scale-95",
                     userReactions.includes(emoji)
-                      ? "bg-primary/15 text-primary border-primary/30"
-                      : "bg-muted/60 hover:bg-muted border-border/60 text-foreground"
+                      ? "bg-primary/15 text-primary border-primary/40 shadow-xs-token"
+                      : "bg-card hover:bg-muted border-border/70 text-foreground"
                   )}
                 >
                   <span>{emoji}</span><span className="font-mono tabular-nums">{count}</span>
