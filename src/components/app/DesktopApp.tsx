@@ -30,7 +30,9 @@ import { MemberManagementDialog } from "@/components/workspace/MemberManagementD
 import { ChannelList } from "@/components/channel/ChannelList";
 import { ChannelMembersPopover } from "@/components/channel/ChannelMembersPopover";
 import { JumpToDateButton } from "@/components/channel/JumpToDateButton";
-import { MessageList } from "@/components/message/MessageList";
+import { ConversationMessageList } from "@/components/conversation/ConversationMessageList";
+import { normalizeMessage } from "@/lib/conversation/normalizeMessage";
+import { useLayoutPreferences } from "@/hooks/useLayoutPreferences";
 import { ConversationComposer } from "@/components/conversation/ConversationComposer";
 import { EmojiPicker } from "@/components/message/EmojiPicker";
 import { TypingIndicator } from "@/components/message/TypingIndicator";
