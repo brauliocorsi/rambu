@@ -624,7 +624,7 @@ export function MessageInput({
         {/* Input field with formatting toolbar */}
         <div className="flex-1 min-w-0 flex flex-col">
           {showPreview && message.trim() ? (
-            <div className="min-h-[40px] md:min-h-[44px] max-h-28 overflow-y-auto px-3.5 py-2.5 rounded-2xl bg-secondary/60 border border-dashed border-border/70 text-sm">
+            <div className="min-h-[40px] md:min-h-[44px] max-h-28 overflow-y-auto px-3.5 py-2.5 rounded-xl bg-secondary/60 border border-dashed border-border/70 text-sm">
               <MessageContent content={message} className="text-sm" />
             </div>
           ) : (
