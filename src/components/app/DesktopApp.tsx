@@ -150,6 +150,29 @@ export function DesktopApp() {
   useRecordMessageView(channelVisibleMessageIds, currentChannel?.id || null);
   const { data: channelViewDataById = {} } = useMessageViewCounts(channelVisibleMessageIds);
 
+  // Layout preferences (slack mode / density) — consumidas pelo
+  // ConversationMessageList → ConversationMessageBubble → MessageBubble.
+  const { preferences: layoutPreferences } = useLayoutPreferences();
+
+  // Normalização das mensagens do canal para a camada unificada.
+  // Sem fetch novo; apenas mapeia o payload bruto preservando `_raw`.
+  const channelConversationRef = useMemo(
+    () =>
+      currentChannel
+        ? {
+            type: "channel" as const,
+            id: currentChannel.id,
+            workspaceId: currentWorkspace?.id,
+            displayName: currentChannel.name,
+          }
+        : null,
+    [currentChannel?.id, currentWorkspace?.id, currentChannel?.name]
+  );
+  const channelConversationMessages = useMemo(() => {
+    if (!channelConversationRef) return [];
+    return messages.map((m) => normalizeMessage(channelConversationRef, m));
+  }, [messages, channelConversationRef]);
+
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
