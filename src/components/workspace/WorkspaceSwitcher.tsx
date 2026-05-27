@@ -28,9 +28,9 @@ export function WorkspaceSwitcher() {
       <>
         <Button
           onClick={() => setShowCreateDialog(true)}
-          className="w-full justify-start gap-3 h-14 rounded-xl gradient-primary text-white"
+          className="w-full justify-start gap-3 h-14 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-md bg-primary-foreground/15 flex items-center justify-center">
             <Plus className="h-5 w-5" />
           </div>
           <span className="font-medium">Criar primeiro workspace</span>
@@ -45,29 +45,33 @@ export function WorkspaceSwitcher() {
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          className="w-full flex items-center justify-between gap-3 p-2.5 rounded-lg bg-[hsl(var(--sidebar-accent))]/70 hover:bg-[hsl(var(--sidebar-accent))] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
         >
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 rounded-xl">
+            <Avatar className="h-9 w-9 rounded-md ring-1 ring-primary/50">
               <AvatarImage src={currentWorkspace?.icon_url || undefined} />
-              <AvatarFallback className="rounded-xl gradient-primary text-white font-bold">
+              <AvatarFallback className="rounded-md bg-primary text-primary-foreground font-semibold tracking-tight">
                 {currentWorkspace?.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="text-left">
+            <div className="text-left min-w-0">
               <div className="flex items-center gap-1">
-                <p className="font-semibold text-sm">{currentWorkspace?.name}</p>
+                <p className="font-semibold text-[14px] tracking-tight truncate text-sidebar-accent-foreground">
+                  {currentWorkspace?.name}
+                </p>
                 {currentWorkspace && isFavorite(currentWorkspace.id) && (
-                  <Star className="h-3 w-3 text-warning fill-warning" />
+                  <Star className="h-3 w-3 text-[hsl(var(--rambu-warning))] fill-[hsl(var(--rambu-warning))]" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-[hsl(var(--sidebar-foreground))]/60">
                 {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
           <ChevronDown
-            className={cn("h-5 w-5 text-muted-foreground transition-transform", isOpen && "rotate-180")}
+            className={cn("h-4 w-4 text-[hsl(var(--sidebar-foreground))]/70 transition-transform shrink-0", isOpen && "rotate-180")}
           />
         </button>
 
@@ -77,7 +81,7 @@ export function WorkspaceSwitcher() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-lg border border-border overflow-hidden z-50"
+              className="absolute top-full left-0 right-0 mt-2 bg-popover text-popover-foreground rounded-lg shadow-lg-token border border-border overflow-hidden z-50"
             >
               <div className="max-h-64 overflow-y-auto">
                 {sortedWorkspaces.map((workspace) => {
@@ -86,7 +90,7 @@ export function WorkspaceSwitcher() {
                     <div
                       key={workspace.id}
                       className={cn(
-                        "flex items-center gap-2 hover:bg-secondary transition-colors",
+                        "flex items-center gap-2 hover:bg-accent transition-colors",
                         currentWorkspace?.id === workspace.id && "bg-primary/10"
                       )}
                     >
@@ -95,15 +99,15 @@ export function WorkspaceSwitcher() {
                           setCurrentWorkspace(workspace);
                           setIsOpen(false);
                         }}
-                        className="flex-1 flex items-center gap-3 p-3"
+                        className="flex-1 flex items-center gap-3 p-2.5 min-w-0"
                       >
-                        <Avatar className="h-8 w-8 rounded-lg">
+                        <Avatar className="h-8 w-8 rounded-md">
                           <AvatarImage src={workspace.icon_url || undefined} />
-                          <AvatarFallback className="rounded-lg gradient-primary text-white text-sm">
+                          <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[12px] font-semibold">
                             {workspace.name.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-sm flex-1 text-left">{workspace.name}</span>
+                        <span className="font-medium text-[13.5px] flex-1 text-left truncate">{workspace.name}</span>
                         {currentWorkspace?.id === workspace.id && (
                           <Check className="h-4 w-4 text-primary" />
                         )}
@@ -113,14 +117,15 @@ export function WorkspaceSwitcher() {
                           e.stopPropagation();
                           toggleFavorite(workspace.id);
                         }}
-                        className="p-2 mr-2 rounded-lg hover:bg-secondary/80 transition-colors"
+                        className="p-1.5 mr-2 rounded-md hover:bg-accent transition-colors"
+                        aria-label={workspaceIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                         title={workspaceIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                       >
                         <Star 
                           className={cn(
                             "h-4 w-4",
                             workspaceIsFavorite 
-                              ? "text-warning fill-warning" 
+                              ? "text-[hsl(var(--rambu-warning))] fill-[hsl(var(--rambu-warning))]" 
                               : "text-muted-foreground"
                           )} 
                         />
@@ -136,12 +141,12 @@ export function WorkspaceSwitcher() {
                     setShowCreateDialog(true);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors"
+                  className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors"
                 >
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-md bg-primary/12 flex items-center justify-center">
                     <Plus className="h-4 w-4 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-primary">Novo Workspace</span>
+                  <span className="text-[13.5px] font-medium text-primary">Novo Workspace</span>
                 </button>
               </div>
             </motion.div>
