@@ -136,6 +136,18 @@ export function DesktopApp() {
     currentChannel?.id || null
   );
 
+  // Read-view tracking centralizado no call-site (Fase 5-Channel-prep).
+  // `MessageList` recebe `viewDataById` e, por consequência, não chama
+  // `useRecordMessageView`/`useMessageViewCounts` internamente — evitando
+  // duplicação quando o mesmo canal for renderizado por
+  // `ConversationMessageList` na próxima fase.
+  const channelVisibleMessageIds = useMemo(
+    () => messages.map((m) => m.id).filter((id) => !id.startsWith("temp-")),
+    [messages]
+  );
+  useRecordMessageView(channelVisibleMessageIds, currentChannel?.id || null);
+  const { data: channelViewDataById = {} } = useMessageViewCounts(channelVisibleMessageIds);
+
   const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
