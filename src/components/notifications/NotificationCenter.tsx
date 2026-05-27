@@ -74,7 +74,7 @@ function NotificationItem({
         !notification.is_read && "bg-primary/[0.03]"
       )}
     >
-      <div className="shrink-0 mt-0.5 h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
+      <div className="shrink-0 mt-0.5 h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
         {getNotificationIcon(notification.type)}
       </div>
 
@@ -178,10 +178,10 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[380px] p-0 rounded-2xl overflow-hidden" align="end" sideOffset={8}>
+      <PopoverContent className="w-[380px] p-0 rounded-xl overflow-hidden shadow-lg-token" align="end" sideOffset={8}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-          <h3 className="text-base font-semibold">Notificações</h3>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-card/60 backdrop-blur">
+          <h3 className="text-[15px] font-semibold tracking-tight">Notificações</h3>
           <div className="flex items-center gap-0.5">
             {unreadCount > 0 && (
               <Button
@@ -218,10 +218,10 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
                 key={id}
                 onClick={() => setActiveFilter(id)}
                 className={cn(
-                  "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                  "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground border-transparent"
                 )}
               >
                 <Icon className="h-3 w-3" />
