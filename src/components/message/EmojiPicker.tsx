@@ -106,10 +106,18 @@ const MAX_RECENT = 20;
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function EmojiPicker({ onSelect, trigger }: EmojiPickerProps) {
-  const [open, setOpen] = useState(false);
+export function EmojiPicker({ onSelect, trigger, open: openProp, onOpenChange }: EmojiPickerProps) {
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setOpenState(v);
+    onOpenChange?.(v);
+  };
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('smileys');
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
@@ -169,7 +177,7 @@ export function EmojiPicker({ onSelect, trigger }: EmojiPickerProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {trigger || (
+        {trigger ?? (
           <Button variant="ghost" size="icon" className="rounded-xl">
             <Smile className="h-5 w-5" />
           </Button>
