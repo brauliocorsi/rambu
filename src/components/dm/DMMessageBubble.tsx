@@ -365,6 +365,7 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
                 setEditContent(message.content);
               }}
               onDelete={() => setShowDeleteDialog(true)}
+              onAddReaction={handleReaction}
             />
           </div>
         )}
