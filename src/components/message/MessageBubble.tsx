@@ -92,6 +92,11 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
     toggleReaction.mutate({ messageId: message.id, emoji, channelId });
   };
 
+  const handleQuickHeart = () => {
+    if (isEditing) return;
+    toggleReaction.mutate({ messageId: message.id, emoji: "❤️", channelId });
+  };
+
   const handleMarkAsUnread = () => {
     markAsUnread.mutate({ channelId, messageCreatedAt: message.created_at });
   };
@@ -148,6 +153,8 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
+        onDoubleClick={handleQuickHeart}
+        title="Toque duas vezes para reagir com ❤️"
       >
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5 rounded-lg ring-1 ring-border/60")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
