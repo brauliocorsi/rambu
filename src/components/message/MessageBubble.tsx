@@ -13,6 +13,7 @@ import { MessageContent } from "./MessageContent";
 import { FilePreview } from "./FilePreview";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { LinkPreviewCard } from "./LinkPreviewCard";
+import { EmojiPicker } from "./EmojiPicker";
 import { useSwipeToReply } from "@/hooks/useSwipeToReply";
 import { CornerUpLeft } from "lucide-react";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -92,9 +93,11 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
     toggleReaction.mutate({ messageId: message.id, emoji, channelId });
   };
 
-  const handleQuickHeart = () => {
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+
+  const openEmojiPicker = () => {
     if (isEditing) return;
-    toggleReaction.mutate({ messageId: message.id, emoji: "❤️", channelId });
+    setEmojiPickerOpen(true);
   };
 
   // Double-tap / double-click detector that works on both touch and mouse.
@@ -103,7 +106,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
     const now = Date.now();
     if (now - lastTapRef.current < 350) {
       lastTapRef.current = 0;
-      handleQuickHeart();
+      openEmojiPicker();
     } else {
       lastTapRef.current = now;
     }
@@ -165,10 +168,16 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
-        onDoubleClick={handleQuickHeart}
+        onDoubleClick={openEmojiPicker}
         onClick={handleQuickTap}
-        title="Toque duas vezes para reagir com ❤️"
+        title="Toque duas vezes para reagir"
       >
+        <EmojiPicker
+          open={emojiPickerOpen}
+          onOpenChange={setEmojiPickerOpen}
+          onSelect={(emoji) => handleReaction(emoji)}
+          trigger={<span className="absolute left-1/2 top-1/2 h-0 w-0" aria-hidden />}
+        />
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5 rounded-lg ring-1 ring-border/60")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
           <AvatarFallback className="rounded-lg text-sm bg-primary/15 text-primary font-semibold">
