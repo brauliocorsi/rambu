@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X, Check, CornerDownRight } from "lucide-react";
 import { ReadReceiptIndicator } from "@/components/message/ReadReceiptIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,8 @@ import { MessageContent } from "@/components/message/MessageContent";
 import { FilePreview } from "@/components/message/FilePreview";
 import { MessageActionsMenu } from "@/components/message/MessageActionsMenu";
 import { LinkPreviewCard } from "@/components/message/LinkPreviewCard";
+import { EmojiPicker } from "@/components/message/EmojiPicker";
+import { useDMMessageReactions, useToggleDMReaction } from "@/hooks/useDMReactions";
 import { useSwipeToReply } from "@/hooks/useSwipeToReply";
 import { CornerUpLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -67,6 +69,33 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
   const deleteMessage = useDeleteDMMessage();
   const retrySend = useRetryDMMessage();
   const markAsUnread = useMarkDMAsUnread();
+  const toggleDMReaction = useToggleDMReaction();
+  const { data: reactions = [] } = useDMMessageReactions(message.id);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const lastTapRef = useRef<number>(0);
+
+  const groupedReactions = reactions.reduce((acc, r) => {
+    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const userReactions = reactions.filter((r) => r.user_id === user?.id).map((r) => r.emoji);
+
+  const handleReaction = (emoji: string) => {
+    toggleDMReaction.mutate({ messageId: message.id, emoji, dmId });
+  };
+  const openEmojiPicker = () => {
+    if (isEditing) return;
+    setEmojiPickerOpen(true);
+  };
+  const handleQuickTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 350) {
+      lastTapRef.current = 0;
+      openEmojiPicker();
+    } else {
+      lastTapRef.current = now;
+    }
+  };
   
   // Fetch the original message if this is a reply
   const { data: originalMessage } = useDMMessageById(message.reply_to);
@@ -144,7 +173,16 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
         )}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
+        onDoubleClick={openEmojiPicker}
+        onClick={handleQuickTap}
+        title="Toque duas vezes para reagir"
       >
+        <EmojiPicker
+          open={emojiPickerOpen}
+          onOpenChange={setEmojiPickerOpen}
+          onSelect={(emoji) => handleReaction(emoji)}
+          trigger={<span className="absolute left-1/2 top-1/2 h-0 w-0" aria-hidden />}
+        />
         {/* Avatar */}
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5")}>
           <AvatarImage src={message.profile?.avatar_url || undefined} />
@@ -262,6 +300,27 @@ export function DMMessageBubble({ message, dmId, onReply, slackMode = false, den
                 </>
               )
             )
+          )}
+
+          {/* Reactions */}
+          {Object.keys(groupedReactions).length > 0 && !isEditing && (
+            <div className={cn("flex flex-wrap gap-1 mt-1", !useSlackLayout && isOwn && "justify-end")}>
+              {Object.entries(groupedReactions).map(([emoji, count]) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleReaction(emoji)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs border transition-all duration-150 active:scale-95",
+                    userReactions.includes(emoji)
+                      ? "bg-primary/15 text-primary border-primary/40"
+                      : "bg-card hover:bg-muted border-border/70 text-foreground",
+                  )}
+                >
+                  <span>{emoji}</span>
+                  <span className="font-mono tabular-nums">{count}</span>
+                </button>
+              ))}
+            </div>
           )}
 
           {/* Read receipt */}
