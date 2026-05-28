@@ -1,4 +1,4 @@
-import { useState, memo } from "react";
+import { useState, memo, useRef } from "react";
 import { X, Check, CornerDownRight, MessageSquare } from "lucide-react";
 import { ReadReceiptIndicator } from "./ReadReceiptIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,6 +97,18 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
     toggleReaction.mutate({ messageId: message.id, emoji: "❤️", channelId });
   };
 
+  // Double-tap / double-click detector that works on both touch and mouse.
+  const lastTapRef = useRef<number>(0);
+  const handleQuickTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 350) {
+      lastTapRef.current = 0;
+      handleQuickHeart();
+    } else {
+      lastTapRef.current = now;
+    }
+  };
+
   const handleMarkAsUnread = () => {
     markAsUnread.mutate({ channelId, messageCreatedAt: message.created_at });
   };
@@ -154,6 +166,7 @@ function MessageBubbleInner({ message, channelId, onReply, onOpenThread, slackMo
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
         onDoubleClick={handleQuickHeart}
+        onClick={handleQuickTap}
         title="Toque duas vezes para reagir com ❤️"
       >
         <Avatar className={cn(styles.avatar, "shrink-0 mt-0.5 rounded-lg ring-1 ring-border/60")}>
