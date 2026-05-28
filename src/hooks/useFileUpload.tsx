@@ -10,7 +10,7 @@ export interface UploadedFile {
   type: string;
 }
 
-const MAX_FILES = 5;
+const MAX_FILES = 10;
 const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 
 const ALLOWED_TYPES = [
