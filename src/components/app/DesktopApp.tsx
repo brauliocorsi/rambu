@@ -101,6 +101,7 @@ import { PendingTasksPanel } from "@/components/tasks/PendingTasksPanel";
 import { usePendingTasks } from "@/hooks/usePendingTasks";
 import { FlowsView } from "@/components/app/views/FlowsView";
 import { ChannelListSkeleton, DMListSkeleton } from "@/components/ui/skeletons";
+import { useChannelMembersRealtime } from "@/hooks/useChannelMembersRealtime";
 
 export function DesktopApp() {
   const { user, signOut } = useAuth();
@@ -132,6 +133,9 @@ export function DesktopApp() {
 
   // Initialize presence tracking
   usePresence(currentWorkspace?.id);
+
+  // Realtime sync for channel membership changes
+  useChannelMembersRealtime(currentWorkspace?.id || null);
 
   // Typing indicator for current channel
   const { typingUsers, sendTypingStart, sendTypingStop, isAnyoneTyping } = useTypingIndicator(
