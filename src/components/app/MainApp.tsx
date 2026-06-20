@@ -24,6 +24,7 @@ import { ShortcutsDialog } from "@/components/shortcuts/ShortcutsDialog";
 import { Button } from "@/components/ui/button";
 import { Bookmark } from "lucide-react";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useChannelMembersRealtime } from "@/hooks/useChannelMembersRealtime";
 
 export function MainApp() {
   const [activeTab, setActiveTab] = useState("channels");
@@ -39,6 +40,8 @@ export function MainApp() {
   const totalUnread = useFeedUnreadCount();
   const { data: pendingReminders = [] } = useReminders();
   const { data: pendingTasksList = [] } = usePendingTasks(currentWorkspace?.id || null);
+
+  useChannelMembersRealtime(currentWorkspace?.id || null);
 
   useKeyboardShortcuts([
     { key: "k", ctrl: true, action: () => setShowSearch(true), description: "Busca global" },
