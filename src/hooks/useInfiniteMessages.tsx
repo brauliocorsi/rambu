@@ -152,13 +152,23 @@ export function useInfiniteMessages(channelId: string | null) {
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           scheduleQuerySync(queryClient, syncQueryKeys, 150);
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          queryClient.invalidateQueries({ queryKey: ["infinite-messages", channelId] });
         }
       });
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        queryClient.invalidateQueries({ queryKey: ["infinite-messages", channelId] });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [channelId, queryClient]);
 

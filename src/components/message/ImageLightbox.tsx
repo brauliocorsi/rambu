@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, ArrowLeft, ZoomIn, ZoomOut, RotateCw, Maximize, AlertCircle, ExternalLink } from "lucide-react";
+import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useCallback, useState, useRef } from "react";
 import { safeOpenExternal } from "@/lib/mediaKind";
@@ -240,16 +240,6 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/20 h-11 w-11 rounded-xl shrink-0"
-                onClick={onClose}
-                title="Voltar"
-                aria-label="Voltar"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
               <span className="text-white text-sm font-medium truncate">
                 {name}
               </span>
@@ -304,18 +294,6 @@ export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) 
             onPointerLeave={handlePointerUp}
             style={{ touchAction: "none" }}
           >
-            {/* Floating close button — sempre visível em mobile */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden absolute top-3 right-3 z-20 text-white bg-black/60 hover:bg-black/80 backdrop-blur-md h-12 w-12 rounded-full shadow-lg ring-1 ring-white/20"
-              onClick={(e) => { e.stopPropagation(); onClose(); }}
-              onPointerDown={(e) => e.stopPropagation()}
-              title="Fechar"
-              aria-label="Fechar"
-            >
-              <X className="h-6 w-6" />
-            </Button>
             <motion.img
               ref={imgRef}
               initial={{ opacity: 0 }}
