@@ -50,6 +50,12 @@
     --radius: 0.375rem;
     --radius-bubble: 0.875rem;
 
+    /* Motion system — easing & durations padronizados */
+    --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 150ms;
+    --duration-base: 250ms;
+    --duration-slow: 350ms;
+
     /* Contextual semantic colors — preservados (Azul/Verde/Roxo) */
     --channel: 217 91% 60%;
     --channel-foreground: 0 0% 100%;
@@ -415,6 +421,10 @@
   .bg-offline {
     background-color: hsl(var(--offline));
   }
+
+  /* Fluid transition utilities (motion system) */
+  .transition-fluid { transition: all var(--duration-base) var(--ease-fluid); }
+  .transition-fluid-fast { transition: all var(--duration-fast) var(--ease-fluid); }
 }
 
 /* Custom animations */
@@ -533,4 +543,14 @@
 }
 .focus-mode .focus-dim {
   opacity: 0.6;
+}
+
+/* Accessibility — respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
