@@ -111,7 +111,7 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
 
   const handleDelete = () => {
     if (!memberToDelete) return;
-    if (confirmName.trim() !== memberToDelete.name) return;
+    if (confirmName.trim() !== memberToDelete.name.trim()) return;
     deleteAccount.mutate(
       { targetUserId: memberToDelete.user_id },
       {
