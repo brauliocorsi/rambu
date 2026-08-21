@@ -111,7 +111,7 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
 
   const handleDelete = () => {
     if (!memberToDelete) return;
-    if (confirmName.trim() !== memberToDelete.name) return;
+    if (confirmName.trim() !== memberToDelete.name.trim()) return;
     deleteAccount.mutate(
       { targetUserId: memberToDelete.user_id },
       {
@@ -369,14 +369,14 @@ export function MemberManagementDialog({ open, onClose }: MemberManagementDialog
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="confirm-name">Digite "{memberToDelete?.name}" para confirmar</Label>
+            <Label htmlFor="confirm-name">Digite "{memberToDelete?.name?.trim()}" para confirmar</Label>
             <Input id="confirm-name" value={confirmName} onChange={(e) => setConfirmName(e.target.value)} className="rounded-xl" />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deleteAccount.isPending || confirmName.trim() !== memberToDelete?.name}
+              disabled={deleteAccount.isPending || confirmName.trim() !== memberToDelete?.name?.trim()}
               className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir definitivamente"}
