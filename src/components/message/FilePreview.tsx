@@ -17,6 +17,8 @@ import { AudioPlayer } from "./AudioPlayer";
 import { ImageLightbox } from "./ImageLightbox";
 import { VideoPlayer } from "./VideoPlayer";
 import { getMediaKind, safeOpenExternal, type MediaKind } from "@/lib/mediaKind";
+import { useSignedUrl } from "@/lib/storageUrl";
+
 
 interface FilePreviewProps {
   url: string;
