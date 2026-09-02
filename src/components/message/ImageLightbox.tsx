@@ -3,6 +3,7 @@ import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize, AlertCircle, External
 import { Button } from "@/components/ui/button";
 import { useEffect, useCallback, useState, useRef } from "react";
 import { safeOpenExternal } from "@/lib/mediaKind";
+import { useSignedUrl } from "@/lib/storageUrl";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
@@ -15,7 +16,8 @@ interface ImageLightboxProps {
   onClose: () => void;
 }
 
-export function ImageLightbox({ url, name, open, onClose }: ImageLightboxProps) {
+export function ImageLightbox({ url: rawUrl, name, open, onClose }: ImageLightboxProps) {
+  const url = useSignedUrl(rawUrl);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });

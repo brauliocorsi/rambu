@@ -4,6 +4,7 @@ import { Maximize2, Download, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useVideoThumbnail } from "@/hooks/useVideoThumbnail";
+import { useSignedUrl } from "@/lib/storageUrl";
 
 interface VideoPlayerProps {
   url: string;
@@ -13,7 +14,8 @@ interface VideoPlayerProps {
   onExpand?: () => void;
 }
 
-export function VideoPlayer({ url, name, type, compact = false, onExpand }: VideoPlayerProps) {
+export function VideoPlayer({ url: rawUrl, name, type, compact = false, onExpand }: VideoPlayerProps) {
+  const url = useSignedUrl(rawUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState(false);
   const [started, setStarted] = useState(false);
