@@ -60,7 +60,7 @@ export function FilePreview({ url: rawUrl, name, type, onRemove, compact = false
   };
 
   // Sem URL → estado de erro genérico
-  if (!url) {
+  if (!rawUrl) {
     return (
       <div className="flex items-center gap-2 p-3 bg-secondary rounded-xl max-w-[250px] text-sm">
         <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
@@ -68,6 +68,18 @@ export function FilePreview({ url: rawUrl, name, type, onRemove, compact = false
       </div>
     );
   }
+
+  // A assinar a URL do anexo
+  if (!url) {
+    return (
+      <div
+        className={cn("animate-pulse bg-muted rounded-xl", compact ? "max-w-[200px]" : "max-w-[300px]")}
+        style={{ height: compact ? 120 : 160, width: "100%" }}
+        aria-hidden="true"
+      />
+    );
+  }
+
 
   if (kind === "audio") {
     return (
