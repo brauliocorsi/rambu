@@ -26,10 +26,12 @@ interface FilePreviewProps {
   compact?: boolean;
 }
 
-export function FilePreview({ url, name, type, onRemove, compact = false }: FilePreviewProps) {
+export function FilePreview({ url: rawUrl, name, type, onRemove, compact = false }: FilePreviewProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error">("loading");
-  const kind: MediaKind = getMediaKind(type, name, url);
+  const url = useSignedUrl(rawUrl);
+  const kind: MediaKind = getMediaKind(type, name, rawUrl);
+
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
