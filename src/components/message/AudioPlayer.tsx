@@ -4,6 +4,7 @@ import { Play, Pause, Volume2, AlertCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import { useSignedUrl } from "@/lib/storageUrl";
 
 interface AudioPlayerProps {
   url: string;
@@ -11,7 +12,8 @@ interface AudioPlayerProps {
   className?: string;
 }
 
-export function AudioPlayer({ url, compact = false, className }: AudioPlayerProps) {
+export function AudioPlayer({ url: rawUrl, compact = false, className }: AudioPlayerProps) {
+  const url = useSignedUrl(rawUrl);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);

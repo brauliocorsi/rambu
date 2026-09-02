@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { signStorageUrl, useSignedUrl } from "@/lib/storageUrl";
+import { safeOpenExternal } from "@/lib/mediaKind";
 import { ImageLightbox } from "@/components/message/ImageLightbox";
 import { VideoPlayer } from "@/components/message/VideoPlayer";
 import { Image as ImageIcon, Video, FileText, Loader2 } from "lucide-react";
@@ -121,12 +123,9 @@ export function MediaGalleryDialog({ channelId, channelName, open, onOpenChange 
                     onClick={() => setLightbox(m)}
                     className="relative aspect-square rounded-lg overflow-hidden bg-secondary hover:opacity-90 transition-opacity"
                   >
-                    <img
-                      src={m.url}
-                      alt={m.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
+                    <GalleryImage
+                      url={m.url}
+                      name={m.name}
                     />
                   </button>
                 ))}
@@ -146,18 +145,17 @@ export function MediaGalleryDialog({ channelId, channelName, open, onOpenChange 
               <ul className="space-y-1">
                 {current.map((m) => (
                   <li key={m.id}>
-                    <a
-                      href={m.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => signStorageUrl(m.url).then(safeOpenExternal)}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-left"
                     >
                       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="flex-1 truncate text-sm">{m.name}</span>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {format(new Date(m.createdAt), "dd/MM/yy", { locale: ptBR })}
                       </span>
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -175,5 +173,19 @@ export function MediaGalleryDialog({ channelId, channelName, open, onOpenChange 
         />
       )}
     </>
+  );
+}
+
+function GalleryImage({ url, name }: { url: string; name: string }) {
+  const signed = useSignedUrl(url);
+  if (!signed) return <div className="w-full h-full animate-pulse bg-muted" aria-hidden="true" />;
+  return (
+    <img
+      src={signed}
+      alt={name}
+      loading="lazy"
+      decoding="async"
+      className="w-full h-full object-cover"
+    />
   );
 }
